@@ -10,9 +10,12 @@ void StackPush(Stack* stack, void* info){
 }
 
 void* StackPop(Stack* stack){
-  StackNode* top = stack->top;
-  if(stack->top == 0) return 0;
+  StackNode* old = stack->top;
+  void* info = stack->top->info;
 
+  if(stack->top == 0) return 0;
   stack->top = stack->top->next;
-  return top->info;
+  
+  free(old);
+  return info;
 }

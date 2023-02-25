@@ -50,7 +50,8 @@ extern int yydebug;
   enum yytokentype
   {
     IDENTIFIER = 258,
-    CONSTANT = 259
+    CONSTANT = 259,
+    DECL = 260
   };
 #endif
 
@@ -63,7 +64,7 @@ union YYSTYPE
 	int num;
 	char* id;
 
-#line 67 "src/yy/y.tab.h"
+#line 68 "src/yy/y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

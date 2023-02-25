@@ -8,7 +8,7 @@ typedef struct stacknode {
 
 typedef struct{
   StackNode* top;
-} Stack;
+} Stack; 
 
 extern void  StackPush(Stack* stack, void* info);
 extern void* StackPop (Stack* stack);

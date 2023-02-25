@@ -20,7 +20,7 @@ Node* LinkedListRemoveFirst(LinkedList* list){
   Node* node = list->first;
   if(list->first == list->last) {
     list->first = 0;
-    list->last = 0;
+    list->last = 0; 
   }
   else {
     list->first = list->first->next;

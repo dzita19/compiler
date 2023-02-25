@@ -1,6 +1,9 @@
 #include "tree.h"
-#include "production.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "production.h"
 #include "util/stack.h"
 
 static Stack stack = { 0 };
@@ -35,8 +38,8 @@ void TreeNodePrint(TreeNode* root){
     root = StackPop(&preorder_stack);
 
     if(!root) continue;
-    if(root == -1) { indent++; continue; }
-    if(root == -2) { indent--; continue; }
+    if(root == (void*)-1) { indent++; continue; }
+    if(root == (void*)-2) { indent--; continue; }
 
     for(int i = 0; i < indent; i++) printf("  ");
     printf("+%s\n", production_names[root->type]);

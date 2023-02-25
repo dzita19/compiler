@@ -124,7 +124,8 @@ extern int yydebug;
   enum yytokentype
   {
     IDENTIFIER = 258,
-    CONSTANT = 259
+    CONSTANT = 259,
+    DECL = 260
   };
 #endif
 
@@ -137,7 +138,7 @@ union YYSTYPE
 	int num;
 	char* id;
 
-#line 141 "src/yy/y.tab.c"
+#line 142 "src/yy/y.tab.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -456,19 +457,19 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   28
+#define YYLAST   21
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  13
+#define YYNTOKENS  14
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  6
 /* YYNRULES -- Number of rules.  */
 #define YYNRULES  14
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  25
+#define YYNSTATES  26
 
 #define YYUNDEFTOK  2
-#define YYMAXUTOK   259
+#define YYMAXUTOK   260
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -484,9 +485,9 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-      11,    12,     9,     7,     2,     8,     2,    10,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     6,
-       2,     5,     2,     2,     2,     2,     2,     2,     2,     2,
+      12,    13,    10,     8,     2,     9,     2,    11,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     7,
+       2,     6,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -505,15 +506,16 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     1,     2,     3,     4
+       2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
+       5
 };
 
 #if YYDEBUG
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    21,    21,    22,    24,    25,    27,    28,    29,    31,
-      32,    33,    35,    36,    37
+       0,    22,    22,    23,    25,    26,    28,    29,    30,    32,
+      33,    34,    36,    37,    38
 };
 #endif
 
@@ -522,9 +524,9 @@ static const yytype_int8 yyrline[] =
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "$end", "error", "$undefined", "IDENTIFIER", "CONSTANT", "'='", "';'",
-  "'+'", "'-'", "'*'", "'/'", "'('", "')'", "$accept", "statement_list",
-  "statement", "expression", "term", "fact", YY_NULLPTR
+  "$end", "error", "$undefined", "IDENTIFIER", "CONSTANT", "DECL", "'='",
+  "';'", "'+'", "'-'", "'*'", "'/'", "'('", "')'", "$accept",
+  "statement_list", "statement", "expression", "term", "fact", YY_NULLPTR
 };
 #endif
 
@@ -533,12 +535,12 @@ static const char *const yytname[] =
    (internal) symbol number NUM (which must be that of a token).  */
 static const yytype_int16 yytoknum[] =
 {
-       0,   256,   257,   258,   259,    61,    59,    43,    45,    42,
-      47,    40,    41
+       0,   256,   257,   258,   259,   260,    61,    59,    43,    45,
+      42,    47,    40,    41
 };
 # endif
 
-#define YYPACT_NINF (-3)
+#define YYPACT_NINF (-6)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -552,9 +554,9 @@ static const yytype_int16 yytoknum[] =
      STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -3,     0,    -3,     3,    -3,    -2,    -3,    -1,     6,    -3,
-      -2,    -3,     5,    -3,    -2,    -2,    -2,    -2,    14,    -3,
-       6,     6,    -3,    -3,    -3
+      -6,     2,    -6,     7,    15,    -6,    -3,    14,    -6,    -6,
+      -3,     3,     4,    -6,    -6,    -5,    -6,    -3,    -3,    -3,
+      -3,    -6,     4,     4,    -6,    -6
 };
 
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -562,21 +564,21 @@ static const yytype_int8 yypact[] =
      means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       2,     0,     1,    13,    14,     0,     3,     0,     6,     9,
-       0,    13,     0,     5,     0,     0,     0,     0,     0,    12,
-       7,     8,    10,    11,     4
+       2,     0,     1,     0,     0,     3,     0,     0,    13,    14,
+       0,     0,     6,     9,     5,     0,     4,     0,     0,     0,
+       0,    12,     7,     8,    10,    11
 };
 
   /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-      -3,    -3,    -3,     9,    10,    11
+      -6,    -6,    -6,    -4,    -1,     0
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-      -1,     1,     6,     7,     8,     9
+      -1,     1,     5,    11,    12,    13
 };
 
   /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -584,38 +586,38 @@ static const yytype_int8 yydefgoto[] =
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-       2,    11,     4,     3,     4,    13,    14,    15,    10,     5,
-       0,     5,    14,    15,    12,    16,    17,    19,     0,    18,
-      24,    14,    15,     0,    20,    21,     0,    22,    23
+       8,     9,     2,    17,    18,     3,    15,     4,    21,    10,
+      16,    17,    18,     6,    19,    20,    22,    23,     7,    24,
+      25,    14
 };
 
 static const yytype_int8 yycheck[] =
 {
-       0,     3,     4,     3,     4,     6,     7,     8,     5,    11,
-      -1,    11,     7,     8,     5,     9,    10,    12,    -1,    10,
-       6,     7,     8,    -1,    14,    15,    -1,    16,    17
+       3,     4,     0,     8,     9,     3,    10,     5,    13,    12,
+       7,     8,     9,     6,    10,    11,    17,    18,     3,    19,
+      20,     7
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
      symbol of state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,    14,     0,     3,     4,    11,    15,    16,    17,    18,
-       5,     3,    16,     6,     7,     8,     9,    10,    16,    12,
-      17,    17,    18,    18,     6
+       0,    15,     0,     3,     5,    16,     6,     3,     3,     4,
+      12,    17,    18,    19,     7,    17,     7,     8,     9,    10,
+      11,    13,    18,    18,    19,    19
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_int8 yyr1[] =
 {
-       0,    13,    14,    14,    15,    15,    16,    16,    16,    17,
-      17,    17,    18,    18,    18
+       0,    14,    15,    15,    16,    16,    17,    17,    17,    18,
+      18,    18,    19,    19,    19
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     0,     2,     4,     2,     1,     3,     3,     1,
+       0,     2,     0,     2,     4,     3,     1,     3,     3,     1,
        3,     3,     3,     1,     1
 };
 
@@ -1312,85 +1314,85 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 21 "spec/parser_spec.y"
+#line 22 "spec/parser_spec.y"
                         { root = TreeNodeCreate(PROD_STMTLIST_EMPTY, 0); }
-#line 1318 "src/yy/y.tab.c"
+#line 1320 "src/yy/y.tab.c"
     break;
 
   case 3:
-#line 22 "spec/parser_spec.y"
+#line 23 "spec/parser_spec.y"
                                    { root = TreeNodeCreate(PROD_STMTLIST_REC, 2); }
-#line 1324 "src/yy/y.tab.c"
+#line 1326 "src/yy/y.tab.c"
     break;
 
   case 4:
-#line 24 "spec/parser_spec.y"
-                                          { printf("%s ", (yyvsp[-3].id)); TreeNodeCreate(PROD_STMT_ASSIGN, 1); }
-#line 1330 "src/yy/y.tab.c"
+#line 25 "spec/parser_spec.y"
+                                          { TreeNodeCreate(PROD_STMT_ASSIGN, 2); }
+#line 1332 "src/yy/y.tab.c"
     break;
 
   case 5:
-#line 25 "spec/parser_spec.y"
-                         { TreeNodeCreate(PROD_STMT_EXPR, 1); }
-#line 1336 "src/yy/y.tab.c"
+#line 26 "spec/parser_spec.y"
+                              { TreeNodeCreate(PROD_STMT_DECL, 1); }
+#line 1338 "src/yy/y.tab.c"
     break;
 
   case 6:
-#line 27 "spec/parser_spec.y"
+#line 28 "spec/parser_spec.y"
                   { TreeNodeCreate(PROD_EXPR_CONV, 1); }
-#line 1342 "src/yy/y.tab.c"
+#line 1344 "src/yy/y.tab.c"
     break;
 
   case 7:
-#line 28 "spec/parser_spec.y"
+#line 29 "spec/parser_spec.y"
                               { TreeNodeCreate(PROD_EXPR_ADD, 2); }
-#line 1348 "src/yy/y.tab.c"
+#line 1350 "src/yy/y.tab.c"
     break;
 
   case 8:
-#line 29 "spec/parser_spec.y"
+#line 30 "spec/parser_spec.y"
                               { TreeNodeCreate(PROD_EXPR_SUB, 2); }
-#line 1354 "src/yy/y.tab.c"
+#line 1356 "src/yy/y.tab.c"
     break;
 
   case 9:
-#line 31 "spec/parser_spec.y"
+#line 32 "spec/parser_spec.y"
             { TreeNodeCreate(PROD_TERM_CONV, 1); }
-#line 1360 "src/yy/y.tab.c"
+#line 1362 "src/yy/y.tab.c"
     break;
 
   case 10:
-#line 32 "spec/parser_spec.y"
+#line 33 "spec/parser_spec.y"
                         { TreeNodeCreate(PROD_TERM_MUL, 2); }
-#line 1366 "src/yy/y.tab.c"
+#line 1368 "src/yy/y.tab.c"
     break;
 
   case 11:
-#line 33 "spec/parser_spec.y"
+#line 34 "spec/parser_spec.y"
                         { TreeNodeCreate(PROD_TERM_DIV, 2); }
-#line 1372 "src/yy/y.tab.c"
+#line 1374 "src/yy/y.tab.c"
     break;
 
   case 12:
-#line 35 "spec/parser_spec.y"
+#line 36 "spec/parser_spec.y"
                           { TreeNodeCreate(PROD_FACT_ENCLOSED, 1); }
-#line 1378 "src/yy/y.tab.c"
+#line 1380 "src/yy/y.tab.c"
     break;
 
   case 13:
-#line 36 "spec/parser_spec.y"
-                     { printf("%s ", (yyvsp[0].id)); TreeNodeCreate(PROD_FACT_ID, 0); }
-#line 1384 "src/yy/y.tab.c"
+#line 37 "spec/parser_spec.y"
+                     { printf("%s ", (yyvsp[0].id)); TreeNodeCreate(PROD_FACT_ID, 1); }
+#line 1386 "src/yy/y.tab.c"
     break;
 
   case 14:
-#line 37 "spec/parser_spec.y"
-                   { printf("%d ", (yyvsp[0].num)); TreeNodeCreate(PROD_FACT_CONST, 0); }
-#line 1390 "src/yy/y.tab.c"
+#line 38 "spec/parser_spec.y"
+                   { printf("%d ", (yyvsp[0].num)); TreeNodeCreate(PROD_FACT_CONST, 1); }
+#line 1392 "src/yy/y.tab.c"
     break;
 
 
-#line 1394 "src/yy/y.tab.c"
+#line 1396 "src/yy/y.tab.c"
 
       default: break;
     }
@@ -1622,7 +1624,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 39 "spec/parser_spec.y"
+#line 40 "spec/parser_spec.y"
 
 #include <stdio.h>
 
