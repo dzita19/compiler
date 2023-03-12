@@ -3,6 +3,8 @@
 
 #include "obj.h"
 
+#include "util/linked_list.h"
+
 typedef enum ScopeType{
   SCOPE_FUNCTION,
   SCOPE_FILE,
@@ -12,17 +14,19 @@ typedef enum ScopeType{
 
 typedef struct Scope{
   struct Scope* outer; // points to father scope
-  struct Scope* next; // points to brother scope
-  struct Scope* rightmost; // points to rightmost son
-  Obj* first_obj;
-  Obj* last_obj;
+  LinkedList children;
+  LinkedList objs;
   ScopeType type;
 } Scope;
 
 // scope owns all objs inserted into it - FREE THEM!!!
 
+extern Scope* ScopeCreateEmpty();
+extern void   ScopeDrop(Scope* scope); // claims ownership of the object
+extern void   ScopeDump(Scope* scope);
+
 extern void ScopeInsert(Scope* scope, Obj* obj);
 extern Obj* ScopeFind(Scope* scope, const char* symbol_name);
-extern void ScopeDrop(Scope* scope); // doesn't claim ownership of the object
+extern Obj* ScopeFindNamespace(Scope* scope, const char* symbol_name, ObjNamespace namespace);
 
 #endif

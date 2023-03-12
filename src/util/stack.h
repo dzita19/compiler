@@ -1,16 +1,18 @@
 #ifndef _STACK_H_
 #define _STACK_H_
 
-typedef struct stacknode {
+typedef struct StackNode {
   void* info;
-  struct stacknode* next;
+  struct StackNode* next;
 } StackNode;
 
 typedef struct{
   StackNode* top;
 } Stack; 
 
-extern void  StackPush(Stack* stack, void* info);
-extern void* StackPop (Stack* stack);
+extern void   StackPush (Stack* stack, void* info);
+extern void*  StackPop  (Stack* stack);
+extern void*  StackPeek (Stack* stack);
+extern int    StackEmpty(Stack* stack);
 
 #endif

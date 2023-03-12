@@ -1,0 +1,18 @@
+{
+  "files.associations": {
+    "linked_list.h": "c",
+    "testfile": "cpp",
+    "symtab.h": "c",
+    "struct.h": "c",
+    "array": "c",
+    "deque": "c",
+    "string": "c",
+    "vector": "c",
+    "iterator": "c",
+    "string_view": "c",
+    "typeinfo": "c",
+    "random": "c",
+    "obj.h": "c",
+    "memory_safety.h": "c"
+  }
+}

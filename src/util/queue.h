@@ -1,9 +1,9 @@
 #ifndef _QUEUE_H_
 #define _QUEUE_H_
 
-typedef struct queuenode {
+typedef struct QueueNode {
   void* info;
-  struct queuenode* next;
+  struct QueueNode* next;
 } QueueNode;
 
 typedef struct{

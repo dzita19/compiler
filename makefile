@@ -13,10 +13,20 @@ BISON_OUTFILE = y.tab.c
 C_SOURCE_LIST = src/yy/$(FLEX_OUTFILE) \
 	src/yy/$(BISON_OUTFILE) \
 	src/compiler.c \
-	src/ast/tree.c \
-	src/ast/production.c \
 	src/util/stack.c \
-	src/util/linked_list.c 
+	src/util/queue.c \
+	src/util/linked_list.c \
+	src/util/memory_safety.c \
+	src/symtab/obj.c \
+	src/symtab/scope.c \
+	src/symtab/struct.c \
+	src/symtab/symtab.c \
+	src/stmt/tree.c \
+	src/stmt/production.c \
+	src/decl/declarations.c \
+	src/decl/specifiers.c \
+	src/decl/declarators.c \
+	src/decl/indirections.c
 
 CPP_SOURCE_LIST = 
 
@@ -48,6 +58,9 @@ parser_gen: $(SPEC_DIR)/$(BISON_SPEC) makefile
 
 lexer_gen: $(SPEC_DIR)/$(FLEX_SPEC) makefile
 	flex --outfile=src/yy/$(FLEX_OUTFILE) $(SPEC_DIR)/$(FLEX_SPEC)
+
+clean:
+	rm -rf build
 
 $(BUILD_DIR)/$(PROGRAM) : $(C_OBJECT_LIST) makefile | $(BUILD_DIR)
 	g++ -o $(@) $(C_OBJECT_LIST)

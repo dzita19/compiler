@@ -12,7 +12,8 @@ TreeNode* root = 0;
 TreeNode* TreeNodeCreate(int type, int num_of_children){
   TreeNode* node = malloc(sizeof(TreeNode));
 
-  printf("NODE CREATED: %s\n", production_names[type]);
+  if(production_names[type])
+    printf("NODE CREATED: %s\n", production_names[type]);
 
   node->type = type;
   node->num_of_children = num_of_children;
@@ -22,9 +23,12 @@ TreeNode* TreeNodeCreate(int type, int num_of_children){
 
   for(int i = num_of_children - 1; i >= 0; i--){
     node->children[i] = StackPop(&stack);
+    node->children[i]->parent = node;
   }
 
   StackPush(&stack, node);
+  root = node;
+
   return node;
 }
 
@@ -41,8 +45,10 @@ void TreeNodePrint(TreeNode* root){
     if(root == (void*)-1) { indent++; continue; }
     if(root == (void*)-2) { indent--; continue; }
 
-    for(int i = 0; i < indent; i++) printf("  ");
-    printf("+%s\n", production_names[root->type]);
+    if(production_names[root->type]){
+      for(int i = 0; i < indent; i++) printf("  ");
+      printf("+%s\n", production_names[root->type]);
+    }
 
     StackPush(&preorder_stack, (void*)-2);
     for(int i = root->num_of_children - 1; i >= 0; i--){

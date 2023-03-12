@@ -3,11 +3,12 @@
 
 #include "yy/y.tab.h"
 
-typedef struct treenode{
+typedef struct TreeNode{
   int type;
   YYSTYPE info;
   int num_of_children;
-  struct treenode** children;
+  struct TreeNode* parent;
+  struct TreeNode** children;
 } TreeNode;
 
 extern TreeNode* root;

@@ -1,5 +1,7 @@
 #include "queue.h"
 
+#include <stdlib.h>
+
 void  QueueInsert(Queue* queue, void* info){
   QueueNode* node = malloc(sizeof(QueueNode));
   node->info = info;

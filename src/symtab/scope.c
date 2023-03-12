@@ -1,29 +1,98 @@
 #include "scope.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "util/queue.h"
+#include "util/memory_safety.h"
+
+Scope* ScopeCreateEmpty(){
+  Scope* scope = malloc(sizeof(Scope));
+
+  scope->outer = 0;
+  
+  scope->children.first = 0;
+  scope->children.last = 0;
+
+  scope->objs.first = 0;
+  scope->objs.last = 0;
+
+  scope->type = 0;
+
+  scope_alloc++;
+
+  return scope;
+}
+
+void ScopeDrop(Scope* scope){
+  for(Node* node = scope->objs.first; node; node = node->next){
+    ObjDrop(node->info);
+  }
+
+  LinkedListDelete(&scope->children);
+
+  for(Node* node = scope->children.first; node; node = node->next){
+    ScopeDrop(node->info);
+  }
+  
+  LinkedListDelete(&scope->children);
+
+  free(scope);
+
+  scope_free++;
+}
+
+extern int dump_indent;
+
+extern void print_indent();
+
+void ScopeDump(Scope* scope){
+  static const char* scope_type_print[] = {
+    [SCOPE_FUNCTION]        = "function",
+    [SCOPE_FILE]            = "file",
+    [SCOPE_BLOCK]           = "block",
+    [SCOPE_FUNC_PROTOTYPE]  = "function prototype",
+  };
+  
+  dump_indent++;
+
+  print_indent();
+  printf("Scope: %s [\n", scope_type_print[scope->type]);
+  for(Node* node = scope->objs.first; node; node = node->next){
+    Obj* obj = node->info;
+    ObjDump(obj);
+  }
+  
+  for(Node* node = scope->children.first; node; node = node->next){
+    Scope* scope = node->info;
+    ScopeDump(scope);
+  }
+
+  print_indent();
+  printf("]\n");
+
+  dump_indent--;
+}
+
 void ScopeInsert(Scope* scope, Obj* obj){
-  if(scope->last_obj)
-    scope->last_obj->next = obj;
-  else
-    scope->first_obj = obj;
-  scope->last_obj = obj;
+  Node* node = NodeCreateEmpty();
+  node->info = obj;
+  LinkedListInsertLast(&scope->objs, node);
 }
 
 Obj* ScopeFind(Scope* scope, const char* symbol_name){
-  for(Obj* obj = scope->first_obj; obj; obj = obj->next){
-    if(strcmp(obj->name, symbol_name) == 0){
-      return obj;
-    }
+  for(Node* node = scope->objs.first; node; node = node->next){
+    Obj* obj = node->info;
+    if(strcmp(obj->name, symbol_name) == 0) return obj;
   }
   return 0;
 }
 
-void ScopeDrop(Scope* scope){
-  while(scope->first_obj){
-    scope->last_obj = scope->first_obj;
-    scope->first_obj = scope->first_obj->next;
-
-    ObjDrop(scope->last_obj);
-
-    free(scope->last_obj);
+Obj* ScopeFindNamespace(Scope* scope, const char* symbol_name, ObjNamespace namespace){
+  for(Node* node = scope->objs.first; node; node = node->next){
+    Obj* obj = node->info;
+    if(strcmp(obj->name, symbol_name) == 0
+      && namespaces[obj->kind] == namespace) return obj;
   }
+  return 0;
 }

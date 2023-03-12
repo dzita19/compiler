@@ -19,3 +19,11 @@ void* StackPop(Stack* stack){
   free(old);
   return info;
 }
+
+void* StackPeek(Stack* stack){
+  return stack->top->info;
+}
+
+extern int StackEmpty(Stack* stack){
+  return stack->top == 0;
+}

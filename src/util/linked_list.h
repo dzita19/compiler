@@ -7,14 +7,25 @@ typedef struct node {
   struct node* next;
 } Node;
 
-typedef struct {
+Node* NodeCreateEmpty();
+void  NodeDrop(Node*);
+
+typedef struct LinkedList {
   Node* first;
   Node* last;
 } LinkedList;
 
-void  LinkedListInsertFirst(LinkedList*, Node*);
-void  LinkedListInsertLast (LinkedList*, Node*);
-Node* LinkedListRemoveFirst(LinkedList*);
-Node* LinkedListRenoveLast (LinkedList*);
+LinkedList* LinkedListCreateEmpty();
+void        LinkedListDrop(LinkedList*); // claims ownership of the object
+
+void        LinkedListInsertFirst (LinkedList*, Node*);
+void        LinkedListInsertLast  (LinkedList*, Node*);
+void        LinkedListInsertAfter (LinkedList*, Node*, Node*);
+void        LinkedListInsertBefore(LinkedList*, Node*, Node*);
+Node*       LinkedListRemoveFirst (LinkedList*);
+Node*       LinkedListRemoveLast  (LinkedList*);
+Node*       LinkedListRemoveFrom  (LinkedList*, Node*);
+void        LinkedListDelete      (LinkedList*);
+LinkedList* LinkedListDuplicate   (LinkedList*);
 
 #endif

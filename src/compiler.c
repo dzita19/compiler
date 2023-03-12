@@ -1,15 +1,20 @@
 #include <stdio.h>
 
-#include "ast/tree.h"
-#include "ast/production.h"
+#include "stmt/tree.h"
+#include "stmt/production.h"
+#include "decl/declarations.h"
+#include "symtab/symtab.h"
 
 extern FILE* yyin;
 extern int yyparse();
 
 extern TreeNode* root;
 
+extern Symtab* symtab;
+
 int main(){
   initialize_productions_table();
+  declarations_init();
 
 	yyin = fopen("test/testfile", "r");
 	if(yyparse() == 0){
@@ -20,7 +25,10 @@ int main(){
   }
 
   printf("\n");
-  TreeNodePrint(root);
+  /*TreeNodePrint(root);*/
+  
+  SymtabDump(symtab);
+
 
 	return 0;
 }

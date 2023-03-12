@@ -51,7 +51,62 @@ extern int yydebug;
   {
     IDENTIFIER = 258,
     CONSTANT = 259,
-    DECL = 260
+    STRING_LITERAL = 260,
+    SIZEOF_ = 261,
+    PTR_OP = 262,
+    INC_OP = 263,
+    DEC_OP = 264,
+    LEFT_OP = 265,
+    RIGHT_OP = 266,
+    LE_OP = 267,
+    GE_OP = 268,
+    EQ_OP = 269,
+    NE_OP = 270,
+    AND_OP = 271,
+    OR_OP = 272,
+    MUL_ASSIGN = 273,
+    DIV_ASSIGN = 274,
+    MOD_ASSIGN = 275,
+    ADD_ASSIGN = 276,
+    SUB_ASSIGN = 277,
+    LEFT_ASSIGN = 278,
+    RIGHT_ASSIGN = 279,
+    AND_ASSIGN = 280,
+    XOR_ASSIGN = 281,
+    OR_ASSIGN = 282,
+    TYPE_NAME = 283,
+    TYPEDEF_ = 284,
+    EXTERN_ = 285,
+    STATIC_ = 286,
+    AUTO_ = 287,
+    REGISTER_ = 288,
+    CHAR_ = 289,
+    SHORT_ = 290,
+    INT_ = 291,
+    LONG_ = 292,
+    SIGNED_ = 293,
+    UNSIGNED_ = 294,
+    FLOAT_ = 295,
+    DOUBLE_ = 296,
+    CONST_ = 297,
+    VOLATILE_ = 298,
+    VOID_ = 299,
+    STRUCT_ = 300,
+    UNION_ = 301,
+    ENUM_ = 302,
+    ELLIPSIS = 303,
+    CASE_ = 304,
+    DEFAULT_ = 305,
+    IF_ = 306,
+    ELSE_ = 307,
+    SWITCH_ = 308,
+    WHILE_ = 309,
+    DO_ = 310,
+    FOR_ = 311,
+    GOTO_ = 312,
+    CONTINUE_ = 313,
+    BREAK_ = 314,
+    RETURN_ = 315
   };
 #endif
 
@@ -59,12 +114,13 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 10 "spec/parser_spec.y"
+#line 15 "spec/parser_spec.y"
 
 	int num;
 	char* id;
+	char* string_literal;
 
-#line 68 "src/yy/y.tab.h"
+#line 124 "src/yy/y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

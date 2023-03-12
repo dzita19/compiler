@@ -1,0 +1,26 @@
+/*int a;
+
+unsigned **b;
+
+int (*c)[];
+
+char *(*d)[];
+
+int *(*(*(e)));
+
+unsigned **(f)[];
+
+int (*(*g)(int ((*)()), char **))(long*, void**);*/
+
+/*struct A;
+
+const struct A* ptr;
+
+struct A{
+  int x, y;
+  char z;
+};*/
+
+struct a{
+  const volatile int * const * b;
+} ** const * volatile a;

@@ -167,11 +167,11 @@ declaration
 	;
 
 declaration_specifiers
-	: storage_class_specifier	{ DeclarationSpecifiers(); }
+	: storage_class_specifier
 	| storage_class_specifier declaration_specifiers
-	| type_specifier	{ DeclarationSpecifiers(); }
+	| type_specifier
 	| type_specifier declaration_specifiers
-	| type_qualifier	{ DeclarationSpecifiers(); }
+	| type_qualifier
 	| type_qualifier declaration_specifiers
 	;
 
@@ -220,7 +220,7 @@ struct_or_union
 	;
 
 tag_name
-	: IDENTIFIER { IdentifierName(yylval.id); }
+	: IDENTIFIER { TagName(yylval.id); }
 	;
 
 tag_def_open
@@ -237,7 +237,7 @@ struct_declaration_list
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list ';' { Declaration(); }
+	: specifier_qualifier_list struct_declarator_list ';'
 	;
 
 specifier_qualifier_list
@@ -274,8 +274,8 @@ enumerator_list
 	;
 
 enumerator
-	: declarator_name { EnumeratorDefault(); }
-	| declarator_name '=' constant_expression { EnumeratorCustom(); }
+	: IDENTIFIER { EnumeratorDefault(yylval.id); }
+	| IDENTIFIER '=' constant_expression { EnumeratorCustom(yylval.id); }
 	;
 
 type_qualifier
@@ -284,22 +284,18 @@ type_qualifier
 	;
 
 declarator
-	: pointer direct_declarator { NestedDeclarator(); }
+	: pointer direct_declarator
 	| direct_declarator
 	;
 
 direct_declarator
-	: declarator_name
-	| '(' declarator ')' { /*NestedDeclarator();*/ }
+	: IDENTIFIER { DeclaratorName(yylval.id); }
+	| '(' declarator ')' { NestedDeclarator(); }
 	| direct_declarator '[' constant_expression ']' { ArrayLengthDeclarator(); }
 	| direct_declarator '[' ']' { ArrayVariableDeclarator(); }
 	| direct_declarator function_params_open parameter_type_list function_params_close { FunctionDeclarator(); }
 	| direct_declarator function_params_open identifier_list function_params_close { FunctionDeclarator(); }
 	| direct_declarator function_params_open function_params_close { FunctionDeclarator(); }
-	;
-
-declarator_name
-	: IDENTIFIER { IdentifierName(yyval.id); }
 	;
 
 function_params_open
@@ -328,8 +324,8 @@ parameter_type_list
 	;
 
 parameter_list
-	: parameter_declaration { Declaration(); }
-	| parameter_list ',' parameter_declaration { Declaration(); }
+	: parameter_declaration
+	| parameter_list ',' parameter_declaration
 	;
 
 parameter_declaration
@@ -339,12 +335,12 @@ parameter_declaration
 	;
 
 identifier_list
-	: function_param_name { Declaration(); }
-	| identifier_list ',' function_param_name { Declaration(); }
+	: function_param_name
+	| identifier_list ',' function_param_name
 	;
 
 function_param_name
-	: declarator_name { Declarator(); }
+	: IDENTIFIER { DeclaratorName(yylval.id); Declarator(); }
 	;
 
 type_name
@@ -353,13 +349,13 @@ type_name
 	;
 
 abstract_declarator
-	: pointer { NestedDeclarator(); }
+	: pointer
 	| direct_abstract_declarator
-	| pointer direct_abstract_declarator { NestedDeclarator(); }
+	| pointer direct_abstract_declarator
 	;
 
 direct_abstract_declarator
-	: '(' abstract_declarator ')' { /*NestedDeclarator();*/ }
+	: '(' abstract_declarator ')' { NestedDeclarator(); }
 	| '[' ']' { ArrayVariableDeclarator(); }
 	| '[' constant_expression ']'  { ArrayLengthDeclarator(); }
 	| direct_abstract_declarator '[' ']'  { ArrayVariableDeclarator(); }
