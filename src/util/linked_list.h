@@ -26,6 +26,6 @@ Node*       LinkedListRemoveFirst (LinkedList*);
 Node*       LinkedListRemoveLast  (LinkedList*);
 Node*       LinkedListRemoveFrom  (LinkedList*, Node*);
 void        LinkedListDelete      (LinkedList*);
-LinkedList* LinkedListDuplicate   (LinkedList*);
+LinkedList  LinkedListDuplicate   (LinkedList*); // allocates node, doesn't allocate list
 
 #endif

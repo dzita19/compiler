@@ -4,6 +4,10 @@
 	#include "stmt/production.h"
 
 	#include "decl/declarations.h"
+	#include "decl/specifiers.h"
+	#include "decl/declarators.h"
+	#include "decl/indirections.h"
+	#include "decl/blocks.h"
 
 	#include "symtab/obj.h"
 	#include "symtab/struct.h"
@@ -162,16 +166,16 @@ constant_expression
 	;
 
 declaration
-	: declaration_specifiers ';' { Declaration(); }
+	: declaration_specifiers ';' { NoDeclarators(); Declaration(); }
 	| declaration_specifiers init_declarator_list ';' { Declaration(); }
 	;
 
 declaration_specifiers
-	: storage_class_specifier
+	: storage_class_specifier	{ DeclarationSpecifiers(); }
 	| storage_class_specifier declaration_specifiers
-	| type_specifier
+	| type_specifier	{ DeclarationSpecifiers(); }
 	| type_specifier declaration_specifiers
-	| type_qualifier
+	| type_qualifier	{ DeclarationSpecifiers(); }
 	| type_qualifier declaration_specifiers
 	;
 
@@ -181,8 +185,8 @@ init_declarator_list
 	;
 
 init_declarator
-	: declarator { Declarator(); }
-	| declarator '=' initializer { DeclaratorInitialized(); }
+	: declarator { Declarator(); NotFunctionDefinition(); }
+	| declarator '=' initializer { DeclaratorInitialized(); NotFunctionDefinition(); }
 	;
 
 storage_class_specifier
@@ -209,9 +213,9 @@ type_specifier
 	;
 
 struct_or_union_specifier
-	: struct_or_union tag_name tag_def_open struct_declaration_list tag_def_close { TagNamedDef(); }
-	| struct_or_union tag_def_open struct_declaration_list tag_def_close { TagAnonymousDef(); }
-	| struct_or_union tag_name { TagNamedDecl(); }
+	: struct_or_union tag_name tag_def_open struct_declaration_list tag_def_close { TagDefined(); }
+	| struct_or_union tag_def_open struct_declaration_list tag_def_close { TagDefined(); }
+	| struct_or_union tag_name { TagDeclared(); }
 	;
 
 struct_or_union
@@ -220,7 +224,7 @@ struct_or_union
 	;
 
 tag_name
-	: IDENTIFIER { TagName(yylval.id); }
+	: IDENTIFIER { IdentifierName(yylval.id); }
 	;
 
 tag_def_open
@@ -237,7 +241,7 @@ struct_declaration_list
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list ';'
+	: specifier_qualifier_list struct_declarator_list ';' { Declaration(); }
 	;
 
 specifier_qualifier_list
@@ -259,9 +263,9 @@ struct_declarator
 	;
 
 enum_specifier
-	: enum tag_name tag_def_open enumerator_list tag_def_close { TagNamedDef(); }
-	| enum tag_def_open enumerator_list tag_def_close { TagAnonymousDef(); }
-	| enum tag_name { TagNamedDecl(); }
+	: enum tag_name tag_def_open enumerator_list tag_def_close { TagDefined(); }
+	| enum tag_def_open enumerator_list tag_def_close { TagDefined(); }
+	| enum tag_name { TagDeclared(); }
 	;
 
 enum
@@ -274,8 +278,8 @@ enumerator_list
 	;
 
 enumerator
-	: IDENTIFIER { EnumeratorDefault(yylval.id); }
-	| IDENTIFIER '=' constant_expression { EnumeratorCustom(yylval.id); }
+	: declarator_name { EnumeratorDefault(); }
+	| declarator_name '=' constant_expression { EnumeratorCustom(); }
 	;
 
 type_qualifier
@@ -284,18 +288,22 @@ type_qualifier
 	;
 
 declarator
-	: pointer direct_declarator
+	: pointer direct_declarator { NestedDeclarator(); }
 	| direct_declarator
 	;
 
 direct_declarator
-	: IDENTIFIER { DeclaratorName(yylval.id); }
-	| '(' declarator ')' { NestedDeclarator(); }
+	: declarator_name
+	| '(' declarator ')' { /*NestedDeclarator();*/ }
 	| direct_declarator '[' constant_expression ']' { ArrayLengthDeclarator(); }
 	| direct_declarator '[' ']' { ArrayVariableDeclarator(); }
 	| direct_declarator function_params_open parameter_type_list function_params_close { FunctionDeclarator(); }
 	| direct_declarator function_params_open identifier_list function_params_close { FunctionDeclarator(); }
 	| direct_declarator function_params_open function_params_close { FunctionDeclarator(); }
+	;
+
+declarator_name
+	: IDENTIFIER { IdentifierName(yyval.id); }
 	;
 
 function_params_open
@@ -324,8 +332,8 @@ parameter_type_list
 	;
 
 parameter_list
-	: parameter_declaration
-	| parameter_list ',' parameter_declaration
+	: parameter_declaration { Declaration(); }
+	| parameter_list ',' parameter_declaration { Declaration(); }
 	;
 
 parameter_declaration
@@ -335,12 +343,12 @@ parameter_declaration
 	;
 
 identifier_list
-	: function_param_name
-	| identifier_list ',' function_param_name
+	: function_param_name { Declaration(); }
+	| identifier_list ',' function_param_name { Declaration(); }
 	;
 
 function_param_name
-	: IDENTIFIER { DeclaratorName(yylval.id); Declarator(); }
+	: declarator_name { Declarator(); }
 	;
 
 type_name
@@ -349,13 +357,13 @@ type_name
 	;
 
 abstract_declarator
-	: pointer
+	: pointer { NestedDeclarator(); }
 	| direct_abstract_declarator
-	| pointer direct_abstract_declarator
+	| pointer direct_abstract_declarator { NestedDeclarator(); }
 	;
 
 direct_abstract_declarator
-	: '(' abstract_declarator ')' { NestedDeclarator(); }
+	: '(' abstract_declarator ')' { /*NestedDeclarator();*/ }
 	| '[' ']' { ArrayVariableDeclarator(); }
 	| '[' constant_expression ']'  { ArrayLengthDeclarator(); }
 	| direct_abstract_declarator '[' ']'  { ArrayVariableDeclarator(); }
@@ -393,26 +401,31 @@ labeled_statement
 	;
 
 compound_statement
-	: block_begin block_end
-	| block_begin statement_list block_end
-	| block_begin declaration_list block_end
-	| block_begin declaration_list statement_list block_end
+	: block_open block_close
+	| block_open block block_close
 	;
 
-block_begin
-	: '{';
+block_open
+	: '{' { BlockOpen(); }
+	;
 
-block_end
-	: '}' ;
+block_close
+	: '}' { BlockClose(); }
+	;
+
+block
+	: block_item
+	| block_item block
+	;
+
+block_item
+	: statement
+	| declaration
+	;
 
 declaration_list
 	: declaration
 	| declaration_list declaration
-	;
-
-statement_list
-	: statement
-	| statement_list statement
 	;
 
 expression_statement
@@ -452,10 +465,8 @@ external_declaration
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement
-	| declaration_specifiers declarator compound_statement
-	| declarator declaration_list compound_statement
-	| declarator compound_statement
+	: declaration_specifiers declarator declaration_list compound_statement { FunctionDefinition(); }
+	| declaration_specifiers declarator compound_statement	{ FunctionDefinition(); }
 	;
 
 %%

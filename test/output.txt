@@ -1,0 +1,90 @@
+Parsing finished successfully
+
+Symtab: [
+ Predefined types:
+ void
+ int8
+ uint8
+ int16
+ uint16
+ int32
+  function() returning int32
+ uint32
+ int64
+ uint64
+
+ Scope: file [
+  Obj: tag [
+   Name: a; Tag type: struct; Definition: defined; Size: 0x0004; Align: 0x0004
+   Type: [
+    struct a: int32 x (0x0000)
+     (*) to struct a
+      (*) to (*) to struct a
+   ]
+  ]
+  Obj: variable [
+   Name: aaa; Address: 0x0000; Definition: tentative; Storage: static; Linkage: external;
+   Type: [(*) to struct a]
+  ]
+  Obj: variable [
+   Name: main; Address: 0x0000; Definition: defined; Storage: static; Linkage: external;
+   Type: [function() returning int32]
+  ]
+  Scope: function prototype [
+   Scope: block [
+    Obj: variable [
+     Name: bbb; Address: 0x0000; Definition: defined; Storage: auto; Linkage: none;
+     Type: [(*) to (*) to struct a]
+    ]
+    Obj: tag [
+     Name: a; Tag type: struct; Definition: defined; Size: 0x0008; Align: 0x0004
+     Type: [
+      struct a: int32 y (0x0000), int32 z (0x0004)
+       (*) to struct a
+     ]
+    ]
+    Obj: variable [
+     Name: ccc; Address: 0x0004; Definition: defined; Storage: auto; Linkage: none;
+     Type: [(*) to struct a]
+    ]
+    Obj: variable [
+     Name: ddd; Address: 0x0008; Definition: defined; Storage: auto; Linkage: none;
+     Type: [struct a]
+    ]
+    Scope: block [
+    ]
+   ]
+  ]
+ ]
+]
+
+Translation unit 
+-Function body 
+--Compound statement 
+---Empty statement 
+
+Memory safety report: [
+-Symtab: [
+--Symtab          allocated =    1, freed =    1;
+--Scope           allocated =    4, freed =    4;
+--Obj             allocated =   15, freed =   15;
+--Struct          allocated =   11, freed =   11;
+-]
+-Utility: [
+--LinkedList      allocated =    3, freed =    3;
+--Node            allocated =   26, freed =   26;
+--String          allocated =   15, freed =   15;
+-]
+-Declarations: [
+--TypeFrame       allocated =    2, freed =    2;
+--NameFrame       allocated =    2, freed =    2;
+--ConstExpr       allocated =    0, freed =    0;
+-]
+-Statements: [
+--TreeNode        allocated =    4, freed =    4;
+--Tree            allocated =    1, freed =    1;
+--Numlit          allocated =    0, freed =    0;
+--ExprNode        allocated =    0, freed =    0;
+--LogicNode       allocated =    0, freed =    0;
+-]
+]

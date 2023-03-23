@@ -4,6 +4,8 @@
 #include "obj.h"
 #include "util/stack.h"
 
+extern const int POINTER_SIZE;
+
 typedef enum PredefinedType {
     VOID_T,
     INT8_T,
@@ -36,24 +38,33 @@ typedef enum TypeQualifier{
 } TypeQualifier;
 
 typedef enum StructKind {
-  STRUCT_SCALAR,
+  STRUCT_DIRECT,
   STRUCT_QUALIFIED,
   STRUCT_ARRAY,
   STRUCT_POINTER,
   STRUCT_FUNCTION,
 } StructKind;
 
+typedef enum StructType{
+  TYPE_OBJECT,
+  TYPE_FUNCTION,
+  TYPE_INCOMPLETE,
+  TYPE_ARRAY_UNSPEC,
+} StructType;
+
 struct Obj;
 
 typedef struct Struct {
   struct Obj* obj;
   StructKind kind;
+  StructType type;
   struct Struct* parent;
-  LinkedList children;
+  LinkedList derived;
   LinkedList parameters;
   int attributes; // type qualifiers for qualified
                   // length for array
-                  // if uncompleted for scalar
+  int size;
+  int align;
 } Struct;
 
 typedef enum Indirection{
@@ -81,5 +92,29 @@ extern Struct* StructProcessIndirections(
   LinkedList* indirections,
   Stack* parameters
 ); // returns 0 if error
+
+extern StructType StructGetType(Struct*);
+extern Struct*    StructGetUnqualified(Struct*);
+extern Struct*    StructGetParentUnqualified(Struct*);
+
+extern Struct*    StructStringLiteral();
+extern Struct*    StructVoidPtr();
+extern Struct*    StructToPtr(Struct* str);
+extern Struct*    StructArrayToPtr(Struct* array);
+extern Struct*    StructFunctionToPtr(Struct* function);
+extern Struct*    StructQualify(Struct* str, int qualifiers);
+extern Struct*    StructGetHigherRank(Struct* str1, Struct* str2);
+
+extern int        StructIsVoid(Struct* str);
+extern int        StructIsInteger(Struct* str);
+extern int        StructIsArithmetic(Struct* str);
+extern int        StructIsScalar(Struct* str);
+extern int        StructIsPointer(Struct* str);
+extern int        StructIsFunctionPtr(Struct* str);
+extern int        StructIsArray(Struct* str);
+extern int        StructIsAggregate(Struct* str);
+extern int        StructIsStructOrUnion(Struct* str);
+extern int        StructIsModifiable(Struct* str);
+extern int        StructIsCastable(Struct* from, Struct* into);
 
 #endif

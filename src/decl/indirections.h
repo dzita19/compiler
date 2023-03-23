@@ -16,6 +16,9 @@ void PointerQualifier();
 void FunctionParamsOpen();
 void FunctionParamsClose();
 
+void TypeOpen();
+void TypeClose();
+
 void Ellipsis(); // empty
 
 #endif

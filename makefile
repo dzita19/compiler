@@ -17,25 +17,31 @@ C_SOURCE_LIST = src/yy/$(FLEX_OUTFILE) \
 	src/util/queue.c \
 	src/util/linked_list.c \
 	src/util/memory_safety.c \
+	src/util/vector.c \
 	src/symtab/obj.c \
 	src/symtab/scope.c \
 	src/symtab/struct.c \
 	src/symtab/symtab.c \
-	src/stmt/tree.c \
-	src/stmt/production.c \
 	src/decl/declarations.c \
 	src/decl/specifiers.c \
 	src/decl/declarators.c \
-	src/decl/indirections.c
-
-CPP_SOURCE_LIST = 
+	src/decl/indirections.c \
+	src/decl/const_expr.c \
+	src/stmt/tree.c \
+	src/stmt/literals.c \
+	src/stmt/stmt.c \
+	src/stmt/expr/expr.c \
+	src/stmt/expr/arithm.c \
+	src/stmt/expr/bitwise.c \
+	src/stmt/expr/logic.c \
+	src/stmt/expr/postfix.c \
+	src/stmt/expr/prefix.c \
+	src/stmt/expr/primary.c 
 
 C_OBJECT_LIST = 
 C_OBJECT_LIST += $(addprefix $(BUILD_DIR)/, $(notdir $(C_SOURCE_LIST:.c=.o)))
-C_OBJECT_LIST += $(addprefix $(BUILD_DIR)/, $(notdir $(CPP_SOURCE_LIST:.cpp=.o)))
 
 vpath %.c $(sort $(dir $(C_SOURCE_LIST)))
-vpath %.cpp $(sort $(dir $(CPP_SOURCE_LIST)))
 
 INCLUDE = -I src
 FLAGS_DEBUG = -g
@@ -67,9 +73,6 @@ $(BUILD_DIR)/$(PROGRAM) : $(C_OBJECT_LIST) makefile | $(BUILD_DIR)
 
 $(BUILD_DIR)/%.o : %.c makefile | $(BUILD_DIR)
 	gcc -c -o $(@) $(<) $(FLAGS)
-
-$(BUILD_DIR)/%.o : %.cpp makefile | $(BUILD_DIR)
-	g++ -c -o $(@) $(<) $(FLAGS)
 
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)

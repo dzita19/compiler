@@ -29,7 +29,7 @@ void ScopeDrop(Scope* scope){
     ObjDrop(node->info);
   }
 
-  LinkedListDelete(&scope->children);
+  LinkedListDelete(&scope->objs);
 
   for(Node* node = scope->children.first; node; node = node->next){
     ScopeDrop(node->info);
@@ -83,6 +83,7 @@ void ScopeInsert(Scope* scope, Obj* obj){
 Obj* ScopeFind(Scope* scope, const char* symbol_name){
   for(Node* node = scope->objs.first; node; node = node->next){
     Obj* obj = node->info;
+    if(obj->name == 0) continue;
     if(strcmp(obj->name, symbol_name) == 0) return obj;
   }
   return 0;
@@ -91,6 +92,7 @@ Obj* ScopeFind(Scope* scope, const char* symbol_name){
 Obj* ScopeFindNamespace(Scope* scope, const char* symbol_name, ObjNamespace namespace){
   for(Node* node = scope->objs.first; node; node = node->next){
     Obj* obj = node->info;
+    if(obj->name == 0) continue;
     if(strcmp(obj->name, symbol_name) == 0
       && namespaces[obj->kind] == namespace) return obj;
   }

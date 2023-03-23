@@ -1,5 +1,6 @@
 
 D			[0-9]
+O			[0-7]
 L			[a-zA-Z_]
 H			[a-fA-F0-9]
 E			[Ee][+-]?{D}+
@@ -12,14 +13,20 @@ IS			(u|U|l|L)*
 #include <string.h>
 
 #include "y.tab.h"
+#include "stmt/literals.h"
+
+#include "util/memory_safety.h"
 
 void count();
 void comment();
+void one_liner();
+
 int yywrap();
 %}
 
 %%
 "/*"					{ comment(); }
+"//"					{ one_liner(); }
 
 "auto"				{ count(); return(AUTO_); }
 "break"				{ count(); return(BREAK_); }
@@ -54,16 +61,21 @@ int yywrap();
 "volatile"		{ count(); return(VOLATILE_); }
 "while"				{ count(); return(WHILE_); }
 
-{L}({L}|{D})*						{ count();
-	yylval.id = strdup(yytext); return(IDENTIFIER); }
+{L}({L}|{D})*						{ count(); yylval.id = StringDuplicate(yytext); return(IDENTIFIER); }
 
-0[xX]{H}+{IS}?					{ count(); return(CONSTANT); }
+0[xX]{H}+{IS}?					{ count(); hex_val(yytext); 	return(CONSTANT); }
 
-0{D}+{IS}?							{ count(); return(CONSTANT); }
+0{O}+{IS}?							{ count(); oct_val(yytext); 	return(CONSTANT); }
 
-{D}+{IS}?								{ count(); return(CONSTANT); }
+{D}+{IS}?								{ count(); dec_val(yytext); 	return(CONSTANT); }
 
-L?'(\\.|[^\\'])+'				{ count(); return(CONSTANT); }
+'[^\\']'								{ count(); simple_char_lit(yytext + 1); 				return(CONSTANT); }
+
+'\\['"?\\abfnrtv]'			{ count(); simple_escape_char_lit(yytext + 1); 	return(CONSTANT); }
+
+'\\{O}{1,3}'						{ count(); oct_char_lit(yytext + 1); 						return(CONSTANT); }
+
+'\\x{H}+'								{ count(); hex_char_lit(yytext + 1); 						return(CONSTANT); }
 
 {D}+{E}{FS}?						{ count(); return(CONSTANT); }
 
@@ -71,7 +83,7 @@ L?'(\\.|[^\\'])+'				{ count(); return(CONSTANT); }
 
 {D}+"."{D}*({E})?{FS}?	{ count(); return(CONSTANT); }
 
-L?\"(\\.|[^\\"])*\"			{ count(); return(STRING_LITERAL); }
+\"([^\\']|(\\['"?\\abfnrtv])|(\\{O}{1,3})|(\\x{H}+))*\" { count(); string_lit(yytext); return(STRING_LITERAL); }
 
 "..."					{ count(); return(ELLIPSIS); }
 ">>="					{ count(); return(RIGHT_ASSIGN); }
@@ -149,17 +161,28 @@ loop:
 		//putchar(c1);
 }
 
+void one_liner(){
+	char c;
+
+	while((c = input()) != '\n' && c != '\0');
+}
+
 int column = 0;
+int row = 0;
+
+const int tab_width = 2;
 
 void count()
 {
 	int i;
 
 	for (i = 0; yytext[i] != '\0'; i++)
-		if (yytext[i] == '\n')
+		if (yytext[i] == '\n'){
 			column = 0;
+			row++;
+		}
 		else if (yytext[i] == '\t')
-			column += 8 - (column % 8);
+			column += tab_width - (column % tab_width);
 		else
 			column++;
 

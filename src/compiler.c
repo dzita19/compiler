@@ -1,20 +1,20 @@
 #include <stdio.h>
 
-#include "stmt/tree.h"
-#include "stmt/production.h"
+#include "stmt/stmt.h"
 #include "decl/declarations.h"
 #include "symtab/symtab.h"
+#include "util/memory_safety.h"
 
 extern FILE* yyin;
 extern int yyparse();
 
-extern TreeNode* root;
+extern Tree* tree;
 
 extern Symtab* symtab;
 
 int main(){
-  initialize_productions_table();
   declarations_init();
+  stmt_init();
 
 	yyin = fopen("test/testfile", "r");
 	if(yyparse() == 0){
@@ -23,12 +23,17 @@ int main(){
   else {
     printf("Parsing failed\n");
   }
-
   printf("\n");
-  /*TreeNodePrint(root);*/
-  
   SymtabDump(symtab);
 
+  printf("\n");
+  TreeDump(tree);
+
+  declarations_free();
+  stmt_free();
+
+  printf("\n");
+  memory_safety_report();
 
 	return 0;
 }

@@ -13,6 +13,26 @@
     "typeinfo": "c",
     "random": "c",
     "obj.h": "c",
-    "memory_safety.h": "c"
+    "memory_safety.h": "c",
+    "tree.h": "c",
+    "stdio.h": "c",
+    "specifiers.h": "c",
+    "declarations.h": "c",
+    "scope.h": "c",
+    "string.h": "c",
+    "vector.h": "c",
+    "functional": "c",
+    "istream": "c",
+    "ostream": "c",
+    "tuple": "c",
+    "type_traits": "c",
+    "utility": "c",
+    "sstream": "c",
+    "y.tab.h": "c",
+    "expr.h": "c",
+    "optional": "c",
+    "system_error": "c",
+    "stack.h": "c",
+    "initializer_list": "c"
   }
 }

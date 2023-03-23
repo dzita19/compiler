@@ -6,18 +6,17 @@
 void declarations_init();
 
 void Declaration();
-void DeclarationSpecifiers();
+void FullDeclarationSpecifiers();
+void RedeclarationSpecifiers();
 
 void StorageClassSpecifierRef(StorageClassSpecifier);
 void TypeSpecifierRef(TypeSpecifier);
 void TypeQualifierRef(TypeQualifier);
+void TypedefName();
 
-void TagTypeRef(TagType);
+void TagTypeRef(int tag_type);
 void TagDefOpen();
-void TagDefClose();
-
-void TagNamedDef();
-void TagAnonymousDef();
-void TagNamedDecl();
+void TagDefined();
+void TagDeclared();
 
 #endif

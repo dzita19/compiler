@@ -14,12 +14,22 @@ Symtab* SymtabCreateEmpty(){
   return symtab;
 }
 
+void SymtabDropPredefined(Symtab* symtab){
+  for(int i = 0; i < sizeof(predefined_types_struct) / sizeof(*predefined_types_struct); i++){
+    for(Node* node = predefined_types_struct[i].derived.first; node; node = node->next){
+      StructDrop(node->info);
+    }
+    LinkedListDelete(&predefined_types_struct[i].derived);
+  }
+}
+
 void SymtabDrop(Symtab* symtab){
   Scope* global = symtab->current_scope;
   while(global && global->outer){
     global = global->outer;
   }
 
+  SymtabDropPredefined(symtab);
   ScopeDrop(global);
 
   free(symtab);
@@ -44,15 +54,15 @@ static void SymtabDumpPredefined(){
 }
 
 void SymtabDump(Symtab* symtab){
-  Scope* global_scope = symtab->current_scope;
+  /*Scope* global_scope = symtab->current_scope;
   while(global_scope->outer){
     global_scope = global_scope->outer;
-  }
+  }*/
 
   printf("Symtab: [\n");
   SymtabDumpPredefined();
   printf("\n");
-  ScopeDump(global_scope);
+  ScopeDump(symtab->current_scope);
   printf("]\n");
 }
 
@@ -75,6 +85,21 @@ void SymtabOpenScope(Symtab* symtab, ScopeType type){
 
 void SymtabCloseScope(Symtab* symtab){
   symtab->current_scope = symtab->current_scope->outer;
+}
+
+void SymtabInsertScope(Symtab* symtab, Scope* scope){
+  scope->outer = symtab->current_scope;
+
+  if(symtab->current_scope == 0){
+    symtab->current_scope = scope;
+    return;
+  }
+
+  Node* node = NodeCreateEmpty();
+  node->info = scope;
+  LinkedListInsertLast(&symtab->current_scope->children, node);
+
+  symtab->current_scope = scope;
 }
 
 void SymtabInsert(Symtab* symtab, Obj* obj){
@@ -112,6 +137,10 @@ Obj* SymtabFindCurrentScopeNamespace(Symtab* symtab, const char* symbol_name, Ob
   return ScopeFindNamespace(symtab->current_scope, symbol_name, namespace);
 }
 
+Obj* SymtabFindMember(Symtab* symtab, const char* symbol_name, Obj* tag_obj){
+  return ObjFindMember(tag_obj, symbol_name);
+}
+
 Obj predefined_types_obj[PREDEFINED_TYPES_COUNT] = {
   [  VOID_T] = {   "void", OBJ_TYPE, 0, 0, predefined_types_struct +   VOID_T, { 0, 0 } },
   [  INT8_T] = {   "int8", OBJ_TYPE, 0, 0, predefined_types_struct +   INT8_T, { 0, 0 } },
@@ -125,15 +154,15 @@ Obj predefined_types_obj[PREDEFINED_TYPES_COUNT] = {
 };
 
 Struct predefined_types_struct[PREDEFINED_TYPES_COUNT] = {
-  [  VOID_T] = { predefined_types_obj +   VOID_T, STRUCT_SCALAR, 0, { 0, 0 }, { 0, 0 }, 0 },
-  [  INT8_T] = { predefined_types_obj +   INT8_T, STRUCT_SCALAR, 0, { 0, 0 }, { 0, 0 }, 0 },
-  [ UINT8_T] = { predefined_types_obj +  UINT8_T, STRUCT_SCALAR, 0, { 0, 0 }, { 0, 0 }, 0 },
-  [ INT16_T] = { predefined_types_obj +  INT16_T, STRUCT_SCALAR, 0, { 0, 0 }, { 0, 0 }, 0 },
-  [UINT16_T] = { predefined_types_obj + UINT16_T, STRUCT_SCALAR, 0, { 0, 0 }, { 0, 0 }, 0 },
-  [ INT32_T] = { predefined_types_obj +  INT32_T, STRUCT_SCALAR, 0, { 0, 0 }, { 0, 0 }, 0 },
-  [UINT32_T] = { predefined_types_obj + UINT32_T, STRUCT_SCALAR, 0, { 0, 0 }, { 0, 0 }, 0 },
-  [ INT64_T] = { predefined_types_obj +  INT64_T, STRUCT_SCALAR, 0, { 0, 0 }, { 0, 0 }, 0 },
-  [UINT64_T] = { predefined_types_obj + UINT64_T, STRUCT_SCALAR, 0, { 0, 0 }, { 0, 0 }, 0 },
+  [  VOID_T] = { predefined_types_obj +   VOID_T, STRUCT_DIRECT, TYPE_INCOMPLETE, 0, { 0, 0 }, { 0, 0 }, 0, 1, 1 },
+  [  INT8_T] = { predefined_types_obj +   INT8_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 1, 1 },
+  [ UINT8_T] = { predefined_types_obj +  UINT8_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 1, 1 },
+  [ INT16_T] = { predefined_types_obj +  INT16_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 2, 2 },
+  [UINT16_T] = { predefined_types_obj + UINT16_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 2, 2 },
+  [ INT32_T] = { predefined_types_obj +  INT32_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 4, 4 },
+  [UINT32_T] = { predefined_types_obj + UINT32_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 4, 4 },
+  [ INT64_T] = { predefined_types_obj +  INT64_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 4, 4 },
+  [UINT64_T] = { predefined_types_obj + UINT64_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 4, 4 },
 };
 
 Obj* SymtabFindPredefined(uint32_t type_specifiers){

@@ -131,15 +131,13 @@ void LinkedListDelete(LinkedList* list){
   }
 }
 
-LinkedList* LinkedListDuplicate(LinkedList* list){
-  LinkedList* duplicate = malloc(sizeof(LinkedList));
-  duplicate->first = 0;
-  duplicate->last = 0;
+LinkedList LinkedListDuplicate(LinkedList* list){
+  LinkedList duplicate = { 0, 0 };
 
   for(Node* current_node = list->first; current_node; current_node = current_node->next){
-    Node* duplicate_node = malloc(sizeof(Node));
+    Node* duplicate_node = NodeCreateEmpty();
     duplicate_node->info = current_node->info;
-    LinkedListInsertLast(duplicate, duplicate_node);
+    LinkedListInsertLast(&duplicate, duplicate_node);
   }
 
   return duplicate;

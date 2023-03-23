@@ -1,26 +1,61 @@
-/*int a;
+/*
+struct a{
+  struct a* x;
+  int y;
+  char z[3];
+};
 
-unsigned **b;
+struct test{
+  int x;
+};
 
-int (*c)[];
+enum ENUM{
+  CONST_0,
+  CONST_19 = 12 + 7,
+  CONST_20,
+  CONST_1 = 1,
+  CONST_2,
+};
 
-char *(*d)[];
+//int niz[CONST_19];
 
-int *(*(*(e)));
+int main(){
+  struct a a;
+  int x;
+  static struct a b;
+  b.y = 0;
+  {
+    a.y = 1 + 3 * 3;
+    b.y = 0, ('a', 'c'), (1, 0, (!1, 0));
+  }
+  b.z[0] = 0 + CONST_19;
 
-unsigned **(f)[];
+  char* ptr;
+  ptr = &a.z[3];
+}
+*/
 
-int (*(*g)(int ((*)()), char **))(long*, void**);*/
-
-/*struct A;
-
-const struct A* ptr;
-
-struct A{
-  int x, y;
-  char z;
-};*/
+struct a* aaa;
 
 struct a{
-  const volatile int * const * b;
-} ** const * volatile a;
+  int x;
+};
+
+int main(){
+  struct a** bbb;
+
+  struct a;
+
+  struct a* ccc;
+
+  struct a{
+    int y,z;
+  };
+
+  struct a ddd;
+
+  {
+    ;
+  }
+
+}

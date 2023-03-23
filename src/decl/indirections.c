@@ -1,5 +1,10 @@
 #include "indirections.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
 void NestedDeclarator(){
   LinkedList* current_indirection_frame = StackPeek(&indirection_stack);
 
@@ -17,9 +22,15 @@ void NestedDeclarator(){
 
 void ArrayLengthDeclarator(){
   LinkedList* current_indirection_frame = StackPeek(&indirection_stack);
-  static int array_length = 0;
+  
+  ConstExpr* const_expr = StackPop(&const_expr_stack);
+  int array_length = const_expr->value;
 
-  array_length++; // TEST
+  if(const_expr->type & CONST_EXPR_ARITHMETIC == 0) {
+    printf("ERROR: Array length must be constant arithmetic value.\n");
+    array_length = 0;
+  }
+  ConstExprDrop(const_expr);
 
   Node* node = 0;
   for(node = current_indirection_frame->last; node; node = node->prev){
@@ -134,7 +145,12 @@ void PointerQualifier(){
 }
 
 void FunctionParamsOpen(){
-  //SymtabOpenScope(symtab, SCOPE_FUNC_PROTOTYPE);
+  if(current_param_scope == 0){
+    current_param_scope = ScopeCreateEmpty();
+    current_param_scope->type = SCOPE_FUNC_PROTOTYPE;
+    fdef_counter = 0;
+  }
+  else fdef_counter++;
 
   StackPush(&typedef_stack, 0);
   StackPush(&type_stack, TypeFrameCreateEmpty());
@@ -144,10 +160,27 @@ void FunctionParamsOpen(){
 }
 
 void FunctionParamsClose(){
+  if(fdef_counter > 0) fdef_counter--;
+
   StackPop(&typedef_stack);
-  free(StackPop(&type_stack));
-  free(StackPop(&indirection_stack));
-  free(StackPop(&name_stack));
+  TypeFrameDrop(StackPop(&type_stack));
+  LinkedListDrop(StackPop(&indirection_stack));
+  NameFrameDrop(StackPop(&name_stack));
+}
+
+void TypeOpen(){
+  StackPush(&typedef_stack, (void*)-1);
+  StackPush(&type_stack, TypeFrameCreateEmpty());
+  StackPush(&indirection_stack, LinkedListCreateEmpty());
+  StackPush(&parameter_stack, LinkedListCreateEmpty());
+  StackPush(&name_stack, NameFrameCreateEmpty());
+}
+
+void TypeClose(){
+  StackPop(&typedef_stack);
+  TypeFrameDrop(StackPop(&type_stack));
+  LinkedListDrop(StackPop(&indirection_stack));
+  NameFrameDrop(StackPop(&name_stack));
 }
 
 void Ellipsis(){
