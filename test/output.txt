@@ -1,4 +1,6 @@
-Parsing finished successfully
+ERROR (14:15): Pointed objects qualifications are not compatible for initialization.
+ERROR (16:10): Pointed objects qualifications are not compatible.
+Parsing finished successfully.
 
 Symtab: [
  Predefined types:
@@ -8,83 +10,112 @@ Symtab: [
  int16
  uint16
  int32
-  function() returning int32
+  (*) to int32
+  [3] of int32
+  function(<nonprototype>) returning int32
+  const int32
+   (*) to const int32
  uint32
  int64
  uint64
 
  Scope: file [
   Obj: tag [
-   Name: a; Tag type: struct; Definition: defined; Size: 0x0004; Align: 0x0004
+   Name: str1; Tag type: struct; Definition: defined; Size: 0x0014; Align: 0x0004
    Type: [
-    struct a: int32 x (0x0000)
-     (*) to struct a
-      (*) to (*) to struct a
+    struct str1: int32 a (0x0000), (*) to int32 b (0x0004), [3] of int32 c (0x0008)
    ]
   ]
   Obj: variable [
-   Name: aaa; Address: 0x0000; Definition: tentative; Storage: static; Linkage: external;
-   Type: [(*) to struct a]
-  ]
-  Obj: variable [
    Name: main; Address: 0x0000; Definition: defined; Storage: static; Linkage: external;
-   Type: [function() returning int32]
+   Type: [function(<nonprototype>) returning int32]
   ]
   Scope: function prototype [
    Scope: block [
     Obj: variable [
-     Name: bbb; Address: 0x0000; Definition: defined; Storage: auto; Linkage: none;
-     Type: [(*) to (*) to struct a]
-    ]
-    Obj: tag [
-     Name: a; Tag type: struct; Definition: defined; Size: 0x0008; Align: 0x0004
-     Type: [
-      struct a: int32 y (0x0000), int32 z (0x0004)
-       (*) to struct a
-     ]
+     Name: a; Address: 0x0004; Definition: defined; Storage: auto; Linkage: none;
+     Type: [int32]
     ]
     Obj: variable [
-     Name: ccc; Address: 0x0004; Definition: defined; Storage: auto; Linkage: none;
-     Type: [(*) to struct a]
+     Name: b; Address: 0x0008; Definition: defined; Storage: auto; Linkage: none;
+     Type: [(*) to const int32]
     ]
     Obj: variable [
-     Name: ddd; Address: 0x0008; Definition: defined; Storage: auto; Linkage: none;
-     Type: [struct a]
+     Name: c; Address: 0x000C; Definition: defined; Storage: auto; Linkage: none;
+     Type: [(*) to const int32]
     ]
-    Scope: block [
+    Obj: variable [
+     Name: d; Address: 0x0010; Definition: defined; Storage: auto; Linkage: none;
+     Type: [const int32]
+    ]
+    Obj: variable [
+     Name: e; Address: 0x0014; Definition: defined; Storage: auto; Linkage: none;
+     Type: [(*) to int32]
+    ]
+    Obj: variable [
+     Name: f; Address: 0x0018; Definition: defined; Storage: auto; Linkage: none;
+     Type: [(*) to int32]
     ]
    ]
   ]
  ]
 ]
 
+Static objects list: [
+]
+
+String table: [
+]
+
 Translation unit 
 -Function body 
---Compound statement 
----Empty statement 
+--Function entry 
+--Initializer list 
+---Initializer [LVAL] + Name: b; Address: 0x0000; Type: (*) to const int32;
+----Address of [RVAL] + Type: (*) to int32;
+-----Identifier [LVAL] + Name: a; Address: 0x0000; Type: int32;
+--Expression statement 
+---Assign [RVAL] + Type: (*) to const int32;
+----Identifier [LVAL] + Name: c; Address: 0x0000; Type: (*) to const int32;
+----Address of [RVAL] + Type: (*) to int32;
+-----Identifier [LVAL] + Name: a; Address: 0x0000; Type: int32;
+--Initializer list 
+--Expression statement 
+---Assign 
+----Identifier [LVAL] + Name: f; Address: 0x0000; Type: (*) to int32;
+----Address of [RVAL] + Type: (*) to const int32;
+-----Identifier [LVAL] + Name: d; Address: 0x0000; Type: const int32;
+--Function exit 
 
 Memory safety report: [
 -Symtab: [
 --Symtab          allocated =    1, freed =    1;
---Scope           allocated =    4, freed =    4;
---Obj             allocated =   15, freed =   15;
---Struct          allocated =   11, freed =   11;
+--Scope           allocated =    3, freed =    3;
+--Obj             allocated =   11, freed =   11;
+--Struct          allocated =    6, freed =    6;
+--StaticVal       allocated =    0, freed =    0;
 -]
 -Utility: [
 --LinkedList      allocated =    3, freed =    3;
---Node            allocated =   26, freed =   26;
---String          allocated =   15, freed =   15;
+--Node            allocated =   32, freed =   32;
+--String          allocated =   17, freed =   17;
 -]
 -Declarations: [
---TypeFrame       allocated =    2, freed =    2;
+--TypeFrame       allocated =    3, freed =    3;
 --NameFrame       allocated =    2, freed =    2;
---ConstExpr       allocated =    0, freed =    0;
+--InitFrame       allocated =    0, freed =    0;
+--ConstExpr       allocated =    1, freed =    1;
 -]
 -Statements: [
---TreeNode        allocated =    4, freed =    4;
+--TreeNode        allocated =   22, freed =   22;
 --Tree            allocated =    1, freed =    1;
---Numlit          allocated =    0, freed =    0;
---ExprNode        allocated =    0, freed =    0;
+--Numlit          allocated =    1, freed =    1;
+--ExprNode        allocated =   14, freed =   13; <-- WARNING
 --LogicNode       allocated =    0, freed =    0;
 -]
+-Generating: [
+--ArgPass         allocated =    0, freed =    0;
+-]
 ]
+
+Program contains semantic errors.

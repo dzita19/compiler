@@ -93,8 +93,8 @@ Obj* ScopeFindNamespace(Scope* scope, const char* symbol_name, ObjNamespace name
   for(Node* node = scope->objs.first; node; node = node->next){
     Obj* obj = node->info;
     if(obj->name == 0) continue;
-    if(strcmp(obj->name, symbol_name) == 0
-      && namespaces[obj->kind] == namespace) return obj;
+    if(namespaces[obj->kind] != namespace) continue;
+    if(strcmp(obj->name, symbol_name) == 0) return obj;
   }
   return 0;
 }

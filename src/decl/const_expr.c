@@ -10,7 +10,7 @@ void ConstExpression(){
   ConstExpr* const_expr = ConstExprCreateEmpty();
   
   const_expr_valid = 1;
-  long const_expr_arith = ConstArithmeticExprProcessor(const_expr_node);
+  int const_expr_arith = ConstArithmeticExprProcessor(const_expr_node);
 
   if(const_expr_valid) {
     const_expr->type |= CONST_EXPR_ARITHMETIC;
@@ -22,7 +22,30 @@ void ConstExpression(){
   TreeNodeDrop(const_expr_node);
 }
 
-long ConstArithmeticExprProcessor(TreeNode* node){
+ConstExpr ConstExprCalculate(TreeNode* const_expr_node){
+  ConstExpr const_expr = (ConstExpr){ 0, 0, 0, 0 };
+  
+  const_expr_valid = 1;
+  int const_expr_arith = ConstArithmeticExprProcessor(const_expr_node);
+
+  if(const_expr_valid) {
+    const_expr.type |= CONST_EXPR_ARITHMETIC;
+    const_expr.value = const_expr_arith;
+  }
+
+  const_expr_valid = 1;
+  ConstExpr addr_expr = ConstAddressExprProcessor(const_expr_node);
+  if(const_expr_valid) {
+    const_expr.type |= addr_expr.type;
+    const_expr.obj_ref = addr_expr.obj_ref;
+    const_expr.string_ref = addr_expr.string_ref;
+    const_expr.value = addr_expr.value;
+  }
+
+  return const_expr;
+}
+
+int ConstArithmeticExprProcessor(TreeNode* node){
 
   if(const_expr_valid == 0) return 0;
 
@@ -44,21 +67,21 @@ long ConstArithmeticExprProcessor(TreeNode* node){
 
   }
   case CAST_EXPR: {
-    if(node->children[0]->expr_node->type == predefined_types_struct + INT8_T)
+    if(node->expr_node->type == predefined_types_struct + INT8_T)
       return (int8_t)   ConstArithmeticExprProcessor(node->children[0]);
-    if(node->children[0]->expr_node->type == predefined_types_struct + UINT8_T)
+    if(node->expr_node->type == predefined_types_struct + UINT8_T)
       return (uint8_t)  ConstArithmeticExprProcessor(node->children[0]);
-    if(node->children[0]->expr_node->type == predefined_types_struct + INT16_T)
+    if(node->expr_node->type == predefined_types_struct + INT16_T)
       return (int16_t)  ConstArithmeticExprProcessor(node->children[0]);
-    if(node->children[0]->expr_node->type == predefined_types_struct + UINT16_T)
+    if(node->expr_node->type == predefined_types_struct + UINT16_T)
       return (uint16_t) ConstArithmeticExprProcessor(node->children[0]);
-    if(node->children[0]->expr_node->type == predefined_types_struct + INT32_T)
+    if(node->expr_node->type == predefined_types_struct + INT32_T)
       return (int32_t)  ConstArithmeticExprProcessor(node->children[0]);
-    if(node->children[0]->expr_node->type == predefined_types_struct + UINT32_T)
+    if(node->expr_node->type == predefined_types_struct + UINT32_T)
       return (uint32_t) ConstArithmeticExprProcessor(node->children[0]);
-    if(node->children[0]->expr_node->type == predefined_types_struct + INT64_T)
+    if(node->expr_node->type == predefined_types_struct + INT64_T)
       return (int64_t)  ConstArithmeticExprProcessor(node->children[0]);
-    if(node->children[0]->expr_node->type == predefined_types_struct + UINT64_T)
+    if(node->expr_node->type == predefined_types_struct + UINT64_T)
       return (uint64_t) ConstArithmeticExprProcessor(node->children[0]);
     const_expr_valid = 0;
     return 0;
@@ -166,213 +189,132 @@ long ConstArithmeticExprProcessor(TreeNode* node){
 
 }
 
+
 ConstExpr ConstAddressExprProcessor(TreeNode* node){
 
-  if(const_expr_valid == 0) return (ConstExpr){ 0, 0, 0 };
+  if(const_expr_valid == 0) return (ConstExpr){ 0, 0, 0, 0 };
 
   switch(node->production){
   case CONSTANT_PRIMARY: {
     if(node->expr_node->address == 0) 
-      return (ConstExpr){ 0, 0, CONST_EXPR_ARITHMETIC | CONST_EXPR_ADDRESS };
-    else
-      return (ConstExpr){ 0, node->expr_node->address, CONST_EXPR_ARITHMETIC };
+      return (ConstExpr){ 
+        .obj_ref    = 0, 
+        .string_ref = 0, 
+        .value      = 0, 
+        .type       = CONST_EXPR_ADDRESS
+      };
+    else goto error;
+  }
+  case STRING_PRIMARY: {
+    return (ConstExpr){ 
+      .obj_ref    = 0, 
+      .string_ref = node->expr_node->address, 
+      .value      = 0, 
+      .type       = CONST_EXPR_STRING
+    };
   }
   case ADDRESS_EXPR: {
     TreeNode* child = node->children[0];
-    long offset = 0;
-    Obj* obj_ref = 0;
-    while(obj_ref != 0){
-      if(child->production == IDENTIFIER_PRIMARY){
-        obj_ref = child->expr_node->obj_ref;
-      }
-      else if(child->production == FIELD_REF_EXPR) {
-        offset += child->expr_node->address;
-        child = child->children[0];
-      }
+    
+    if(child->production == IDENTIFIER_PRIMARY){
+      if((child->expr_node->obj_ref->specifier & STORAGE_FETCH) != STORAGE_STATIC) goto error;
+      
+      return (ConstExpr){
+        .obj_ref    = child->expr_node->obj_ref, 
+        .string_ref = 0, 
+        .value      = child->expr_node->address, 
+        .type       = CONST_EXPR_ADDRESS
+      };
+    }
+    else if(child->production == DEREF_EXPR){
+      ConstExpr ret = ConstAddressExprProcessor(child->children[0]);
+      if(const_expr_valid == 0) goto error;
+
+      return (ConstExpr){ 
+        .obj_ref    = ret.obj_ref, 
+        .string_ref = ret.string_ref, 
+        .value      = ret.value + child->expr_node->address, 
+        .type       = ret.type
+      };
+    }
+    else goto error;
+  }
+  case CAST_EXPR: {
+    if(StructIsArithmetic(node->children[0]->expr_node->type)){
+      int operand = ConstArithmeticExprProcessor(node->children[0]);
+      if(const_expr_valid == 0) goto error;
+
+      if(StructIsPointer(node->expr_node->type))
+        return (ConstExpr){ 
+          .obj_ref    = 0, 
+          .string_ref = 0, 
+          .value      = operand, 
+          .type       = CONST_EXPR_ADDRESS
+        };
+      
       else goto error;
     }
-    return (ConstExpr){ obj_ref, offset, CONST_EXPR_ADDRESS };
-  }
-  case UNARY_PLUS_EXPR: {
-    ConstExpr operand = ConstAddressExprProcessor(node->children[0]);
-    if(operand.type & CONST_EXPR_ARITHMETIC) return (ConstExpr){ 0, operand.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case UNARY_MINUS_EXPR: {
-    ConstExpr operand = ConstAddressExprProcessor(node->children[0]);
-    if(operand.type & CONST_EXPR_ARITHMETIC) return (ConstExpr){ 0, operand.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }  
-  case BIT_NOT: {
-    ConstExpr operand = ConstAddressExprProcessor(node->children[0]);
-    if(operand.type & CONST_EXPR_ARITHMETIC) return (ConstExpr){ 0, operand.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case LOG_NOT: {
-    ConstExpr operand = ConstAddressExprProcessor(node->children[0]);
-    if(operand.type & CONST_EXPR_ARITHMETIC) return (ConstExpr){ 0, operand.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
+    else{
+      ConstExpr operand = ConstAddressExprProcessor(node->children[0]);
+      if(const_expr_valid == 0) goto error;
 
-  case CAST_EXPR: {
-    ConstExpr operand = ConstAddressExprProcessor(node->children[0]);
-    if(StructIsPointer(node->expr_node->type)){
-      return (ConstExpr){ 0, operand.value, CONST_EXPR_ADDRESS };
+      if(StructIsPointer(node->expr_node->type))
+        return (ConstExpr){ 
+          .obj_ref    = operand.obj_ref, 
+          .string_ref = operand.string_ref, 
+          .value      = operand.value, 
+          .type       = operand.type
+        };
+      
+      else goto error;
     }
-    else {
-      return (ConstExpr){ 0, operand.value, CONST_EXPR_ARITHMETIC };
-    }
-  }
-
-  case MUL_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value * op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case DIV_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC
-        && op2.value != 0) 
-      return (ConstExpr){ 0, op1.value / op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case MOD_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC
-        && op2.value != 0) 
-      return (ConstExpr){ 0, op1.value % op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
   }
 
   case ADD_EXPR: {
+    TreeNode* op1 = node->children[0];
+    TreeNode* op2 = node->children[1];
+
+    int offset1, offset2;
+
+    if(StructIsArithmetic(op1->expr_node->type)) offset1 = ConstArithmeticExprProcessor(op1);
+    if(StructIsArithmetic(op2->expr_node->type)) offset2 = ConstArithmeticExprProcessor(op2);
+
+    if(const_expr_valid == 0) goto error;
+
+    if(StructIsPointer(op1->expr_node->type)){
+      ConstExpr ret = ConstAddressExprProcessor(op1);
+      if(const_expr_valid == 0) goto error;
+
+      ret.value += offset2;
+      return ret;
+    }
+    else
+    if(StructIsPointer(op2->expr_node->type)){
+      ConstExpr ret = ConstAddressExprProcessor(op2);
+      if(const_expr_valid == 0) goto error;
+      
+      ret.value += offset1;
+      return ret;
+    }
+    else goto error;
   }
   case SUB_EXPR: {
-  }
+    TreeNode* op1 = node->children[0];
+    TreeNode* op2 = node->children[1];
 
-  case BIT_LEFT_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value << op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case BIT_RIGHT_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value >> op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
+    int offset;
 
-  case RELA_GT_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value > op2.value, CONST_EXPR_ARITHMETIC };
+    if(StructIsArithmetic(op2->expr_node->type)) offset = ConstArithmeticExprProcessor(op2);
     else goto error;
-  }
-  case RELA_LT_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value < op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case RELA_GE_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value >= op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case RELA_LE_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value <= op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
 
-  case RELA_EQ_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value == op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case RELA_NE_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value != op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
+    if(const_expr_valid == 0) goto error;
 
-  case BIT_AND_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value & op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case BIT_XOR_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value ^ op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case BIT_OR_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value | op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
+    if(StructIsPointer(op1->expr_node->type)){
+      ConstExpr ret = ConstAddressExprProcessor(op1);
+      if(const_expr_valid == 0) goto error;
 
-  case LOG_AND_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value && op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-  case LOG_OR_EXPR: {
-    ConstExpr op1 = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op2 = ConstAddressExprProcessor(node->children[1]);
-    if(op1.type & CONST_EXPR_ARITHMETIC
-        && op2.type & CONST_EXPR_ARITHMETIC) 
-      return (ConstExpr){ 0, op1.value || op2.value, CONST_EXPR_ARITHMETIC };
-    else goto error;
-  }
-
-  case COND_EXPR: {
-    ConstExpr cond = ConstAddressExprProcessor(node->children[0]);
-    ConstExpr op1  = ConstAddressExprProcessor(node->children[1]);
-    ConstExpr op2  = ConstAddressExprProcessor(node->children[2]);
-    if(cond.type & CONST_EXPR_ARITHMETIC){
-      return cond.value
-        ? (ConstExpr){ op1.obj_ref, op1.value, op1.type }
-        : (ConstExpr){ op2.obj_ref, op2.value, op2.type };
+      ret.value -= offset;
+      return ret;
     }
     else goto error;
   }
@@ -380,7 +322,12 @@ ConstExpr ConstAddressExprProcessor(TreeNode* node){
   default: {
   error:
     const_expr_valid = 0;
-    return (ConstExpr){ 0, 0, 0 };
+    return (ConstExpr){ 
+      .obj_ref    = 0, 
+      .string_ref = 0, 
+      .value      = 0, 
+      .type       = 0
+    };
   }
 
   }

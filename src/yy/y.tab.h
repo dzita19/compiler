@@ -114,7 +114,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 28 "spec/parser_spec.y"
+#line 34 "spec/parser_spec.y"
 
 	long  val;
 	int 	val_type;

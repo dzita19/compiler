@@ -102,6 +102,19 @@ void SymtabInsertScope(Symtab* symtab, Scope* scope){
   symtab->current_scope = scope;
 }
 
+void SymtabRemoveCurrentScope(Symtab* symtab){
+  Scope* outer = symtab->current_scope->outer;
+  for(Node* node = outer->children.first; node; node = node->next){
+    Scope* inner = node->info;
+    if(inner == symtab->current_scope) {
+      NodeDrop(LinkedListRemoveFrom(&outer->children, node));
+      ScopeDrop(inner);
+      break;
+    }
+  }
+  symtab->current_scope = outer;
+}
+
 void SymtabInsert(Symtab* symtab, Obj* obj){
   ScopeInsert(symtab->current_scope, obj);
 }
@@ -185,14 +198,14 @@ Obj* SymtabFindPredefined(uint32_t type_specifiers){
     case INT:
     case SIGNED:
     case SIGNED | INT:
-      return predefined_types_obj + INT32_T;
-    case UNSIGNED:
-    case UNSIGNED | INT:
-      return predefined_types_obj + UINT32_T;
     case LONG:
     case SIGNED | LONG:
     case LONG | INT:
     case SIGNED | LONG | INT:
+      return predefined_types_obj + INT32_T;
+    case UNSIGNED:
+    case UNSIGNED | INT:
+      return predefined_types_obj + UINT32_T;
       return predefined_types_obj + INT64_T;
     case UNSIGNED | LONG:
     case UNSIGNED | LONG | INT:

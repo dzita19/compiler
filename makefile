@@ -18,14 +18,17 @@ C_SOURCE_LIST = src/yy/$(FLEX_OUTFILE) \
 	src/util/linked_list.c \
 	src/util/memory_safety.c \
 	src/util/vector.c \
+	src/util/logger.c \
 	src/symtab/obj.c \
 	src/symtab/scope.c \
 	src/symtab/struct.c \
 	src/symtab/symtab.c \
+	src/symtab/static_val.c \
 	src/decl/declarations.c \
 	src/decl/specifiers.c \
 	src/decl/declarators.c \
 	src/decl/indirections.c \
+	src/decl/initializer.c \
 	src/decl/const_expr.c \
 	src/stmt/tree.c \
 	src/stmt/literals.c \
@@ -36,7 +39,11 @@ C_SOURCE_LIST = src/yy/$(FLEX_OUTFILE) \
 	src/stmt/expr/logic.c \
 	src/stmt/expr/postfix.c \
 	src/stmt/expr/prefix.c \
-	src/stmt/expr/primary.c 
+	src/stmt/expr/primary.c \
+	src/stmt/flow/iteration.c \
+	src/stmt/flow/jump.c \
+	src/stmt/flow/selection.c \
+	src/gen/abi.c 
 
 C_OBJECT_LIST = 
 C_OBJECT_LIST += $(addprefix $(BUILD_DIR)/, $(notdir $(C_SOURCE_LIST:.c=.o)))
@@ -49,10 +56,9 @@ FLAGS_DEPS = -MMD -MP
 
 FLAGS =
 FLAGS += $(INCLUDE)
-FLAGS += $(FLAGS_DEBUG)
 FLAGS += $(FLAGS_DEPS)
 
-ifeq ($(FLAGS_DEBUG), 1)
+ifeq ($(DEBUG_ENABLED), 1)
 FLAGS += $(FLAGS_DEBUG)
 endif
 

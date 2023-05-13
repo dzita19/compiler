@@ -23,12 +23,12 @@ void NumLitDrop(NumLit* numlit){
 }
 
 void hex_val(const char* str){
-  long val = 0;
+  int val = 0;
   str += 2;
   while(*str){
     if     (*str >= '0' && *str <= '9') val = 16 * val + (*str - '0');
-    else if(*str >= 'a' && *str <= 'f') val = 16 * val + (*str - 'a');
-    else if(*str >= 'A' && *str <= 'F') val = 16 * val + (*str - 'A');
+    else if(*str >= 'a' && *str <= 'f') val = 16 * val + (*str - 'a') + 10;
+    else if(*str >= 'A' && *str <= 'F') val = 16 * val + (*str - 'A') + 10;
     else break;
     str++;
   }
@@ -51,7 +51,7 @@ void hex_val(const char* str){
 }
 
 void oct_val(const char* str){
-  long val = 0;
+  int val = 0;
   str += 1;
   while(*str){
     if (*str >= '0' && *str <= '7') val = 8 * val + (*str - '0');
@@ -77,7 +77,7 @@ void oct_val(const char* str){
 }
 
 void dec_val(const char* str){
-  long val = 0;
+  int val = 0;
   while(*str){
     if (*str >= '0' && *str <= '9') val = 10 * val + (*str - '0');
     else break;
@@ -115,17 +115,17 @@ void simple_escape_char_lit(const char* str){
   char val;
 
   switch(str[1]){
-  case '\'': val = '\'';
-  case '\"': val =  '\"';
-  case '\?': val =  '\?';
-  case '\\': val =  '\\';
-  case 'a' : val =  '\a';
-  case 'b' : val =  '\b';
-  case 'f' : val =  '\f';
-  case 'n' : val =  '\n';
-  case 'r' : val =  '\r';
-  case 't' : val =  '\t';
-  case 'v' : val =  '\v';
+  case '\'': val =  '\''; break;
+  case '\"': val =  '\"'; break;
+  case '\?': val =  '\?'; break;
+  case '\\': val =  '\\'; break;
+  case 'a' : val =  '\a'; break;
+  case 'b' : val =  '\b'; break;
+  case 'f' : val =  '\f'; break;
+  case 'n' : val =  '\n'; break;
+  case 'r' : val =  '\r'; break;
+  case 't' : val =  '\t'; break;
+  case 'v' : val =  '\v'; break;
   default  : val =  0;
   }
 
@@ -159,8 +159,8 @@ void hex_char_lit(const char* str){
   str += 2;
   while(*str){
     if     (*str >= '0' && *str <= '9') c = 16 * c + (*str - '0');
-    else if(*str >= 'a' && *str <= 'f') c = 16 * c + (*str - 'a');
-    else if(*str >= 'A' && *str <= 'F') c = 16 * c + (*str - 'A');
+    else if(*str >= 'a' && *str <= 'f') c = 16 * c + (*str - 'a') + 10;
+    else if(*str >= 'A' && *str <= 'F') c = 16 * c + (*str - 'A') + 10;
     else break;
 
     str++;

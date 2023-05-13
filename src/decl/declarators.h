@@ -3,12 +3,13 @@
 
 #include "declarations.h"
 
-void IdentifierName(const char*);
-void Declarator();
-void DeclaratorInitialized();
-void AbstractDeclarator();
+void IdentifierName(void);
+void Declarator(void);
+void DeclaratorInitialized(void);
+void AbstractDeclarator(void);
+void NonprototypeParam(void);
 
-void EnumeratorDefault(); // empty
-void EnumeratorCustom();  // empty
+void EnumeratorDefault(void); // empty
+void EnumeratorCustom(void);  // empty
 
 #endif

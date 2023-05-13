@@ -5,8 +5,8 @@
 
 void ArrayRefExpr();
 void FunctionCallExpr();
-void FieldRefExpr(const char* member_name);
-void PtrRefExpr(const char* member_name);
+void FieldRefExpr();
+void PtrRefExpr();
 void IncDecExpr(Production production);
 
 void FunctionArgsOpen();

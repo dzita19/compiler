@@ -1,0 +1,10 @@
+rm test/semantic/test/output000.txt
+rm test/semantic/test/output001.txt
+rm test/semantic/test/output002.txt
+rm test/semantic/test/output003.txt
+rm test/semantic/test/output004.txt
+rm test/semantic/test/output005.txt
+rm test/semantic/test/output006.txt
+rm test/semantic/test/output007.txt
+rm test/semantic/test/output008.txt
+rm test/semantic/test/output009.txt

@@ -129,6 +129,8 @@ void LinkedListDelete(LinkedList* list){
 
     NodeDrop(list->last);
   }
+  list->first = 0;
+  list->last = 0;
 }
 
 LinkedList LinkedListDuplicate(LinkedList* list){

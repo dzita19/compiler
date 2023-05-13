@@ -3,19 +3,26 @@
 void DerefExpr(){
   TreeNode* node = TreeInsertNode(tree, DEREF_EXPR, 1);
 
+  if(!CheckSubexprValidity(node, 1)) return;
+
   Struct* operand = StructGetUnqualified(node->children[0]->expr_node->type);
 
   if(StructIsArray(operand)){
     operand = StructArrayToPtr(operand);
   }
   if(!StructIsPointer(operand) && !IsNullPointer(node->children[0]->expr_node)){
-    printf("ERROR: Only pointers can be dereferenced.\n");
+    ReportError("Only pointers can be dereferenced.");
+    return;
+  }
+
+  if(operand->parent->type == TYPE_INCOMPLETE){
+    ReportError("Incomplete type not allowed.");
     return;
   }
 
   ExprNode* expr_node = ExprNodeCreateEmpty();
   expr_node->kind = LVALUE;
-  expr_node->type = StructGetUnqualified(operand->parent);
+  expr_node->type = operand->parent;
 
   node->expr_node = expr_node;
 }
@@ -23,10 +30,12 @@ void DerefExpr(){
 void UnaryExpr(Production production){
   TreeNode* node = TreeInsertNode(tree, production, 1);
 
+  if(!CheckSubexprValidity(node, 1)) return;
+
   Struct* operand = node->children[0]->expr_node->type;
 
   if(!StructIsArithmetic(operand)){
-    printf("ERROR: Only arithmetic types allowed for unary operations.\n");
+    ReportError("Only arithmetic types allowed for unary operations.");
     return;
   }
 
@@ -35,15 +44,19 @@ void UnaryExpr(Production production){
   expr_node->type = StructGetUnqualified(operand);
 
   node->expr_node = expr_node;
+  
+  ConvertChildToArithmetic(node, 0);
 }
 
 void AddressExpr(){
   TreeNode* node = TreeInsertNode(tree, ADDRESS_EXPR, 1);
 
+  if(!CheckSubexprValidity(node, 1)) return;
+
   ExprNode* operand = node->children[0]->expr_node;
 
   if(operand->kind != LVALUE){
-    printf("ERROR: Operand of address operation must be lvalue.\n");
+    ReportError("Operand of address operation must be lvalue.");
     return;
   }
 
@@ -57,10 +70,12 @@ void AddressExpr(){
 void BitNegExpr(){
   TreeNode* node = TreeInsertNode(tree, BIT_NOT, 1);
 
+  if(!CheckSubexprValidity(node, 1)) return;
+
   Struct* operand = node->children[0]->expr_node->type;
 
   if(!StructIsArithmetic(operand)){
-    printf("ERROR: Only arithmetic types allowed for bitwise operations.\n");
+    ReportError("Only arithmetic types allowed for bitwise operations.");
     return;
   }
 
@@ -69,15 +84,19 @@ void BitNegExpr(){
   expr_node->type = StructGetUnqualified(operand);
 
   node->expr_node = expr_node;
+  
+  ConvertChildToArithmetic(node, 0);
 }
 
 void LogNegExpr(){
-  TreeNode* node = TreeInsertNode(tree, BIT_NOT, 1);
+  TreeNode* node = TreeInsertNode(tree, LOG_NOT, 1);
+
+  if(!CheckSubexprValidity(node, 1)) return;
 
   Struct* operand = node->children[0]->expr_node->type;
 
   if(!StructIsScalar(operand)){
-    printf("ERROR: Only scalar types allowed for bitwise operations.\n");
+    ReportError("Only scalar types allowed for bitwise operations.");
     return;
   }
 
@@ -86,16 +105,22 @@ void LogNegExpr(){
   expr_node->type = StructGetUnqualified(operand);
 
   node->expr_node = expr_node;
+  
+  ConvertChildToLogic(node, 0);
 }
 
 void SizeofExpr(){
-  TreeNode* node = TreeInsertNode(tree, CONSTANT_PRIMARY, 0);
-
   TreeNode* expression_tree = StackPop(&tree->stack);
 
+  TreeNode* node = TreeInsertNode(tree, CONSTANT_PRIMARY, 0);
+
+  if(expression_tree->expr_node == 0) return; // error detected earlier
+
   Struct* type = expression_tree->expr_node->type;
-  if(type->type == TYPE_INCOMPLETE || type->type == TYPE_ARRAY_UNSPEC){
-    printf("ERROR: Cannot determine size of uncomplete type.\n");
+  if(type == 0) return; // error detected earlier
+
+  if(type->type != TYPE_OBJECT){
+    ReportError("Cannot determine size of incomplete type.");
     return;
   }
 
@@ -114,9 +139,10 @@ void SizeofTypeExpr(){
   TreeNode* node = TreeInsertNode(tree, CONSTANT_PRIMARY, 0);
   
   Struct* type = StackPop(&typename_stack);
+  if(type == 0) return; // error detected earlier
 
-  if(type->type == TYPE_INCOMPLETE || type->type == TYPE_ARRAY_UNSPEC){
-    printf("ERROR: Cannot determine size of uncomplete type.\n");
+  if(type->type != TYPE_OBJECT){
+    ReportError("Cannot determine size of uncomplete type.");
     return;
   }
 
@@ -130,12 +156,23 @@ void SizeofTypeExpr(){
 
 void CastExpr(){
   TreeNode* node = TreeInsertNode(tree, CAST_EXPR, 1);
+
+  if(!CheckSubexprValidity(node, 1)) return;
+
+  if(StructIsArray(node->children[0]->expr_node->type)){
+    ConvertChildToPointer(node, 0);
+  }
   
   Struct* from = node->children[0]->expr_node->type;
   Struct* to = StackPop(&typename_stack);
 
+  if(to == 0){
+    ReportError("Unknown type.");
+    return;
+  }
+
   if(!StructIsScalar(from) || !StructIsScalar(to)){
-    printf("ERROR: Cast possible only between two arithmetic types.\n");
+    ReportError("Cast possible only between two scalar types.");
     return;
   }
 
@@ -144,4 +181,6 @@ void CastExpr(){
   expr_node->type = to;
 
   node->expr_node = expr_node;
+  
+  ConvertChildToArithmetic(node, 0);
 }

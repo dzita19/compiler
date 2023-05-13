@@ -13,13 +13,16 @@ IS			(u|U|l|L)*
 #include <string.h>
 
 #include "y.tab.h"
+#include "decl/declarations.h"
 #include "stmt/literals.h"
 
 #include "util/memory_safety.h"
+#include "symtab/symtab.h"
 
 void count();
 void comment();
 void one_liner();
+int  check_identifier_type();
 
 int yywrap();
 %}
@@ -61,13 +64,13 @@ int yywrap();
 "volatile"		{ count(); return(VOLATILE_); }
 "while"				{ count(); return(WHILE_); }
 
-{L}({L}|{D})*						{ count(); yylval.id = StringDuplicate(yytext); return(IDENTIFIER); }
+{L}({L}|{D})*						{ count(); identifier(yytext);	return(check_identifier_type()); }
 
-0[xX]{H}+{IS}?					{ count(); hex_val(yytext); 	return(CONSTANT); }
+0[xX]{H}+{IS}?					{ count(); hex_val(yytext); 		return(CONSTANT); }
 
-0{O}+{IS}?							{ count(); oct_val(yytext); 	return(CONSTANT); }
+0{O}+{IS}?							{ count(); oct_val(yytext); 		return(CONSTANT); }
 
-{D}+{IS}?								{ count(); dec_val(yytext); 	return(CONSTANT); }
+{D}+{IS}?								{ count(); dec_val(yytext); 		return(CONSTANT); }
 
 '[^\\']'								{ count(); simple_char_lit(yytext + 1); 				return(CONSTANT); }
 
@@ -83,7 +86,7 @@ int yywrap();
 
 {D}+"."{D}*({E})?{FS}?	{ count(); return(CONSTANT); }
 
-\"([^\\']|(\\['"?\\abfnrtv])|(\\{O}{1,3})|(\\x{H}+))*\" { count(); string_lit(yytext); return(STRING_LITERAL); }
+\"([^\\'"]|(\\['"?\\abfnrtv])|(\\{O}{1,3})|(\\x{H}+))*\" { count(); string_lit(yytext); return(STRING_LITERAL); }
 
 "..."					{ count(); return(ELLIPSIS); }
 ">>="					{ count(); return(RIGHT_ASSIGN); }
@@ -143,13 +146,28 @@ int yywrap()
 }
 
 
+int column = 1;
+int row = 1;
+
+const int tab_width = 2;
+
 void comment()
 {
 	char c, c1;
+	count();
 
 loop:
-	while ((c = input()) != '*' && c != 0);
-		//putchar(c);
+	while ((c = input()) != '*' && c != 0) {
+		if(c == '\n') {
+			row++;
+			column = 1;
+		}
+		else if (c == '\t')
+			column += tab_width - (column % tab_width);
+		else column++;
+	}
+
+	column++; // '*' was the last character
 
 	if ((c1 = input()) != '/' && c != 0)
 	{
@@ -157,20 +175,52 @@ loop:
 		goto loop;
 	}
 
-	if (c != 0);
-		//putchar(c1);
+	column++; // '/' was the last character
+
+	// if (c != 0) putchar(c1);
 }
 
 void one_liner(){
 	char c;
+	int extend;
 
-	while((c = input()) != '\n' && c != '\0');
+one_liner:
+	extend = 0; // extend comment to the next line
+	while((c = input()) != '\n' && c != '\0'){
+		if(c == '\\') extend = 1;
+		else extend = 0;
+
+		if (c == '\t') column += tab_width - (column % tab_width);
+		else column++;
+	}
+
+	column = 1;
+	row++;
+
+	if(extend) goto one_liner;
 }
 
-int column = 0;
-int row = 0;
+int check_identifier_type(){
+	extern Symtab* symtab;
+	extern Stack   type_stack;
 
-const int tab_width = 2;
+	TypeFrame* type_frame = StackPeek(&type_stack);
+
+	if(type_frame->type_specifiers != 0 || type_frame->current_type != 0) {
+		//printf("identifier1\n");
+		return IDENTIFIER;
+	}
+
+	Obj* obj_ref = SymtabFindNamespace(symtab, yytext, NAMESPACE_ORDINARY);
+	if(obj_ref == 0 || obj_ref->kind != OBJ_TYPE) {
+		//printf("identifier2\n");
+		return IDENTIFIER;
+	}
+	else {
+		//printf("typename\n");
+		return TYPE_NAME;
+	} 
+}
 
 void count()
 {
@@ -178,7 +228,7 @@ void count()
 
 	for (i = 0; yytext[i] != '\0'; i++)
 		if (yytext[i] == '\n'){
-			column = 0;
+			column = 1;
 			row++;
 		}
 		else if (yytext[i] == '\t')

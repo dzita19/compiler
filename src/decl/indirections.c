@@ -26,8 +26,8 @@ void ArrayLengthDeclarator(){
   ConstExpr* const_expr = StackPop(&const_expr_stack);
   int array_length = const_expr->value;
 
-  if(const_expr->type & CONST_EXPR_ARITHMETIC == 0) {
-    printf("ERROR: Array length must be constant arithmetic value.\n");
+  if((const_expr->type & CONST_EXPR_ARITHMETIC) == 0) {
+    ReportError("Array length must be constant arithmetic value.");
     array_length = 0;
   }
   ConstExprDrop(const_expr);
@@ -82,6 +82,24 @@ void FunctionDeclarator(){
   array->info = (void*)INDIRECTION_FUNCTION;
   LinkedListInsertAfter(current_indirection_frame, node, array);
 
+}
+
+void FuncNonprototypeDeclarator(void){
+  LinkedList* current_indirection_frame = StackPeek(&indirection_stack);
+
+  Node* node = 0;
+  for(node = current_indirection_frame->last; node; node = node->prev){
+    if(node->info == (void*)SEPARATOR_ACTIVE) break;
+  }
+  if(node == 0){
+    node = NodeCreateEmpty();
+    node->info = (void*)SEPARATOR_ACTIVE;
+    LinkedListInsertLast(current_indirection_frame, node);
+  }
+
+  Node* array = NodeCreateEmpty();
+  array->info = (void*)INDIRECTION_NONPROTOTYPE;
+  LinkedListInsertAfter(current_indirection_frame, node, array);
 }
 
 void PointerOpen(){
@@ -145,9 +163,9 @@ void PointerQualifier(){
 }
 
 void FunctionParamsOpen(){
-  if(current_param_scope == 0){
-    current_param_scope = ScopeCreateEmpty();
-    current_param_scope->type = SCOPE_FUNC_PROTOTYPE;
+  if(param_scope_open == 0){
+    param_scope_open = 1;
+    SymtabOpenScope(symtab, SCOPE_FUNC_PROTOTYPE);
     fdef_counter = 0;
   }
   else fdef_counter++;
@@ -160,7 +178,7 @@ void FunctionParamsOpen(){
 }
 
 void FunctionParamsClose(){
-  if(fdef_counter > 0) fdef_counter--;
+  fdef_counter--; 
 
   StackPop(&typedef_stack);
   TypeFrameDrop(StackPop(&type_stack));
@@ -172,7 +190,6 @@ void TypeOpen(){
   StackPush(&typedef_stack, (void*)-1);
   StackPush(&type_stack, TypeFrameCreateEmpty());
   StackPush(&indirection_stack, LinkedListCreateEmpty());
-  StackPush(&parameter_stack, LinkedListCreateEmpty());
   StackPush(&name_stack, NameFrameCreateEmpty());
 }
 
@@ -184,5 +201,9 @@ void TypeClose(){
 }
 
 void Ellipsis(){
+  LinkedList* parameter_frame = StackPeek(&parameter_stack);
 
+  Node* node = NodeCreateEmpty();
+  node->info = 0;
+  LinkedListInsertLast(parameter_frame, node);
 }

@@ -6,7 +6,7 @@
 #include "util/memory_safety.h"
 
 typedef struct NumLit{
-  long           value;
+  int            value;
   PredefinedType type;
 } NumLit;
 

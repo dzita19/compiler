@@ -9,7 +9,9 @@
   printf("--" #symbol_name); \
   for(int i = 0; i < 16 - strlen(#symbol_name); i++) printf(" "); \
   printf("allocated = %4d, freed = %4d;", symbol_alloc, symbol_free);\
-  if(symbol_alloc > symbol_free) printf(" <-- WARNING\n");\
+  if(symbol_alloc > symbol_free) { \
+    printf(" <-- WARNING\n");\
+  } \
   else printf("\n")
 
 // symtab
@@ -21,6 +23,8 @@ int obj_alloc         = 0;
 int obj_free          = 0;
 int struct_alloc      = 0;
 int struct_free       = 0;
+int static_val_alloc  = 0;
+int static_val_free   = 0;
 
 // util
 int linked_list_alloc = 0;
@@ -37,8 +41,10 @@ int type_frame_alloc  = 0;
 int type_frame_free   = 0;
 int name_frame_alloc  = 0;
 int name_frame_free   = 0;
-int const_expr_alloc = 0;
-int const_expr_free  = 0;
+int const_expr_alloc  = 0;
+int const_expr_free   = 0;
+int init_frame_alloc  = 0;
+int init_frame_free   = 0;
 
 // statements
 int tree_node_alloc   = 0;
@@ -51,6 +57,10 @@ int expr_node_alloc   = 0;
 int expr_node_free    = 0;
 int logic_node_alloc  = 0;
 int logic_node_free   = 0;
+
+// generating
+int arg_pass_alloc    = 0;
+int arg_pass_free     = 0;
 
 char* StringDuplicate(const char* str){
   char* string = strdup(str); 
@@ -78,6 +88,7 @@ void memory_safety_report(){
   PRINT_REPORT(Scope,       scope_alloc,        scope_free);
   PRINT_REPORT(Obj,         obj_alloc,          obj_free);
   PRINT_REPORT(Struct,      struct_alloc,       struct_free);
+  PRINT_REPORT(StaticVal,   static_val_alloc,   static_val_free);
   printf("-]\n");
   printf("-Utility: [\n");
   PRINT_REPORT(LinkedList,  linked_list_alloc,  linked_list_free);
@@ -87,6 +98,7 @@ void memory_safety_report(){
   printf("-Declarations: [\n");
   PRINT_REPORT(TypeFrame,   type_frame_alloc,   type_frame_free);
   PRINT_REPORT(NameFrame,   name_frame_alloc,   name_frame_free);
+  PRINT_REPORT(InitFrame,   init_frame_alloc,   init_frame_free);
   PRINT_REPORT(ConstExpr,   const_expr_alloc,   const_expr_free);
   printf("-]\n");
   printf("-Statements: [\n");
@@ -95,6 +107,9 @@ void memory_safety_report(){
   PRINT_REPORT(Numlit,      numlit_alloc,       numlit_free);
   PRINT_REPORT(ExprNode,    expr_node_alloc,    expr_node_free);
   PRINT_REPORT(LogicNode,   logic_node_alloc,   logic_node_free);
+  printf("-]\n");
+  printf("-Generating: [\n");
+  PRINT_REPORT(ArgPass,     arg_pass_alloc,     arg_pass_free);
   printf("-]\n");
   printf("]\n");
 }

@@ -1,15 +1,20 @@
 %{
 	#include <stdio.h>
-	#include "stmt/tree.h"
+
+	#include "symtab/obj.h"
+	#include "symtab/struct.h"
 
 	#include "decl/declarations.h"
 	#include "decl/specifiers.h"
 	#include "decl/declarators.h"
 	#include "decl/indirections.h"
 	#include "decl/const_expr.h"
+	#include "decl/initializer.h"
 
+	#include "stmt/tree.h"
 	#include "stmt/stmt.h"
 	#include "stmt/literals.h"
+
 	#include "stmt/expr/expr.h"
 	#include "stmt/expr/arithm.h"
 	#include "stmt/expr/bitwise.h"
@@ -18,8 +23,9 @@
 	#include "stmt/expr/prefix.h"
 	#include "stmt/expr/primary.h"
 
-	#include "symtab/obj.h"
-	#include "symtab/struct.h"
+	#include "stmt/flow/iteration.h"
+	#include "stmt/flow/jump.h"
+	#include "stmt/flow/selection.h"
 
 	extern int yylex (void);
 	void yyerror(char* s);
@@ -47,9 +53,9 @@
 %%
 
 primary_expression
-	: IDENTIFIER 					{ IdentifierPrimary(yylval.id); }
-	| CONSTANT						{ ConstantPrimary(yylval.val, yylval.val_type); }
-	| STRING_LITERAL			{ StringPrimary(yylval.strlit); }
+	: IDENTIFIER 					{ IdentifierPrimary(); }
+	| CONSTANT						{ ConstantPrimary(); }
+	| STRING_LITERAL			{ StringPrimary(); }
 	| '(' expression ')'	
 	;
 
@@ -58,8 +64,8 @@ postfix_expression
 	| postfix_expression '[' expression ']'															{ ArrayRefExpr(); }
 	| postfix_expression args_open args_close														{ FunctionCallExpr(); }
 	| postfix_expression args_open argument_expression_list args_close	{ FunctionCallExpr(); }
-	| postfix_expression '.' field_name 																{ FieldRefExpr(yylval.id); }
-	| postfix_expression PTR_OP field_name 															{ PtrRefExpr(yylval.id); }
+	| postfix_expression '.' field_name 																{ FieldRefExpr(); }
+	| postfix_expression PTR_OP field_name 															{ PtrRefExpr(); }
 	| postfix_expression INC_OP																					{ IncDecExpr(POST_INC_EXPR); }
 	| postfix_expression DEC_OP 																				{ IncDecExpr(POST_DEC_EXPR); }
 	;
@@ -110,9 +116,9 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression
-	| multiplicative_expression '*' cast_expression	{ MulExpr(); }
-	| multiplicative_expression '/' cast_expression	{ DivExpr(); }
-	| multiplicative_expression '%' cast_expression	{ ModExpr(); }
+	| multiplicative_expression '*' cast_expression	{ MulExpr(MUL_EXPR); }
+	| multiplicative_expression '/' cast_expression	{ MulExpr(DIV_EXPR); }
+	| multiplicative_expression '%' cast_expression	{ MulExpr(MOD_EXPR); }
 	;
 
 additive_expression
@@ -174,9 +180,9 @@ conditional_expression
 assignment_expression
 	: conditional_expression
 	| unary_expression '=' assignment_expression 					{ BasicAssignExpr(); }
-	| unary_expression MUL_ASSIGN assignment_expression		{ MulAssignExpr(); }
-	| unary_expression DIV_ASSIGN assignment_expression		{ DivAssignExpr(); }
-	| unary_expression MOD_ASSIGN assignment_expression		{ ModAssignExpr(); }
+	| unary_expression MUL_ASSIGN assignment_expression		{ MulAssignExpr(MUL_ASSIGN_EXPR); }
+	| unary_expression DIV_ASSIGN assignment_expression		{ MulAssignExpr(DIV_ASSIGN_EXPR); }
+	| unary_expression MOD_ASSIGN assignment_expression		{ MulAssignExpr(MOD_ASSIGN_EXPR); }
 	| unary_expression ADD_ASSIGN assignment_expression		{ AddAssignExpr(); }
 	| unary_expression SUB_ASSIGN assignment_expression		{ SubAssignExpr(); }
 	| unary_expression LEFT_ASSIGN assignment_expression	{ BitAssignExpr(BIT_LEFT_ASSIGN_EXPR); }
@@ -227,8 +233,20 @@ init_declarator_list
 	;
 
 init_declarator
-	: full_declarator { NotFunctionDefinition(); }
-	| full_declarator_initialized { NotFunctionDefinition(); }
+	: full_declarator															{ }
+	| full_declarator_initialized '=' initializer { FullInitialization(); }
+	;
+
+full_declarator
+	: declarator { NotFunctionDefinition(); Declarator(); }
+	;
+
+full_declarator_initialized
+	: declarator { NotFunctionDefinition(); DeclaratorInitialized(); }
+	;
+
+function_declarator
+	: declarator { Declarator(); NonprototypeRedeclaration(); }
 	;
 
 storage_class_specifier
@@ -251,7 +269,7 @@ type_specifier
 	| UNSIGNED_		{ TypeSpecifierRef(UNSIGNED); }
 	| struct_or_union_specifier
 	| enum_specifier
-	| TYPE_NAME		{ IdentifierName(yylval.id); TypedefName(); }
+	| TYPE_NAME		{ IdentifierName(); TypedefName(); }
 	;
 
 struct_or_union_specifier
@@ -266,7 +284,7 @@ struct_or_union
 	;
 
 tag_name
-	: IDENTIFIER { IdentifierName(yylval.id); }
+	: IDENTIFIER { IdentifierName(); }
 	;
 
 tag_def_open
@@ -335,14 +353,6 @@ type_qualifier
 	| VOLATILE_		{ TypeQualifierRef(VOLATILE); }
 	;
 
-full_declarator
-	: declarator { Declarator(); }
-	;
-
-full_declarator_initialized
-	: declarator '=' initializer { DeclaratorInitialized(); }
-	;
-
 declarator
 	: pointer direct_declarator { NestedDeclarator(); }
 	| direct_declarator
@@ -354,12 +364,12 @@ direct_declarator
 	| direct_declarator '[' constant_expression ']' { ArrayLengthDeclarator(); }
 	| direct_declarator '[' ']' { ArrayVariableDeclarator(); }
 	| direct_declarator function_params_open parameter_type_list function_params_close { FunctionDeclarator(); }
-	| direct_declarator function_params_open identifier_list function_params_close { FunctionDeclarator(); }
-	| direct_declarator function_params_open function_params_close { FunctionDeclarator(); }
+	| direct_declarator function_params_open identifier_list function_params_close { FuncNonprototypeDeclarator(); }
+	| direct_declarator function_params_open function_params_close { FuncNonprototypeDeclarator(); }
 	;
 
 declarator_name
-	: IDENTIFIER { IdentifierName(yyval.id); }
+	: IDENTIFIER { IdentifierName(); }
 	;
 
 function_params_open
@@ -395,7 +405,7 @@ parameter_list
 parameter_declaration
 	: full_declaration_specifiers full_declarator { Declaration(); }
 	| full_declaration_specifiers full_abstract_declarator { Declaration(); }
-	| full_declaration_specifiers { Declaration(); }
+	| full_declaration_specifiers { AbstractDeclarator(); Declaration(); }
 	;
 
 identifier_list
@@ -404,12 +414,12 @@ identifier_list
 	;
 
 function_param_name
-	: declarator_name { Declarator(); }
+	: declarator_name { NonprototypeParam(); }
 	;
 
 type_name
-	: specifier_qualifier_list { /*TypeName();*/ }
-	| specifier_qualifier_list abstract_declarator { /*TypeName();*/ }
+	: full_specifier_qualifier_list { AbstractDeclarator(); }
+	| full_specifier_qualifier_list full_abstract_declarator { /*TypeName();*/ }
 	;
 
 full_abstract_declarator
@@ -428,16 +438,24 @@ direct_abstract_declarator
 	| '[' constant_expression ']'  { ArrayLengthDeclarator(); }
 	| direct_abstract_declarator '[' ']'  { ArrayVariableDeclarator(); }
 	| direct_abstract_declarator '[' constant_expression ']'  { ArrayLengthDeclarator(); }
-	| function_params_open function_params_close { FunctionDeclarator(); }
+	| function_params_open function_params_close { FuncNonprototypeDeclarator(); }
 	| function_params_open parameter_type_list function_params_close { FunctionDeclarator(); }
-	| direct_abstract_declarator function_params_open function_params_close { FunctionDeclarator(); }
+	| direct_abstract_declarator function_params_open function_params_close { FuncNonprototypeDeclarator(); }
 	| direct_abstract_declarator function_params_open parameter_type_list function_params_close { FunctionDeclarator(); }
 	;
 
 initializer
-	: assignment_expression
-	| '{' initializer_list '}'
-	| '{' initializer_list ',' '}'
+	: assignment_expression { Initializer(); }
+	| initializer_open initializer_list initializer_close
+	| initializer_open initializer_list ',' initializer_close
+	;
+
+initializer_open
+	: '{' { InitializerOpen(); }
+	;
+
+initializer_close
+	: '}' { InitializerClose(); }
 	;
 
 initializer_list
@@ -454,10 +472,14 @@ statement
 	| jump_statement
 	;
 
+label
+	: IDENTIFIER	{ IdentifierName(); Label(); }
+	;
+
 labeled_statement
-	: IDENTIFIER ':' statement
-	| CASE_ constant_expression ':' statement
-	| DEFAULT_ ':' statement
+	: label ':' statement												{ LabelStmt(); }
+	| CASE_ constant_expression ':' statement		{ CaseStmt(); }
+	| DEFAULT_ ':' statement										{ DefaultStmt(); }
 	;
 
 compound_statement
@@ -506,25 +528,49 @@ expression_statement
 	| expression ';'	{ ExpressionStmt(); }
 	;
 
+if_open
+	: IF_ 		{ IfOpen(); }
+	;
+
+else_open
+	: ELSE_ 	{ ElseOpen(); }
+	;
+
+switch_open
+	: SWITCH_ { SwitchOpen(); }
+	;
+
 selection_statement
-	: IF_ '(' expression ')' statement
-	| IF_ '(' expression ')' statement ELSE_ statement
-	| SWITCH_ '(' expression ')' statement
+	: if_open 		'(' expression ')' statement 											{ IfStmt(); }
+	| if_open 		'(' expression ')' statement else_open statement 	{ IfElseStmt(); }
+	| switch_open '(' expression ')' statement 											{ SwitchStmt(); }
+	;
+
+while_open:
+	WHILE_	{ WhileOpen(); }
+	;
+
+do_open:
+	DO_			{ DoOpen(); }
+	;
+
+for_open:
+	FOR_		{ ForOpen(); }
 	;
 
 iteration_statement
-	: WHILE_ '(' expression ')' statement
-	| DO_ statement WHILE_ '(' expression ')' ';'
-	| FOR_ '(' expression_statement expression_statement ')' statement
-	| FOR_ '(' expression_statement expression_statement expression ')' statement
+	: while_open '(' expression ')' statement 																					{ WhileStmt(); }
+	| do_open statement WHILE_ '(' expression ')' ';'																		{ DoWhileStmt(); }
+	| for_open '(' expression_statement expression_statement 						')' statement		{ ForStmt(0); }
+	| for_open '(' expression_statement expression_statement expression ')' statement		{ ForStmt(1); }
 	;
 
 jump_statement
-	: GOTO_ IDENTIFIER ';'
-	| CONTINUE_ ';'
-	| BREAK_ ';'
-	| RETURN_ ';'
-	| RETURN_ expression ';'
+	: GOTO_ IDENTIFIER ';'		{ GotoStmt(); }
+	| CONTINUE_ ';'						{ ContinueStmt(); }
+	| BREAK_ ';'							{ BreakStmt(); }
+	| RETURN_ ';'							{ ReturnStmt(); }
+	| RETURN_ expression ';'	{ ReturnExprStmt(); }
 	;
 
 rec_translation_unit
@@ -542,8 +588,8 @@ external_declaration
 	;
 
 function_definition
-	: full_declaration_specifiers full_declarator declaration_list func_body { FunctionDefinition(); }
-	| full_declaration_specifiers full_declarator func_body	{ FunctionDefinition(); }
+	: full_declaration_specifiers function_declarator declaration_list func_body {  }
+	| full_declaration_specifiers function_declarator func_body	{ }
 	;
 
 %%

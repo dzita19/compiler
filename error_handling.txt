@@ -1,0 +1,26 @@
+declarations:
+  if there is an error in a declaration, the declared identifier shall not be added to symtab.
+  every reference of identifier that is not declared correctly shall be reported as if identifier is not found in symtab.
+  tags will be added to symtab, but invalid fields won't be added
+  therefore, tag can have alignment and size 0
+
+initializer:
+  if there is an error in initializer, all future initializers until the end of declarator are dismissed.
+  error is handled in full initializer (or in declaration).
+  however, tree stack must be cleared so it doesn't disrupt tree building
+
+expressions:
+  if there is an error in any subexpression, its exprnode shall be 0.
+  every expression has to check validity of its subexpressions.
+
+statements:
+  even if there is an error in any part of statement, that statement shall be added to tree.
+  it is not important whether or not the statement will be added to the tree because code will not be generated.
+
+
+
+UNFINISHED TASKS:
+  const address expression is not finished - addition and subtraction are not done
+  declaration cleanup
+  initializer cleanup
+  initialize array length

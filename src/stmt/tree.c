@@ -11,10 +11,7 @@ const char* production_names[] = {
   [CONSTANT_PRIMARY]      = "Constant",
   [STRING_PRIMARY]        = "String",
 
-  [ARRAY_REF_EXPR]        = "Array ref",
   [FUNCTION_CALL_EXPR]    = "Function call",
-  [FIELD_REF_EXPR]        = "Field ref",
-  [PTR_REF_EXPR]          = "Pointer ref",
   [POST_INC_EXPR]         = "Postfix inc",
   [POST_DEC_EXPR]         = "Postfix dec",
 
@@ -74,13 +71,34 @@ const char* production_names[] = {
   [COMMA_EXPR]            = "Comma list",
 
 
-
   [INITIALIZER]           = "Initializer",
+  [INITIALIZER_LIST]      = "Initializer list",
+
+  [COMPOUND_STMT]         = "Compound statement",
 
   [EXPRESSION_STMT]       = "Expression statement",
   [EMPTY_STMT]            = "Empty statement",
 
-  [COMPOUND_STMT]         = "Compound statement",
+  [LABEL_STMT]            = "Label statement",
+  [CASE_STMT]             = "Case statement",
+  [DEFAULT_STMT]          = "Default statement",
+
+  [IF_STMT]               = "If statement",
+  [IF_ELSE_STMT]          = "If-else statement",
+  [SWITCH_STMT]           = "Switch statement",
+  
+  [WHILE_STMT]            = "While statement",
+  [DO_WHILE_STMT]         = "Do-while statement",
+  [FOR_STMT]              = "For statement",
+
+  [GOTO_STMT]             = "Goto statement",
+  [CONTINUE_STMT]         = "Continue statement",
+  [BREAK_STMT]            = "Break statement",
+  [RETURN_STMT]           = "Return statement",
+  [RETURN_EXPR_STMT]      = "Return expr statement",
+
+  [FUNC_ENTRY]            = "Function entry",
+  [FUNC_EXIT]             = "Function exit",
 
   [FUNCTION_BODY]         = "Function body",
   [TRANSLATION_UNIT]      = "Translation unit",
@@ -92,6 +110,7 @@ TreeNode* TreeNodeCreateEmpty(){
   tree_node->num_of_children = 0;
   tree_node->parent = 0;
   tree_node->children = 0;
+  tree_node->expr_node = 0;
 
   tree_node_alloc++;
 

@@ -5,6 +5,8 @@
 #include <string.h>
 #include "util/memory_safety.h"
 
+#include "static_val.h"
+
 const int DECLARED          =   0 << 0,
           DEFINED           =   1 << 0,
           TENTATIVE         =   2 << 0;
@@ -48,8 +50,8 @@ Obj* ObjCreateEmpty(){
   obj->address = 0;
   obj->specifier = 0;
   obj->type = 0;
-  obj->members.first = 0;
-  obj->members.last = 0;
+  obj->members = (LinkedList){ 0, 0 };
+  obj->init_vals = 0;
 
   obj_alloc++;
 
@@ -67,6 +69,13 @@ void ObjDrop(Obj* obj){
     ObjDrop(node->info);
   }
   LinkedListDelete(&obj->members);
+
+  if(obj->init_vals){
+    for(Node* node = obj->init_vals->first; node; node = node->next){
+      StaticValDrop(node->info);
+    }
+    LinkedListDrop(obj->init_vals);
+  }
 
   free(obj);
 
@@ -119,23 +128,28 @@ void ObjDump(Obj* obj){
 
   dump_indent++;
   print_indent();
-  printf("Name: %s; ", obj->name);
+  if(obj->name) printf("Name: %s; ", obj->name);
+  else printf("Name: $empty; ");
+
   if(obj->kind == OBJ_VAR){
-    printf("Address: 0x%04lX; Definition: %s; Storage: %s; Linkage: %s;\n",
+    printf("Address: 0x%04X; Definition: %s; Storage: %s; Linkage: %s;\n",
       obj->address,
       definition_print[(obj->specifier >> 0) & 3],
       storage_print   [(obj->specifier >> 2) & 1],
       linkage_print   [(obj->specifier >> 3) & 3]);
   }
-  if(obj->kind == OBJ_ENUM){
-    printf("Value: 0x%04lX;\n", obj->address);
+  else if(obj->kind == OBJ_ENUM){
+    printf("Value: 0x%04X;\n", obj->address);
   }
-  if(obj->kind == OBJ_TAG){
+  else if(obj->kind == OBJ_TAG){
     printf("Tag type: %s; Definition: %s; Size: 0x%04X; Align: 0x%04X\n",
       tag_type_print  [(obj->specifier >> 2) & 3],
       definition_print[(obj->specifier >> 0) & 3],
       obj->type->size, 
       obj->type->align);
+  }
+  else{
+    printf("\n");
   }
 
   if(obj->kind == OBJ_TAG){
@@ -155,6 +169,22 @@ void ObjDump(Obj* obj){
 
     StructDump(obj->type);
     
+    printf("]\n");
+  }
+
+  if(obj->init_vals){
+    print_indent();
+    printf("Initialized to:[\n");
+
+    dump_indent++;
+    for(Node* node = obj->init_vals->first; node; node = node->next){
+      print_indent();
+      StaticValDump(node->info);
+      printf("\n");
+    }
+    dump_indent--;
+    
+    print_indent();
     printf("]\n");
   }
 

@@ -9,7 +9,7 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/build/compiler",
-        "args": [ ">", "test/output.txt" ],
+        "args": [ "test/testfile.c", ">", "test/output.txt" ],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],

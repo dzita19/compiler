@@ -63,13 +63,14 @@ extern ObjNamespace namespaces[OBJ_KIND_COUNT];
 struct Struct;
 
 typedef struct Obj{
-  char* name;
+  char*   name;
   ObjKind kind;
-  long address;
-  int specifier;  // for vars - defined, storage, linkage
-                  // for tags - defined, tag type
+  int     address;
+  int     specifier;  // for vars - defined, storage, linkage
+    // for tags - defined, tag type
   struct Struct* type;
-  LinkedList members;
+  LinkedList     members;   // LinkedList(Obj*)
+  LinkedList*    init_vals; // LinkedList(StaticVal*)
 } Obj;
 
 extern Obj* ObjCreateEmpty();

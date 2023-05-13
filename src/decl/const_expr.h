@@ -6,8 +6,10 @@
 #include "stmt/stmt.h"
 #include "stmt/expr/expr.h"
 
-void      ConstExpression();
-long      ConstArithmeticExprProcessor(TreeNode* node);
-ConstExpr ConstAddressExprProcessor(TreeNode* node);
+void       ConstExpression(void);
+ConstExpr  ConstExprCalculate(TreeNode* const_expr_node);
+
+int        ConstArithmeticExprProcessor(TreeNode* node);
+ConstExpr  ConstAddressExprProcessor(TreeNode* node);
 
 #endif

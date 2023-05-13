@@ -3,7 +3,7 @@
 
 #include "expr.h"
 
-void IdentifierPrimary(const char* symbol_name);
+void IdentifierPrimary();
 void ConstantPrimary();
 void StringPrimary();
 

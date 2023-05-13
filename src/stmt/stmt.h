@@ -13,7 +13,7 @@
 
 #include "decl/declarations.h"
 
-extern Tree* tree;
+extern Tree*   tree;
 extern Vector* string_table;
 
 extern Stack function_call_stack; // Stack(int) - counts num of args per nested function call
@@ -22,8 +22,15 @@ extern Stack comma_expr_stack;    // Stack(int) - counts num of exprs per nested
 extern Stack statement_stack;     // Stack(int) - counts num of statements per nested block 
   // (initially open for translation unit)
 
+extern Stack switch_stack;        // Stack(LinkedList(int)) - case expressions per nested stack
+
+extern int   loop_count;
+extern int   switch_count;
+
 void stmt_init();
 void stmt_free();
+
+void StringTabDump();
 
 void BlockOpen();
 void BlockClose();
@@ -31,10 +38,13 @@ void BlockClose();
 void FuncBodyOpen();
 void FuncBodyClose();
 
+void Statement();
+void UnifyStatements(int);
+
 void ExpressionStmt();
 void EmptyStmt();
 
-void FunctionDefinition();
+void NonprototypeRedeclaration();
 void NotFunctionDefinition();
 void TranslationUnit();
 

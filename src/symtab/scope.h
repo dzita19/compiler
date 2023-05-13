@@ -14,9 +14,9 @@ typedef enum ScopeType{
 
 typedef struct Scope{
   struct Scope* outer; // points to father scope
-  LinkedList children;
-  LinkedList objs;
-  ScopeType type;
+  LinkedList    children;
+  LinkedList    objs;
+  ScopeType     type;
 } Scope;
 
 // scope owns all objs inserted into it - FREE THEM!!!

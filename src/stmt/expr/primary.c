@@ -4,13 +4,14 @@
 #include "util/queue.h"
 #include "../literals.h"
 
-void IdentifierPrimary(const char* symbol_name){
+void IdentifierPrimary(){
+  const char* symbol_name = QueueDelete(&identifier_queue);
   Obj* obj_ref = SymtabFindNamespace(symtab, symbol_name, NAMESPACE_ORDINARY);
   StringDrop(symbol_name);
   
   if(obj_ref == 0){
     TreeNode* node = TreeInsertNode(tree, IDENTIFIER_PRIMARY, 0);
-    printf("ERROR: Symbol not found.\n");
+    ReportError("Symbol not found.");
     return;
   }
 
@@ -19,7 +20,7 @@ void IdentifierPrimary(const char* symbol_name){
 
     ExprNode* expr_node = ExprNodeCreateEmpty();
     expr_node->type = obj_ref->type;
-    expr_node->kind = (obj_ref->type->kind == TYPE_FUNCTION ? FUNC_DESIGNATOR : LVALUE);
+    expr_node->kind = (obj_ref->type->type == TYPE_FUNCTION ? FUNC_DESIGNATOR : LVALUE);
     expr_node->obj_ref  = obj_ref;
 
     node->expr_node = expr_node;
@@ -35,7 +36,7 @@ void IdentifierPrimary(const char* symbol_name){
     node->expr_node = expr_node;
   }
   else {
-    printf("ERROR: Illegal symbol kind.\n");
+    ReportError("Illegal symbol kind.");
     return;
   }
 }

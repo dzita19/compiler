@@ -3,17 +3,12 @@
 
 #include "expr.h"
 
-void MulExpr();
-void DivExpr();
-void ModExpr();
-
+void MulExpr(Production);
 void AddExpr();
 void SubExpr();
 
 void BasicAssignExpr();
-void MulAssignExpr();
-void DivAssignExpr();
-void ModAssignExpr();
+void MulAssignExpr(Production);
 void AddAssignExpr();
 void SubAssignExpr();
 

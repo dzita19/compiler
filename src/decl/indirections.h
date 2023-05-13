@@ -3,22 +3,23 @@
 
 #include "declarations.h"
 
-void NestedDeclarator();
-void ArrayLengthDeclarator();
-void ArrayVariableDeclarator();
-void FunctionDeclarator();
+void NestedDeclarator(void);
+void ArrayLengthDeclarator(void);
+void ArrayVariableDeclarator(void);
+void FunctionDeclarator(void);
+void FuncNonprototypeDeclarator(void);
 
-void PointerOpen();
-void PointerQualifierOpen();
-void Pointer();
-void PointerQualifier();
+void PointerOpen(void);
+void PointerQualifierOpen(void);
+void Pointer(void);
+void PointerQualifier(void);
 
-void FunctionParamsOpen();
-void FunctionParamsClose();
+void FunctionParamsOpen(void);
+void FunctionParamsClose(void);
 
-void TypeOpen();
-void TypeClose();
+void TypeOpen(void);
+void TypeClose(void);
 
-void Ellipsis(); // empty
+void Ellipsis(void); // empty
 
 #endif

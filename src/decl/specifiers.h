@@ -3,20 +3,23 @@
 
 #include "declarations.h"
 
-void declarations_init();
+void declarations_init(void);
 
-void Declaration();
-void FullDeclarationSpecifiers();
-void RedeclarationSpecifiers();
+void Declaration(void);
+void FullDeclarationSpecifiers(void);
+void RedeclarationSpecifiers(void);
 
 void StorageClassSpecifierRef(StorageClassSpecifier);
 void TypeSpecifierRef(TypeSpecifier);
 void TypeQualifierRef(TypeQualifier);
-void TypedefName();
+void TypedefName(void);
 
 void TagTypeRef(int tag_type);
-void TagDefOpen();
-void TagDefined();
-void TagDeclared();
+void TagDefOpen(void);
+void TagDefined(void);
+void TagDeclared(void);
+
+void NonprototypeRedeclaration(void);
+void NotFunctionDefinition(void);
 
 #endif
