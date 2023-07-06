@@ -15,6 +15,7 @@
 
 extern Tree*   tree;
 extern Vector* string_table;
+extern Scope*  function_scope;    // used for labels inside one function
 
 extern Stack function_call_stack; // Stack(int) - counts num of args per nested function call
 extern Stack typename_stack;      // for type referencing in expressions - sizeof expressions !!!
@@ -27,25 +28,25 @@ extern Stack switch_stack;        // Stack(LinkedList(int)) - case expressions p
 extern int   loop_count;
 extern int   switch_count;
 
-void stmt_init();
-void stmt_free();
+void stmt_init(void);
+void stmt_free(void);
 
-void StringTabDump();
+void StringTabDump(void);
 
-void BlockOpen();
-void BlockClose();
+void BlockOpen(void);
+void BlockClose(void);
 
-void FuncBodyOpen();
-void FuncBodyClose();
+void FuncBodyOpen(void);
+void FuncBodyClose(void);
 
-void Statement();
-void UnifyStatements(int);
+void Statement(void); // declare another statement in current compound
+void UnifyStatements(int); // unify N statements into one
 
-void ExpressionStmt();
-void EmptyStmt();
+void ExpressionStmt(void);
+void EmptyStmt(void);
 
-void NonprototypeRedeclaration();
-void NotFunctionDefinition();
-void TranslationUnit();
+void IsFunctionDefintion(void);
+void NotFunctionDefinition(void);
+void TranslationUnit(void);
 
 #endif

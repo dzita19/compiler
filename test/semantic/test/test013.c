@@ -36,3 +36,5 @@ struct i; // undefined
 int j(void){
   struct i; // redeclaration
 }
+
+struct { int a, b; } k;

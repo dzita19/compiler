@@ -8,7 +8,7 @@
 
 StaticVal* StaticValCreateEmpty(){
   StaticVal* val = malloc(sizeof(StaticVal));
-  val->type       = 0;
+  val->kind       = 0;
   val->size       = 0;
   val->offset     = 0;
   val->value      = 0;
@@ -34,32 +34,40 @@ void StaticValDump(StaticVal* val){
   extern Vector* string_table;
 
   printf("Offset: 0x%04X; Size: 0x%04X; ", val->offset, val->size);
-  if(val->type == VAL_ADDRESS && val->obj_ref) {
+  if(val->kind == VAL_ADDRESS && val->obj_ref) {
     if((val->obj_ref->specifier & LINKAGE_FETCH) == LINKAGE_NONE)
       printf("Address of: $unnamed + 0x%04X; ", val->obj_ref->address);
     else
       printf("Address of: %s; ", val->obj_ref->name);
   }
-  if(val->type == VAL_STRING) printf("String: \"%s\"; ", (char*)VectorGet(string_table, val->string_ref));
-  printf("Value: 0x%04X; ", val->value);
+  if(val->kind == VAL_STRING) printf("String: \"%s\"; ", (char*)VectorGet(string_table, val->string_ref));
+  if(val->value >= 0) printf("Value: 0x%04X; ",  +val->value);
+  else                printf("Value: -0x%04X; ", -val->value);
 }
 
-void StaticValAddToList(StaticVal* val, LinkedList* list){
-  Node* node;
-  for(node = list->first; node; node = node->next){
+void StaticValAddToList(StaticVal* new_val, LinkedList* list){
+  Node* node = list->first;
+  while(node){
     StaticVal* current_val = node->info;
 
-    if(current_val->offset >  val->offset) break;
-    if(current_val->offset == val->offset){
-      current_val->value = val->value;
+    int a0 = new_val->offset;
+    int a1 = new_val->offset + new_val->size;
 
-      StaticValDrop(val);
-      return;
+    int b0 = current_val->offset;
+    int b1 = current_val->offset + current_val->size;
+
+    if((a0 <= b0 && a1 > b0) || (a1 >= b1 && a0 < b0)){
+      Node* old = node;
+      node = node->next;
+      StaticValDrop(current_val);
+      NodeDrop(LinkedListRemoveFrom(list, old));
     }
+    else if(a0 >= b1) node = node->next;
+    else if(a1 <= b0) break; 
   }
 
   Node* new_node = NodeCreateEmpty();
-  new_node->info = val;
+  new_node->info = new_val;
 
   if(node) LinkedListInsertBefore(list, node, new_node);
   else     LinkedListInsertLast(list, new_node);

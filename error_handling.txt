@@ -24,3 +24,5 @@ UNFINISHED TASKS:
   declaration cleanup
   initializer cleanup
   initialize array length
+
+v0.36 - old parser spec

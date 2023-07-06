@@ -5,20 +5,21 @@
 #include "symtab/symtab.h"
 #include "util/memory_safety.h"
 
+extern FILE* ccout;
 extern FILE* yyin;
 extern int yyparse();
 
 extern Tree* tree;
-
 extern Symtab* symtab;
 
 int main(int argc, char** argv){
   declarations_init();
   stmt_init();
 
-  if(argc != 2) return 1;
+  if(argc != 3) return 1;
 
 	yyin = fopen(argv[1], "r");
+  ccout = fopen(argv[2], "w");
 
   if(yyin == 0) {
     printf("Input file not found.\n");
@@ -27,10 +28,14 @@ int main(int argc, char** argv){
 
 	if(yyparse() == 0){
     printf("Parsing finished successfully.\n");
+    if(semantic_errors == 0) GenerateOutputFile();
   }
   else {
     printf("Parsing failed.\n");
   }
+
+  fclose(yyin);
+  fclose(ccout);
 
   printf("\n");
   SymtabDump(symtab);

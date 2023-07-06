@@ -61,7 +61,7 @@ extern int yydebug;
     LE_OP = 267,
     GE_OP = 268,
     EQ_OP = 269,
-    NE_OP = 270,
+    NQ_OP = 270,
     AND_OP = 271,
     OR_OP = 272,
     MUL_ASSIGN = 273,

@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-Vector* VectorCreateEmpty(){
+Vector* VectorCreateEmpty(void){
   Vector* vector = malloc(sizeof(Vector));
   vector->content = 0;
   vector->size = 0;
@@ -21,9 +21,9 @@ void VectorDrop(Vector* vector){
   vector_free++;
 }
 
-Vector* VectorInit(){
+Vector* VectorInit(void){
   Vector* vector = VectorCreateEmpty();
-  VectorReserve(vector, 256);
+  VectorReserve(vector, DEFAULT_VECTOR_SIZE);
 
   return vector;
 }

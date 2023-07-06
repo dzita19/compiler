@@ -6,6 +6,8 @@
 #include <stdint.h>
 
 #define POINTER_SIZE 4
+#define NONPROTOTYPE_FUNCTION 1 << 0
+#define ELLIPSIS_FUNCTION     1 << 1
 
 typedef enum PredefinedType { 
     VOID_T,
@@ -55,9 +57,6 @@ typedef enum StructType{
 } StructType;
 
 struct Obj;
-
-extern const int NONPROTOTYPE_FUNCTION;
-extern const int ELLIPSIS_FUNCTION;
 
 typedef struct Struct {
   struct Obj*    obj;
@@ -111,6 +110,7 @@ extern Struct*    StructArrayToPtr(Struct* array);
 extern Struct*    StructFunctionToPtr(Struct* function);
 extern Struct*    StructQualify(Struct* str, int qualifiers);
 extern Struct*    StructGetHigherRank(Struct* str1, Struct* str2);
+extern Struct*    StructGetExprIntType(Struct* str1, Struct* str2);
 extern Struct*    StructArrayLengthSpecification(Struct* str, uint32_t length);
 
 extern int        StructIsVoid(Struct* str);

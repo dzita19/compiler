@@ -8,12 +8,12 @@
 	#include "decl/specifiers.h"
 	#include "decl/declarators.h"
 	#include "decl/indirections.h"
-	#include "decl/const_expr.h"
 	#include "decl/initializer.h"
 
-	#include "stmt/tree.h"
-	#include "stmt/stmt.h"
+	#include "stmt/fold.h"
 	#include "stmt/literals.h"
+	#include "stmt/stmt.h"
+	#include "stmt/tree.h"
 
 	#include "stmt/expr/expr.h"
 	#include "stmt/expr/arithm.h"
@@ -38,7 +38,7 @@
 	char* strlit;
 }
 %token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF_
-%token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
+%token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NQ_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
 %token XOR_ASSIGN OR_ASSIGN TYPE_NAME
@@ -144,7 +144,7 @@ relational_expression
 equality_expression
 	: relational_expression
 	| equality_expression EQ_OP relational_expression	{ EqualityExpr(RELA_EQ_EXPR); }
-	| equality_expression NE_OP relational_expression	{ EqualityExpr(RELA_NE_EXPR); }
+	| equality_expression NQ_OP relational_expression	{ EqualityExpr(RELA_NQ_EXPR); }
 	;
 
 and_expression
@@ -179,7 +179,7 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression
-	| unary_expression '=' assignment_expression 					{ BasicAssignExpr(); }
+	| unary_expression '=' assignment_expression 					{ BasicAssignExpr(0); }
 	| unary_expression MUL_ASSIGN assignment_expression		{ MulAssignExpr(MUL_ASSIGN_EXPR); }
 	| unary_expression DIV_ASSIGN assignment_expression		{ MulAssignExpr(DIV_ASSIGN_EXPR); }
 	| unary_expression MOD_ASSIGN assignment_expression		{ MulAssignExpr(MOD_ASSIGN_EXPR); }
@@ -192,13 +192,13 @@ assignment_expression
 	| unary_expression OR_ASSIGN assignment_expression		{ BitAssignExpr(BIT_OR_ASSIGN_EXPR); }
 	;
 
-rec_expression
+expression_nested
 	: assignment_expression { CommaExprOpen(); }
-	| rec_expression ',' assignment_expression { CommaExpr(); }
+	| expression_nested ',' assignment_expression { CommaExpr(); }
 	;
 
 expression
-	: rec_expression { FullExpr(); }
+	: expression_nested { FullExpr(); }
 	;
 
 constant_expression
@@ -211,20 +211,20 @@ declaration
 	;
 
 redeclaration_specifiers
-	: declaration_specifiers { RedeclarationSpecifiers(); }
+	: declaration_specifiers_nested { RedeclarationSpecifiers(); }
 	;
 
 full_declaration_specifiers
-	: declaration_specifiers { FullDeclarationSpecifiers(); }
+	: declaration_specifiers_nested { FullDeclarationSpecifiers(); }
 	;
 
-declaration_specifiers
+declaration_specifiers_nested
 	: storage_class_specifier
-	| storage_class_specifier declaration_specifiers
+	| storage_class_specifier declaration_specifiers_nested
 	| type_specifier
-	| type_specifier declaration_specifiers
+	| type_specifier declaration_specifiers_nested
 	| type_qualifier
-	| type_qualifier declaration_specifiers
+	| type_qualifier declaration_specifiers_nested
 	;
 
 init_declarator_list
@@ -233,20 +233,8 @@ init_declarator_list
 	;
 
 init_declarator
-	: full_declarator															{ }
-	| full_declarator_initialized '=' initializer { FullInitialization(); }
-	;
-
-full_declarator
-	: declarator { NotFunctionDefinition(); Declarator(); }
-	;
-
-full_declarator_initialized
-	: declarator { NotFunctionDefinition(); DeclaratorInitialized(); }
-	;
-
-function_declarator
-	: declarator { Declarator(); NonprototypeRedeclaration(); }
+	: declarator															{ NotFunctionDefinition(); }
+	| declarator_initialized '=' initializer  { NotFunctionDefinition(); FullInitialization(); }
 	;
 
 storage_class_specifier
@@ -301,17 +289,17 @@ struct_declaration_list
 	;
 
 struct_declaration
-	: full_specifier_qualifier_list struct_declarator_list ';' { Declaration(); }
-	;
-
-full_specifier_qualifier_list
-	: specifier_qualifier_list { FullDeclarationSpecifiers(); }
+	: specifier_qualifier_list struct_declarator_list ';' { Declaration(); }
 	;
 
 specifier_qualifier_list
-	: type_specifier specifier_qualifier_list
+	: specifier_qualifier_list_nested { FullDeclarationSpecifiers(); }
+	;
+
+specifier_qualifier_list_nested
+	: type_specifier specifier_qualifier_list_nested
 	| type_specifier
-	| type_qualifier specifier_qualifier_list
+	| type_qualifier specifier_qualifier_list_nested
 	| type_qualifier
 	;
 
@@ -321,9 +309,9 @@ struct_declarator_list
 	;
 
 struct_declarator
-	: full_declarator
+	: declarator
 	| ':' constant_expression
-	| full_declarator ':' constant_expression
+	| declarator ':' constant_expression
 	;
 
 enum_specifier
@@ -354,13 +342,25 @@ type_qualifier
 	;
 
 declarator
+	: declarator_nested { Declarator(); }
+	;
+
+declarator_initialized
+	: declarator_nested { DeclaratorInitialized(); }
+	;
+
+function_declarator
+	: declarator_nested { Declarator(); IsFunctionDefinition(); }
+	;
+
+declarator_nested
 	: pointer direct_declarator { NestedDeclarator(); }
 	| direct_declarator
 	;
 
 direct_declarator
 	: declarator_name
-	| '(' declarator ')' { }
+	| '(' declarator_nested ')' { }
 	| direct_declarator '[' constant_expression ']' { ArrayLengthDeclarator(); }
 	| direct_declarator '[' ']' { ArrayVariableDeclarator(); }
 	| direct_declarator function_params_open parameter_type_list function_params_close { FunctionDeclarator(); }
@@ -403,8 +403,8 @@ parameter_list
 	;
 
 parameter_declaration
-	: full_declaration_specifiers full_declarator { Declaration(); }
-	| full_declaration_specifiers full_abstract_declarator { Declaration(); }
+	: full_declaration_specifiers declarator { Declaration(); }
+	| full_declaration_specifiers abstract_declarator { Declaration(); }
 	| full_declaration_specifiers { AbstractDeclarator(); Declaration(); }
 	;
 
@@ -418,22 +418,22 @@ function_param_name
 	;
 
 type_name
-	: full_specifier_qualifier_list { AbstractDeclarator(); }
-	| full_specifier_qualifier_list full_abstract_declarator { /*TypeName();*/ }
-	;
-
-full_abstract_declarator
-	: abstract_declarator { AbstractDeclarator(); }
+	: specifier_qualifier_list { AbstractDeclarator(); Declaration(); }
+	| specifier_qualifier_list abstract_declarator { Declaration(); }
 	;
 
 abstract_declarator
+	: abstract_declarator_nested { AbstractDeclarator(); }
+	;
+
+abstract_declarator_nested
 	: pointer { NestedDeclarator(); }
 	| direct_abstract_declarator
 	| pointer direct_abstract_declarator { NestedDeclarator(); }
 	;
 
 direct_abstract_declarator
-	: '(' abstract_declarator ')' { }
+	: '(' abstract_declarator_nested ')' { }
 	| '[' ']' { ArrayVariableDeclarator(); }
 	| '[' constant_expression ']'  { ArrayLengthDeclarator(); }
 	| direct_abstract_declarator '[' ']'  { ArrayVariableDeclarator(); }
@@ -464,8 +464,7 @@ initializer_list
 	;
 
 statement
-	: labeled_statement
-	| compound_statement
+	: compound_statement
 	| expression_statement
 	| selection_statement
 	| iteration_statement
@@ -473,13 +472,21 @@ statement
 	;
 
 label
-	: IDENTIFIER	{ IdentifierName(); Label(); }
+	: IDENTIFIER	{ Label(); }
 	;
 
-labeled_statement
-	: label ':' statement												{ LabelStmt(); }
-	| CASE_ constant_expression ':' statement		{ CaseStmt(); }
-	| DEFAULT_ ':' statement										{ DefaultStmt(); }
+case_label
+	: CASE_ constant_expression { CaseLabel(); }
+	;
+
+default_label
+	: DEFAULT_ { DefaultLabel(); }
+	;
+
+labelation
+	: label ':'
+	| case_label ':'
+	| default_label ':'
 	;
 
 compound_statement
@@ -503,6 +510,7 @@ block
 block_item
 	: statement
 	| declaration
+	| labelation
 	;
 
 func_body
@@ -541,28 +549,42 @@ switch_open
 	;
 
 selection_statement
-	: if_open 		'(' expression ')' statement 											{ IfStmt(); }
-	| if_open 		'(' expression ')' statement else_open statement 	{ IfElseStmt(); }
-	| switch_open '(' expression ')' statement 											{ SwitchStmt(); }
+	: if_open 		'(' control_expression ')' statement 											{ IfStmt(); }
+	| if_open 		'(' control_expression ')' statement else_open statement 	{ IfElseStmt(); }
+	| switch_open '(' control_expression ')' statement 											{ SwitchStmt(); }
 	;
 
-while_open:
-	WHILE_	{ WhileOpen(); }
+while_open
+	: WHILE_	{ WhileOpen(); }
 	;
 
-do_open:
-	DO_			{ DoOpen(); }
+do_open
+	: DO_			{ DoOpen(); }
 	;
 
-for_open:
-	FOR_		{ ForOpen(); }
+for_open
+	: FOR_		{ ForOpen(); }
 	;
+
+control_expression
+	: expression { ControlExpression(); }
+	;
+
+for_declaration
+	: declaration { ForDeclaration(); }
+	;
+
+for_expression
+	: expression { ForExpression(); }
+	| { VoidExpr(); ForExpression(); }
+	;
+
 
 iteration_statement
-	: while_open '(' expression ')' statement 																					{ WhileStmt(); }
-	| do_open statement WHILE_ '(' expression ')' ';'																		{ DoWhileStmt(); }
-	| for_open '(' expression_statement expression_statement 						')' statement		{ ForStmt(0); }
-	| for_open '(' expression_statement expression_statement expression ')' statement		{ ForStmt(1); }
+	: while_open '(' control_expression ')' statement 																	{ WhileStmt(); }
+	| do_open statement WHILE_ '(' control_expression ')' ';'														{ DoWhileStmt(); }
+	| for_open '(' for_expression  ';' for_expression ';' for_expression')' statement		{ ForStmt(); }
+	| for_open '(' for_declaration     for_expression ';' for_expression')' statement   { ForStmt(); }
 	;
 
 jump_statement
@@ -580,6 +602,7 @@ rec_translation_unit
 
 translation_unit
 	: rec_translation_unit { TranslationUnit(); }
+	| { TranslationUnit(); }
 	;
 
 external_declaration

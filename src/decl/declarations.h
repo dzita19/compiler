@@ -4,6 +4,7 @@
 #include "symtab/symtab.h"
 #include "symtab/scope.h"
 #include "symtab/obj.h"
+#include "symtab/static_val.h"
 #include "symtab/struct.h"
 
 #include "util/memory_safety.h"
@@ -61,18 +62,19 @@ extern Stack const_expr_stack; // Stack(ConstExpr*)
 
 extern LinkedList static_obj_list; // LinkedList(Obj*)
 
-extern ArgPass declaration_arg_pass; // to allocate memory for function parameters
+extern CallFrame param_frame; // to allocate memory for function parameters
 
 extern uint8_t ellipsis;
 extern uint8_t full_decl_specifiers; // 0 if not, 1 if is. when 0, qualifiers are added to type frame, else to indirections
+  // important - needs to be reset after typename is recognized (because it is not followed by )
 extern uint8_t current_qualifiers;
 extern uint8_t current_function_level;
 extern int32_t current_enum_constant;
 
 extern uint8_t block_level;
 extern Obj*    current_function_body;
-extern int32_t fdef_counter;  // used to know when to open a param scope
-extern uint8_t param_scope_open;
+extern int32_t param_declaration_depth; // counts how many of param declarations are nested together
+extern int32_t param_declaration_width; // counts how many param declarations are in the same level
 extern uint8_t nonprototype_redecl;
   // at beginning of full declaration, fdef and pso are both 0 (and so shall be at the end)
   // pso is set to 1 when pso is 0 and fparam open is reduced (also add new scope)
@@ -83,6 +85,8 @@ extern uint8_t nonprototype_redecl;
 extern Obj*    current_obj_definition;
 extern int32_t current_static_counter;
 extern Stack   stack_frame_stack; // nested stack counter per block
+extern int     for_declaration_active;
+extern int     for_declarator_counter;
 
 typedef struct TypeFrame{
   Obj* current_type;
@@ -91,7 +95,7 @@ typedef struct TypeFrame{
   int type_qualifiers;
 } TypeFrame;
 
-TypeFrame*  TypeFrameCreateEmpty();
+TypeFrame*  TypeFrameCreateEmpty(void);
 void        TypeFrameDrop (TypeFrame*);
 void        TypeFrameClear(TypeFrame*);
 
@@ -100,24 +104,19 @@ typedef struct NameFrame{
   int   tag_type;
 } NameFrame;
 
-NameFrame*  NameFrameCreateEmpty();
+NameFrame*  NameFrameCreateEmpty(void);
 void        NameFrameDrop (NameFrame*);
 void        NameFrameClear(NameFrame*);
 
-typedef enum ConstExprType{
-  CONST_EXPR_ARITHMETIC = 1 << 0,
-  CONST_EXPR_ADDRESS    = 1 << 1,
-  CONST_EXPR_STRING     = 1 << 2,
-} ConstExprType;
-
 typedef struct ConstExpr{
   Obj* obj_ref;    // if targets address of an obj
-  int string_ref; // if targets address of a string
+  int string_ref; //  if targets address of a string
   int value;
-  ConstExprType type;
+  StaticValKind kind;
+  Struct* type;
 } ConstExpr;
 
-ConstExpr* ConstExprCreateEmpty();
+ConstExpr* ConstExprCreateEmpty(void);
 void       ConstExprDrop(ConstExpr*);
 
 typedef enum InitKind{
@@ -132,8 +131,8 @@ typedef struct InitFrame{
   Struct* type;
   Node* field;       // Node(Obj*)
   int index;
-  int offset;
-  int parent_offset;
+  // int offset;
+  // int parent_offset;
 } InitFrame;
 
 InitFrame* InitFrameCreateEmpty(void);

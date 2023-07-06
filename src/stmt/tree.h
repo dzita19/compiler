@@ -5,7 +5,10 @@
 #include "util/stack.h"
 
 typedef enum Production{
-  IDENTIFIER_PRIMARY,
+  VOID_EXPR,
+
+  // VALUE_PRIMARY,
+  ADDRESS_PRIMARY,
   CONSTANT_PRIMARY,
   STRING_PRIMARY,
 
@@ -13,16 +16,13 @@ typedef enum Production{
   POST_INC_EXPR,
   POST_DEC_EXPR,
 
-  FUNCTION_ARG,
-
   PRE_INC_EXPR,
   PRE_DEC_EXPR,
   DEREF_EXPR,
   UNARY_PLUS_EXPR,
   UNARY_MINUS_EXPR,
-  ADDRESS_EXPR,
-  BIT_NOT,
-  LOG_NOT,
+  BIT_NOT_EXPR,
+  LOG_NOT_EXPR,
 
   CAST_EXPR,
 
@@ -42,7 +42,7 @@ typedef enum Production{
   RELA_LE_EXPR,
 
   RELA_EQ_EXPR,
-  RELA_NE_EXPR,
+  RELA_NQ_EXPR,
 
   BIT_AND_EXPR,
   BIT_XOR_EXPR,
@@ -68,17 +68,17 @@ typedef enum Production{
 
   COMMA_EXPR,
 
-  INITIALIZER,
-  INITIALIZER_LIST,
+  LABEL_STMT,
+  CASE_STMT,
+  DEFAULT_STMT,
+
+  INITIALIZATION,
 
   COMPOUND_STMT,
 
   EXPRESSION_STMT,
   EMPTY_STMT,
-
-  LABEL_STMT,
-  CASE_STMT,
-  DEFAULT_STMT,
+  FOR_DECL,
 
   IF_STMT,
   IF_ELSE_STMT,
@@ -94,29 +94,39 @@ typedef enum Production{
   RETURN_STMT,
   RETURN_EXPR_STMT,
 
-  FUNC_ENTRY,
-  FUNC_EXIT,
+  FUNC_PROLOGUE,
+  FUNC_EPILOGUE,
 
   FUNCTION_BODY,
   TRANSLATION_UNIT,
 
 } Production;
 
-extern const char* production_names[];
+#define PRODUCTION_EXPR     0
+#define PRODUCTION_STMT     1
 
-typedef struct ExprNode ExprNode;
+extern const char* production_names[];
+extern const int   production_kind[];
+
+typedef struct ExprNode  ExprNode;
+typedef struct LogicNode LogicNode;
+typedef struct MemAlloc  MemAlloc;
+// typedef struct AllocNode AllocNode;
 
 typedef struct TreeNode{
-  ExprNode* expr_node;
+  int id;
+  int label; // initialized to 0; set to -1 if node is a branch target; later set real value;
   Production production;
   int num_of_children;
   struct TreeNode* parent;
   struct TreeNode** children;
+  ExprNode* expr_node;
+  LogicNode* logic_node;
+  MemAlloc* mem_alloc;
 } TreeNode;
 
 typedef struct Tree{
   Stack stack;
-  TreeNode* root;
 } Tree;
 
 extern TreeNode* TreeNodeCreateEmpty();

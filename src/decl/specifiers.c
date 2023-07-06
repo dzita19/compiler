@@ -132,8 +132,6 @@ void DeclarationSpecifiers(int try_redeclare){
 }
 
 void FullDeclarationSpecifiers(){
-  TypeFrame* type_frame = StackPeek(&type_stack);
-  
   full_decl_specifiers = 1;
 
   int try_redeclare = 0;
@@ -255,15 +253,15 @@ void TagDeclared(){
   type_frame->current_type = tag_obj;
 }
 
-void NonprototypeRedeclaration(void){
+void IsFunctionDefinition(void){
   nonprototype_redecl = 1;
+  param_declaration_width = 0;
+  // don't close func prototype scope
   Declaration();
 }
 
 void NotFunctionDefinition(void){
-  if(fdef_counter < 0){
+  param_declaration_width = 0;
+  if(symtab->current_scope->type == SCOPE_FUNC_PROTOTYPE)
     SymtabRemoveCurrentScope(symtab);
-    fdef_counter = 0;
-    param_scope_open = 0;
-  }
 }

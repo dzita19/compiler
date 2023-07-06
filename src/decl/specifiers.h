@@ -19,7 +19,7 @@ void TagDefOpen(void);
 void TagDefined(void);
 void TagDeclared(void);
 
-void NonprototypeRedeclaration(void);
+void IsFunctionDefinition(void);
 void NotFunctionDefinition(void);
 
 #endif

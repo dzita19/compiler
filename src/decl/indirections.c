@@ -26,7 +26,7 @@ void ArrayLengthDeclarator(){
   ConstExpr* const_expr = StackPop(&const_expr_stack);
   int array_length = const_expr->value;
 
-  if((const_expr->type & CONST_EXPR_ARITHMETIC) == 0) {
+  if(const_expr->kind != VAL_ARITHM || !StructIsArithmetic(const_expr->type)) {
     ReportError("Array length must be constant arithmetic value.");
     array_length = 0;
   }
@@ -163,12 +163,13 @@ void PointerQualifier(){
 }
 
 void FunctionParamsOpen(){
-  if(param_scope_open == 0){
-    param_scope_open = 1;
+  if(param_declaration_width == 0){
     SymtabOpenScope(symtab, SCOPE_FUNC_PROTOTYPE);
-    fdef_counter = 0;
   }
-  else fdef_counter++;
+  if(param_declaration_depth == 0){
+    param_declaration_width++;
+  }
+  param_declaration_depth++;
 
   StackPush(&typedef_stack, 0);
   StackPush(&type_stack, TypeFrameCreateEmpty());
@@ -178,7 +179,8 @@ void FunctionParamsOpen(){
 }
 
 void FunctionParamsClose(){
-  fdef_counter--; 
+  // if(fdef_counter > 0) 
+  param_declaration_depth--; 
 
   StackPop(&typedef_stack);
   TypeFrameDrop(StackPop(&type_stack));

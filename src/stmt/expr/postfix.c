@@ -16,12 +16,12 @@ void FunctionCallExpr(){
 
   if(!CheckSubexprValidity(node, 1 + args_count)) return;
 
-  ExprNode* function_designator = node->children[0]->expr_node;
-
-  if(function_designator->type->type == TYPE_FUNCTION){
+  if(node->children[0]->expr_node->type->type == TYPE_FUNCTION){
     ConvertChildToPointer(node, 0);
-    function_designator = node->children[0]->expr_node;
   }
+
+  ExprNode* function_designator = node->children[0]->expr_node;
+  Struct* expr_type = 0;
   
   if(!StructIsFunctionPtr(function_designator->type)){
     ReportError("Symbol doesn't designate function.");
@@ -34,35 +34,58 @@ void FunctionCallExpr(){
 
     for(Node* param_node = function_designator->type->parent->parameters.first; param_node; param_node = param_node->next){
       if(arg_cntr >= node->num_of_children){ // check so you don't reference a non-existing child
-        ReportError("Not enough args for function call.");
+        ReportError("Not enough arguments for function call.");
         return;
       }
-      ExprNode* current_arg = node->children[arg_cntr]->expr_node;
-      Struct* current_param = param_node->info;
+      
+      Struct* current_arg   = StructGetUnqualified(node->children[arg_cntr]->expr_node->type);
+      Struct* current_param = StructGetUnqualified(param_node->info);
 
-      if(!StructIsCastable(current_arg->type, current_param)
-          && !(IsNullPointer(current_arg) && StructIsPointer(current_param))){
-        ReportError("Expression cannot be cast into param type.");
+      if(StructIsArithmetic(current_param) && StructIsArithmetic(current_arg)){
+        // all good
+      }
+      else if(StructIsStructOrUnion(current_param) && StructIsStructOrUnion(current_arg)
+          && StructIsCompatible(current_param, current_arg)){
+        // all good
+      }
+      else if(StructIsPointer(current_param) && StructIsPointer(current_arg)){
+        if(StructIsCompatibleUnqualified(current_param, current_arg)){
+          // all good
+        }
+        else if(StructIsVoidPtr(current_arg)) {
+          // all good
+        }
+        else {
+          ReportError("Incompatible argument type for function call.");
+          return;
+        }
+      }
+      else if(StructIsPointer(current_param) && IsNullPointer(node->children[arg_cntr]->expr_node)){
+        // all good
+      }
+      else {
+        ReportError("Incompatible argument type for function call.");
         return;
       }
 
-      // cast arg
+      ConvertChildToArithmetic(node, arg_cntr);
+      SubexprImplCast(node, arg_cntr, current_param);
 
       arg_cntr++;
     }
 
     if(arg_cntr < node->num_of_children && (function_designator->type->parent->attributes & ELLIPSIS_FUNCTION) == 0){
-      ReportError("Too many args for function call.");
+      ReportError("Too many arguments for function call.");
       return;
     }
 
   }
 
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->kind = RVALUE;
-  expr_node->type = StructGetParentUnqualified(StructGetParentUnqualified(function_designator->type));
+  expr_type = StructGetParentUnqualified(StructGetParentUnqualified(function_designator->type));
 
-  node->expr_node = expr_node;
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = RVALUE;
+  node->expr_node->type = expr_type;
 }
 
 void FieldRefExpr(){
@@ -88,8 +111,8 @@ void FieldRefExpr(){
     return;
   }
 
-  node->expr_node->address += member->address;
-  node->expr_node->type     = member->type;
+  node->children[0]->expr_node->address += member->address; // change offset of address primary (not deref)
+  node->expr_node->type = member->type;
 
 }
 
@@ -108,24 +131,26 @@ void IncDecExpr(Production production){
 
   if(!CheckSubexprValidity(node, 2)) return;
 
-  Struct* type = node->children[0]->expr_node->type;
+  if(node->children[0]->expr_node->kind != LVALUE
+      || !StructIsModifiable(node->children[0]->expr_node->type)){
+    ReportError("Cannot increment non-modifiable or non-lvalue objects.");
+    return;
+  }
+
+  Struct* type = StructGetUnqualified(node->children[0]->expr_node->type);
+  Struct* expr_type = 0;
 
   if(!StructIsScalar(type)){
     ReportError("Increment only scalar values.");
     return;
   }
-  if(node->children[0]->expr_node->kind != LVALUE && !StructIsModifiable(type)){
-    ReportError("Cannot increment non-modifiable or non-lvalue objects.");
-    return;
-  }
-  if(StructIsPointer(type) && type->parent->type != TYPE_OBJECT){
-    ReportError("Incremented pointer must point to object type.");
-    return;
-  }
 
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->kind = RVALUE;
-  expr_node->type = type;
+  if(StructIsPointer(type)) expr_type = type;
+  else expr_type = StructGetExprIntType(type, type);
+
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = RVALUE;
+  node->expr_node->type = expr_type;
 
   if(StructIsPointer(type)){
     node->children[1]->expr_node->address = StructGetParentUnqualified(type)->size;
@@ -133,8 +158,6 @@ void IncDecExpr(Production production){
   else{
     node->children[1]->expr_node->address = 1;
   }
-
-  node->expr_node = expr_node;
 }
 
 void FunctionArgsOpen(){
@@ -147,17 +170,4 @@ void FunctionArgsClose(){
 
 void FunctionArg(){
   function_call_stack.top->info++;
-
-  TreeNode* node = TreeInsertNode(tree, FUNCTION_ARG, 1);
-  if(!CheckSubexprValidity(node, 1)) return;
-
-  ExprNode* expr_node = ExprNodeCreateEmpty(); 
-  expr_node->kind = RVALUE;
-  expr_node->type = node->children[0]->expr_node->type;
-
-  node->expr_node = expr_node;
-
-  if(StructIsInteger(node->children[0]->expr_node->type)) ConvertChildToArithmetic(node, 0);
-
-  SubexprImplCast(node, 0, expr_node->type);
 }

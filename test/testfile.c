@@ -1,17 +1,20 @@
-/* TEST 019: Initializers (static, auto) */
 
 struct str1{
-  int a, *b, c[3];
+  int x, y, *p;
 };
 
-int main(){
-  int a;
-  const int* b = &a; // OK
-  const int* c;
-  c = &a;
+int f(){
 
-  const int d;
-  int* e = &d;
-  int* f;
-  f = &d;
+}
+
+int main(void){
+  // struct str1 a, b;
+  // // int x = 0, y = 1, z = 2;
+  int x, y, z, *p, *q, *r;
+  // char c;
+  // c++;
+  
+  if(x = 1){
+    y = z;
+  }
 }

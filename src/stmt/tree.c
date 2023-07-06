@@ -5,9 +5,14 @@
 
 #include "util/stack.h"
 #include "expr/expr.h"
+#include "gen/link_flow.h"
+#include "gen/resources.h"
 
 const char* production_names[] = {
-  [IDENTIFIER_PRIMARY]    = "Identifier",
+  [VOID_EXPR]             = "Void expression",
+
+  // [VALUE_PRIMARY]         = "Value of",
+  [ADDRESS_PRIMARY]       = "Address of",
   [CONSTANT_PRIMARY]      = "Constant",
   [STRING_PRIMARY]        = "String",
 
@@ -15,16 +20,13 @@ const char* production_names[] = {
   [POST_INC_EXPR]         = "Postfix inc",
   [POST_DEC_EXPR]         = "Postfix dec",
 
-  [FUNCTION_ARG]          = "Function arg",
-
   [PRE_INC_EXPR]          = "Prefix inc",
   [PRE_DEC_EXPR]          = "Prefix dec",
   [DEREF_EXPR]            = "Deref pointer",
   [UNARY_PLUS_EXPR]       = "Unary plus",
   [UNARY_MINUS_EXPR]      = "Unary minus",
-  [ADDRESS_EXPR]          = "Address of",
-  [BIT_NOT]               = "Bitwise not",
-  [LOG_NOT]               = "Logic not",
+  [BIT_NOT_EXPR]          = "Bitwise not",
+  [LOG_NOT_EXPR]          = "Logic not",
 
   [CAST_EXPR]             = "Cast",
 
@@ -44,7 +46,7 @@ const char* production_names[] = {
   [RELA_LE_EXPR]          = "Less equal",
 
   [RELA_EQ_EXPR]          = "Equals",
-  [RELA_NE_EXPR]          = "Not equals",
+  [RELA_NQ_EXPR]          = "Not equals",
 
   [BIT_AND_EXPR]          = "Bitwise and",
   [BIT_XOR_EXPR]          = "Bitwise xor",
@@ -70,18 +72,16 @@ const char* production_names[] = {
 
   [COMMA_EXPR]            = "Comma list",
 
-
-  [INITIALIZER]           = "Initializer",
-  [INITIALIZER_LIST]      = "Initializer list",
+  [INITIALIZATION]        = "Initialization",
 
   [COMPOUND_STMT]         = "Compound statement",
 
+  [LABEL_STMT]            = "Label",
+  [CASE_STMT]             = "Case label",
+  [DEFAULT_STMT]          = "Default label",
+
   [EXPRESSION_STMT]       = "Expression statement",
   [EMPTY_STMT]            = "Empty statement",
-
-  [LABEL_STMT]            = "Label statement",
-  [CASE_STMT]             = "Case statement",
-  [DEFAULT_STMT]          = "Default statement",
 
   [IF_STMT]               = "If statement",
   [IF_ELSE_STMT]          = "If-else statement",
@@ -90,6 +90,7 @@ const char* production_names[] = {
   [WHILE_STMT]            = "While statement",
   [DO_WHILE_STMT]         = "Do-while statement",
   [FOR_STMT]              = "For statement",
+  [FOR_DECL]              = "For declarators",
 
   [GOTO_STMT]             = "Goto statement",
   [CONTINUE_STMT]         = "Continue statement",
@@ -97,20 +98,31 @@ const char* production_names[] = {
   [RETURN_STMT]           = "Return statement",
   [RETURN_EXPR_STMT]      = "Return expr statement",
 
-  [FUNC_ENTRY]            = "Function entry",
-  [FUNC_EXIT]             = "Function exit",
+  [FUNC_PROLOGUE]         = "Function prologue",
+  [FUNC_EPILOGUE]         = "Function epilogue",
 
   [FUNCTION_BODY]         = "Function body",
   [TRANSLATION_UNIT]      = "Translation unit",
 };
 
+const int production_kind[] = {
+  [VOID_EXPR          ... COMMA_EXPR]       = PRODUCTION_EXPR,
+  [INITIALIZATION     ... TRANSLATION_UNIT] = PRODUCTION_STMT,
+};
+
 TreeNode* TreeNodeCreateEmpty(){
+  static int tree_node_curr_id = 0;
+
   TreeNode* tree_node = malloc(sizeof(TreeNode));
+  tree_node->id = ++tree_node_curr_id;
+  tree_node->label      = 0;
   tree_node->production = 0;
   tree_node->num_of_children = 0;
-  tree_node->parent = 0;
-  tree_node->children = 0;
-  tree_node->expr_node = 0;
+  tree_node->parent     = 0;
+  tree_node->children   = 0;
+  tree_node->expr_node  = 0;
+  tree_node->logic_node = 0;
+  tree_node->mem_alloc  = 0;
 
   tree_node_alloc++;
 
@@ -119,9 +131,12 @@ TreeNode* TreeNodeCreateEmpty(){
 
 void TreeNodeDrop(TreeNode* node){
   for(int i = 0; i < node->num_of_children; i++){
-    TreeNodeDrop(node->children[i]);
+    if(node->children[i]) TreeNodeDrop(node->children[i]);
   }
-  if(node->expr_node) ExprNodeDrop(node->expr_node);
+  free(node->children);
+  if(node->expr_node)  ExprNodeDrop(node->expr_node);
+  if(node->logic_node) LogicNodeDrop(node->logic_node);
+  if(node->mem_alloc)  MemAllocDrop(node->mem_alloc);
   free(node);
 
   tree_node_free++;
@@ -135,8 +150,19 @@ void print_tree_indent(){
 
 void TreeNodeDump(TreeNode* node){
   print_tree_indent();
-  printf("%s ", production_names[node->production]);
-  if(node->expr_node) ExprNodeDump(node->expr_node);
+  printf("%s ::", production_names[node->production]);
+  if(node->label != 0) printf(" %d", node->id);
+  if(node->expr_node){
+    printf(" ");
+    ExprNodeDump(node->expr_node);
+  }
+  if(node->logic_node){
+    printf(" ");
+    LogicNodeDump(node->logic_node);
+  }
+  if(node->parent == 0 && node->production != TRANSLATION_UNIT){
+    printf(" ERROR");
+  }
   printf("\n");
   
   tree_indent++;
@@ -148,7 +174,6 @@ void TreeNodeDump(TreeNode* node){
 
 Tree* TreeCreateEmpty(){
   Tree* tree = malloc(sizeof(Tree));
-  tree->root = 0;
   tree->stack = (Stack){ 0 };
 
   tree_alloc++;
@@ -190,7 +215,6 @@ TreeNode* TreeInsertNode(Tree* tree, Production production, int num_of_children)
   }
 
   StackPush(&tree->stack, node);
-  tree->root = node;
 
   return node;
 }
@@ -207,11 +231,6 @@ void TreeNodePrint(TreeNode* root){
     if(!root) continue;
     if(root == (void*)-1) { indent++; continue; }
     if(root == (void*)-2) { indent--; continue; }
-
-    // if(production_names[root->type]){
-    //   for(int i = 0; i < indent; i++) printf("  ");
-    //   printf("+%s\n", production_names[root->type]);
-    // }
 
     StackPush(&preorder_stack, (void*)-2);
     for(int i = root->num_of_children - 1; i >= 0; i--){

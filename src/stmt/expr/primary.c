@@ -5,35 +5,37 @@
 #include "../literals.h"
 
 void IdentifierPrimary(){
+  extern void DerefExpr(void);
+
   const char* symbol_name = QueueDelete(&identifier_queue);
   Obj* obj_ref = SymtabFindNamespace(symtab, symbol_name, NAMESPACE_ORDINARY);
   StringDrop(symbol_name);
   
   if(obj_ref == 0){
-    TreeNode* node = TreeInsertNode(tree, IDENTIFIER_PRIMARY, 0);
+    // TreeNode* node = 
+    TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
+    DerefExpr();
     ReportError("Symbol not found.");
     return;
   }
 
   if(obj_ref->kind == OBJ_VAR){
-    TreeNode* node = TreeInsertNode(tree, IDENTIFIER_PRIMARY, 0);
+    TreeNode* node = TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
 
-    ExprNode* expr_node = ExprNodeCreateEmpty();
-    expr_node->type = obj_ref->type;
-    expr_node->kind = (obj_ref->type->type == TYPE_FUNCTION ? FUNC_DESIGNATOR : LVALUE);
-    expr_node->obj_ref  = obj_ref;
+    node->expr_node = ExprNodeCreateEmpty();
+    node->expr_node->type = StructToPtr(obj_ref->type);
+    node->expr_node->kind = ADDRESS_OF;
+    node->expr_node->obj_ref  = obj_ref;
 
-    node->expr_node = expr_node;
+    DerefExpr();
   }
   else if(obj_ref->kind == OBJ_ENUM){
     TreeNode* node = TreeInsertNode(tree, CONSTANT_PRIMARY, 0);
 
-    ExprNode* expr_node = ExprNodeCreateEmpty();
-    expr_node->type = obj_ref->type;
-    expr_node->kind = NUM_LITERAL;
-    expr_node->address = obj_ref->address;
-
-    node->expr_node = expr_node;
+    node->expr_node = ExprNodeCreateEmpty();
+    node->expr_node->type = obj_ref->type;
+    node->expr_node->kind = NUM_LITERAL;
+    node->expr_node->address = obj_ref->address;
   }
   else {
     ReportError("Illegal symbol kind.");
@@ -46,12 +48,10 @@ void ConstantPrimary(){
 
   NumLit* numlit = QueueDelete(&numlit_queue);
 
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->type = predefined_types_struct + numlit->type;
-  expr_node->kind = NUM_LITERAL;
-  expr_node->address = numlit->value;
-
-  node->expr_node = expr_node;
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->type = predefined_types_struct + numlit->type;
+  node->expr_node->kind = NUM_LITERAL;
+  node->expr_node->address = numlit->value;
 
   NumLitDrop(numlit);
 }
@@ -61,20 +61,20 @@ void StringPrimary(){
 
   const char* string = QueueDelete(&strlit_queue);
 
-  int string_index = 0;
-  for(int i = 0; i < string_table->size; i++){
+  int string_index = -1; // -1 : not found
+  for(int i = 1; i < string_table->size; i++){ // first entry is reserved for static objects with no linkage
     if(strcmp(string, string_table->content[i]) == 0){
       StringDrop(string);
       string_index = i;
     }
   }
-  string_index = VectorSize(string_table);
-  VectorPush(string_table, (void*)string);
+  if(string_index < 0){
+    string_index = VectorSize(string_table);
+    VectorPush(string_table, (void*)string);
+  }
 
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->type = StructStringLiteral();
-  expr_node->kind = STR_LITERAL;
-  expr_node->address = string_index;
-
-  node->expr_node = expr_node;
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->type = StructStringLiteral();
+  node->expr_node->kind = STR_LITERAL;
+  node->expr_node->string_ref = string_index;
 }

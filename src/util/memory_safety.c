@@ -15,52 +15,64 @@
   else printf("\n")
 
 // symtab
-int symtab_alloc      = 0;
-int symtab_free       = 0;
-int scope_alloc       = 0;
-int scope_free        = 0;
-int obj_alloc         = 0;
-int obj_free          = 0;
-int struct_alloc      = 0;
-int struct_free       = 0;
-int static_val_alloc  = 0;
-int static_val_free   = 0;
+int symtab_alloc       = 0;
+int symtab_free        = 0;
+int scope_alloc        = 0;
+int scope_free         = 0;
+int obj_alloc          = 0;
+int obj_free           = 0;
+int struct_alloc       = 0;
+int struct_free        = 0;
+int static_val_alloc   = 0;
+int static_val_free    = 0;
 
 // util
-int linked_list_alloc = 0;
-int linked_list_free  = 0;
-int node_alloc        = 0;
-int node_free         = 0;
-int string_alloc      = 0;
-int string_free       = 0;
-int vector_alloc      = 0;
-int vector_free       = 0;
+int linked_list_alloc  = 0;
+int linked_list_free   = 0;
+int node_alloc         = 0;
+int node_free          = 0;
+int string_alloc       = 0;
+int string_free        = 0;
+int vector_alloc       = 0;
+int vector_free        = 0;
+int array_alloc        = 0;
+int array_free         = 0;
 
 // declarations
-int type_frame_alloc  = 0;
-int type_frame_free   = 0;
-int name_frame_alloc  = 0;
-int name_frame_free   = 0;
-int const_expr_alloc  = 0;
-int const_expr_free   = 0;
-int init_frame_alloc  = 0;
-int init_frame_free   = 0;
+int type_frame_alloc   = 0;
+int type_frame_free    = 0;
+int name_frame_alloc   = 0;
+int name_frame_free    = 0;
+int const_expr_alloc   = 0;
+int const_expr_free    = 0;
+int init_frame_alloc   = 0;
+int init_frame_free    = 0;
 
 // statements
-int tree_node_alloc   = 0;
-int tree_node_free    = 0;
-int tree_alloc        = 0;
-int tree_free         = 0;
-int numlit_alloc      = 0;
-int numlit_free       = 0;
-int expr_node_alloc   = 0;
-int expr_node_free    = 0;
-int logic_node_alloc  = 0;
-int logic_node_free   = 0;
+int tree_node_alloc    = 0;
+int tree_node_free     = 0;
+int tree_alloc         = 0;
+int tree_free          = 0;
+int numlit_alloc       = 0;
+int numlit_free        = 0;
+int expr_node_alloc    = 0;
+int expr_node_free     = 0;
 
 // generating
-int arg_pass_alloc    = 0;
-int arg_pass_free     = 0;
+int call_frame_alloc   = 0;
+int call_frame_free    = 0;
+int arg_alloc_alloc    = 0;
+int arg_alloc_free     = 0;
+int logic_node_alloc   = 0;
+int logic_node_free    = 0;
+int stack_alloc_alloc  = 0;
+int stack_alloc_free   = 0;
+int mem_alloc_alloc    = 0;
+int mem_alloc_free     = 0;
+int alloc_node_alloc   = 0;
+int alloc_node_free    = 0;
+int ir_instr_alloc     = 0;
+int ir_instr_free      = 0;
 
 char* StringDuplicate(const char* str){
   char* string = strdup(str); 
@@ -94,6 +106,8 @@ void memory_safety_report(){
   PRINT_REPORT(LinkedList,  linked_list_alloc,  linked_list_free);
   PRINT_REPORT(Node,        node_alloc,         node_free);
   PRINT_REPORT(String,      string_alloc,       string_free);
+  PRINT_REPORT(Vector,      vector_alloc,       vector_free);
+  PRINT_REPORT(Array,       array_alloc,        array_free);
   printf("-]\n");
   printf("-Declarations: [\n");
   PRINT_REPORT(TypeFrame,   type_frame_alloc,   type_frame_free);
@@ -106,10 +120,15 @@ void memory_safety_report(){
   PRINT_REPORT(Tree,        tree_alloc,         tree_free);
   PRINT_REPORT(Numlit,      numlit_alloc,       numlit_free);
   PRINT_REPORT(ExprNode,    expr_node_alloc,    expr_node_free);
-  PRINT_REPORT(LogicNode,   logic_node_alloc,   logic_node_free);
   printf("-]\n");
   printf("-Generating: [\n");
-  PRINT_REPORT(ArgPass,     arg_pass_alloc,     arg_pass_free);
+  PRINT_REPORT(CallFrame,   call_frame_alloc,   call_frame_free);
+  PRINT_REPORT(ArgAlloc,    arg_alloc_alloc,    arg_alloc_free);
+  PRINT_REPORT(LogicNode,   logic_node_alloc,   logic_node_free);
+  PRINT_REPORT(StackAlloc,  stack_alloc_alloc,  stack_alloc_free);
+  PRINT_REPORT(MemAlloc,    mem_alloc_alloc,    mem_alloc_free);
+  PRINT_REPORT(AllocNode,   alloc_node_alloc,   alloc_node_free);
+  PRINT_REPORT(IrInstr,     ir_instr_alloc,     ir_instr_free);
   printf("-]\n");
   printf("]\n");
 }

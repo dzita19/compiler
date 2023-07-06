@@ -3,15 +3,19 @@
 
 #include "../stmt.h"
 
-void CaseStmt();
-void DefaultStmt();
+// control expression for selection and iteration statements
+// supposed to act as a statement - statement stack remains valid
+void ControlExpression(void);
 
-void IfOpen();
-void ElseOpen();
-void SwitchOpen();
+void CaseLabel(void);
+void DefaultLabel(void);
 
-void IfStmt();
-void IfElseStmt();
-void SwitchStmt();
+void IfOpen(void);
+void ElseOpen(void);
+void SwitchOpen(void);
+
+void IfStmt(void);
+void IfElseStmt(void);
+void SwitchStmt(void);
 
 #endif

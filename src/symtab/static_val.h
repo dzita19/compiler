@@ -5,17 +5,18 @@
 
 #include "obj.h"
 
-typedef enum StaticValType{
+typedef enum StaticValKind{
+  VAL_ERROR,
   VAL_ARITHM,
   VAL_ADDRESS,
   VAL_STRING,
-} StaticValType;
+} StaticValKind;
 
 typedef struct StaticVal{
-  StaticValType type;
+  StaticValKind kind;
   int size;
-  int offset;
-  int value;
+  int offset; // offset of the field from the beginning of the object
+  int value; // value the field is initialized with
   Obj* obj_ref;
   int string_ref;
 } StaticVal;

@@ -86,7 +86,7 @@ int yywrap();
 
 {D}+"."{D}*({E})?{FS}?	{ count(); return(CONSTANT); }
 
-\"([^\\'"]|(\\['"?\\abfnrtv])|(\\{O}{1,3})|(\\x{H}+))*\" { count(); string_lit(yytext); return(STRING_LITERAL); }
+\"([^\\'"\n]|(\\['"?\\abfnrtv])|(\\{O}{1,3})|(\\x{H}+))*\" { count(); string_lit(yytext); return(STRING_LITERAL); }
 
 "..."					{ count(); return(ELLIPSIS); }
 ">>="					{ count(); return(RIGHT_ASSIGN); }
@@ -109,7 +109,7 @@ int yywrap();
 "<="					{ count(); return(LE_OP); }
 ">="					{ count(); return(GE_OP); }
 "=="					{ count(); return(EQ_OP); }
-"!="					{ count(); return(NE_OP); }
+"!="					{ count(); return(NQ_OP); }
 ";"						{ count(); return(';'); }
 ("{"|"<%")		{ count(); return('{'); }
 ("}"|"%>")		{ count(); return('}'); }

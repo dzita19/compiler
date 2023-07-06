@@ -8,8 +8,8 @@
 
 #include "symtab.h"
 
-const int NONPROTOTYPE_FUNCTION   =  (1 << 0);
-const int ELLIPSIS_FUNCTION       =  (1 << 1);
+// const int NONPROTOTYPE_FUNCTION   =  (1 << 0);
+// const int ELLIPSIS_FUNCTION       =  (1 << 1);
 
 Struct* StructCreateEmpty(){
   Struct* str = malloc(sizeof(Struct));
@@ -165,8 +165,8 @@ static Struct* DeriveFunction(Struct* base_type, LinkedList* parameters){
     if(derived->kind != STRUCT_FUNCTION) continue;
 
     if(derived->attributes & NONPROTOTYPE_FUNCTION) continue;
-    if(ellipsis && !(derived->attributes & ELLIPSIS_FUNCTION)
-        || !ellipsis && (derived->attributes & ELLIPSIS_FUNCTION)) continue;
+    if((ellipsis && !(derived->attributes & ELLIPSIS_FUNCTION))
+        || (!ellipsis && (derived->attributes & ELLIPSIS_FUNCTION))) continue;
     
     int found = 1;
     for(Node* param1 = derived->parameters.first,
@@ -435,6 +435,8 @@ void StructCompleted(Struct* str){
       break;
     }
 
+    default: break;
+
     }
 
   }
@@ -450,7 +452,7 @@ Struct* StructGetParentUnqualified(Struct* str){
 }
 
 Struct* StructStringLiteral(){
-  return DerivePointer(DeriveQualified(predefined_types_struct + INT8_T, CONST));
+  return DerivePointer(predefined_types_struct + INT8_T);
 }
 
 Struct* StructVoidPtr(){
@@ -480,12 +482,44 @@ Struct* StructGetHigherRank(Struct* str1, Struct* str2){
   str2 = StructGetUnqualified(str2);
 
   if(!StructIsArithmetic(str1) || !StructIsArithmetic(str2)) return 0;
-  int rank1 = (str1 - (predefined_types_struct + INT8_T)) >> 1;
-  int rank2 = (str2 - (predefined_types_struct + INT8_T)) >> 1;
+  
+  if(StructIsEnum(str1)) str1 = predefined_types_struct + INT32_T;
+  if(StructIsEnum(str2)) str2 = predefined_types_struct + INT32_T;
 
-  // gives higher priority to first operand
-  if(rank1 >= rank2) return str1;
-  else return str2;
+  return str1 > str2 ? str1 : str2;
+}
+
+Struct* StructGetExprIntType(Struct* str1, Struct* str2){
+  int sign1 = (str1 - (predefined_types_struct + INT8_T - 1)) & 1;
+  int sign2 = (str2 - (predefined_types_struct + INT8_T - 1)) & 1;
+
+  int rank1 = str1 >= predefined_types_struct + INT32_T; // 0 if less than int, else 1
+  int rank2 = str2 >= predefined_types_struct + INT32_T; // 0 if less than int, else 1
+  
+  // both are int rank
+  if(rank1 == 1 && rank2 == 1){
+    return sign1 && sign2 
+      ? predefined_types_struct +  INT32_T 
+      : predefined_types_struct + UINT32_T;
+  }
+  // first is higher rank
+  else if(rank1 == 1){
+    return sign1
+      ? predefined_types_struct +  INT32_T 
+      : predefined_types_struct + UINT32_T;
+  }
+  // second is higher rank
+  else if(rank2 == 1){
+    return sign2
+      ? predefined_types_struct +  INT32_T 
+      : predefined_types_struct + UINT32_T;
+  }
+  // both are below int rank
+  else{
+    return sign1 || sign2 
+      ? predefined_types_struct +  INT32_T 
+      : predefined_types_struct + UINT32_T;
+  }
 }
 
 Struct* StructArrayLengthSpecification(Struct* str, uint32_t length){
@@ -513,7 +547,7 @@ int StructIsVoidPtr(Struct* str){
 int StructIsInteger(Struct* str){
   if(str->kind == STRUCT_QUALIFIED) str = str->parent;
 
-  return str >= predefined_types_struct + INT8_T && str < predefined_types_struct + PREDEFINED_TYPES_COUNT
+  return (str >= predefined_types_struct + INT8_T && str < predefined_types_struct + PREDEFINED_TYPES_COUNT)
     || StructIsEnum(str);
 
   return 0;
@@ -588,7 +622,7 @@ int StructIsModifiable(Struct* str){
     if(str->obj->kind == OBJ_TAG){
       for(Node* node = str->obj->members.first; node; node = node->next){
         Obj* member = node->info;
-        if(!StructIsModifiable(member->type)) return 0;
+        if(!StructIsModifiable(member->type) && member->type->kind != STRUCT_ARRAY) return 0;
       }
       return 1;
     }

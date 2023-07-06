@@ -22,6 +22,8 @@ extern int string_alloc;
 extern int string_free;
 extern int vector_alloc;
 extern int vector_free;
+extern int array_alloc;
+extern int array_free;
 
 // declarations
 extern int type_frame_alloc;
@@ -42,12 +44,22 @@ extern int numlit_alloc;
 extern int numlit_free;
 extern int expr_node_alloc;
 extern int expr_node_free;
-extern int logic_node_alloc;
-extern int logic_node_free;
 
 // generating
-extern int arg_pass_alloc;
-extern int arg_pass_free;
+extern int call_frame_alloc;
+extern int call_frame_free;
+extern int arg_alloc_alloc;
+extern int arg_alloc_free;
+extern int logic_node_alloc;
+extern int logic_node_free;
+extern int stack_alloc_alloc;
+extern int stack_alloc_free;
+extern int mem_alloc_alloc;
+extern int mem_alloc_free;
+extern int alloc_node_alloc;
+extern int alloc_node_free;
+extern int ir_instr_alloc;
+extern int ir_instr_free;
 
 extern char* StringDuplicate();
 extern char* StringAllocate(int size);

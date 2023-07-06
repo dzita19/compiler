@@ -7,23 +7,26 @@ void MulExpr(Production production){
 
   Struct* op1 = StructGetUnqualified(node->children[0]->expr_node->type);
   Struct* op2 = StructGetUnqualified(node->children[1]->expr_node->type);
+  Struct* expr_type = 0;
 
   if(!StructIsArithmetic(op1) || !StructIsArithmetic(op2)){
     ReportError("Illegal operands for multiplication.");
     return;
   }
 
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->kind = RVALUE;
-  expr_node->type = StructGetHigherRank(op1, op2);
+  expr_type = StructGetExprIntType(op1, op2);
 
-  node->expr_node = expr_node;
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = RVALUE;
+  node->expr_node->type = expr_type;
 
   ConvertChildToArithmetic(node, 0);
   ConvertChildToArithmetic(node, 1);
 
-  SubexprImplCast(node, 0, expr_node->type);
-  SubexprImplCast(node, 1, expr_node->type);
+  SubexprImplCast(node, 0, expr_type);
+  SubexprImplCast(node, 1, expr_type);
+
+  TryFold();
 }
 
 void AddExpr(){
@@ -34,21 +37,23 @@ void AddExpr(){
   int arithmetic_index = 0;
   Struct* arithmetic = 0;
   Struct* arithm_or_ptr = 0;
+  Struct* expr_type = 0;
+
+  if(StructIsArray(node->children[0]->expr_node->type)
+    || StructIsFunction(node->children[0]->expr_node->type)) ConvertChildToPointer(node, 0);
+  if(StructIsArray(node->children[1]->expr_node->type)
+    || StructIsFunction(node->children[1]->expr_node->type)) ConvertChildToPointer(node, 1);
 
   for(int i = 0; i < 2; i++){
-    if(StructIsArray(node->children[i]->expr_node->type)){
-      ConvertChildToPointer(node, i);
+    if(StructIsPointer(node->children[i]->expr_node->type)){
+      StructGetUnqualified(arithm_or_ptr = node->children[i]->expr_node->type);
     }
-  }
-
-  for(int i = 0; i < 2; i++){
-    if(StructIsPointerToObject(node->children[i]->expr_node->type)) arithm_or_ptr = node->children[i]->expr_node->type;
     else if(StructIsArithmetic(node->children[i]->expr_node->type)){
       if(arithmetic == 0) {
-        arithmetic       = node->children[i]->expr_node->type;
+        arithmetic = StructGetUnqualified(node->children[i]->expr_node->type);
         arithmetic_index = i;
       }
-      else arithm_or_ptr = node->children[i]->expr_node->type;
+      else arithm_or_ptr = StructGetUnqualified(node->children[i]->expr_node->type);
     }
   }
 
@@ -57,21 +62,22 @@ void AddExpr(){
     return;
   }
 
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->kind = RVALUE;
-  expr_node->type = StructIsPointer(arithm_or_ptr) ? arithm_or_ptr : StructGetHigherRank(arithm_or_ptr, arithmetic);
+  expr_type = StructIsPointer(arithm_or_ptr) ? arithm_or_ptr : StructGetExprIntType(arithm_or_ptr, arithmetic);
 
-  node->expr_node = expr_node;
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = RVALUE;
+  node->expr_node->type = expr_type;
 
   ConvertChildToArithmetic(node, 0);
   ConvertChildToArithmetic(node, 1);
 
-  if(StructIsPointer(arithm_or_ptr)){
-    SubexprMultiplyByConst(node, arithmetic_index, StructGetParentUnqualified(arithm_or_ptr)->size);
-  }
+  SubexprImplCast(node, 0, expr_type);
+  SubexprImplCast(node, 1, expr_type);
 
-  SubexprImplCast(node, 0, expr_node->type);
-  SubexprImplCast(node, 1, expr_node->type);
+  if(StructIsPointer(arithm_or_ptr))
+    SubexprMultiplyByConst(node, arithmetic_index, arithm_or_ptr->parent->size);
+
+  TryFold();
 }
 
 void SubExpr(){
@@ -79,27 +85,22 @@ void SubExpr(){
 
   if(!CheckSubexprValidity(node, 2)) return;
 
-  for(int i = 0; i < 2; i++){
-    if(StructIsArray(node->children[i]->expr_node->type)){
-      ConvertChildToPointer(node, i);
-    }
-  }
+  if(StructIsArray(node->children[0]->expr_node->type)
+    || StructIsFunction(node->children[0]->expr_node->type)) ConvertChildToPointer(node, 0);
+  if(StructIsArray(node->children[1]->expr_node->type)
+    || StructIsFunction(node->children[1]->expr_node->type)) ConvertChildToPointer(node, 1);
 
   Struct* left_op  = StructGetUnqualified(node->children[0]->expr_node->type);
   Struct* right_op = StructGetUnqualified(node->children[1]->expr_node->type);
-
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->kind = RVALUE;
+  Struct* expr_type = 0;
 
   if(StructIsArithmetic(left_op) && StructIsArithmetic(right_op)){
-    expr_node->type = StructGetHigherRank(left_op, right_op);
+    expr_type = StructGetExprIntType(left_op, right_op);
   }
-  else if(StructIsPointerToObject(left_op) && StructIsPointerToObject(right_op)){
+  else if(StructIsPointer(left_op) && StructIsPointerToObject(right_op)){
     // left and right op must be of the same type
     if(StructIsCompatibleUnqualified(left_op->parent, right_op->parent)){ 
-      expr_node->type = predefined_types_struct + INT32_T;
-      node->expr_node = expr_node;
-      ExprDivideByConst(node, StructGetParentUnqualified(left_op)->size);
+      expr_type = predefined_types_struct + UINT32_T;
     }
     else {
       ReportError("Incompatible pointers for subtraction.");
@@ -107,24 +108,33 @@ void SubExpr(){
     }
   }
   else if(StructIsPointerToObject(left_op) && StructIsArithmetic(right_op)){
-    expr_node->type = left_op;
-    SubexprMultiplyByConst(node, 1, StructGetParentUnqualified(left_op)->size);
+    expr_type = left_op;
   }
   else {
     ReportError("Illegal operators for subtraction.");
     return;
   }
 
-  node->expr_node = expr_node;
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = RVALUE;
+  node->expr_node->type = expr_type;
 
   ConvertChildToArithmetic(node, 0);
   ConvertChildToArithmetic(node, 1);
 
-  SubexprImplCast(node, 0, expr_node->type);
-  SubexprImplCast(node, 1, expr_node->type);
+  SubexprImplCast(node, 0, expr_type);
+  SubexprImplCast(node, 1, expr_type);
+
+  if(StructIsPointer(left_op) && StructIsPointerToObject(right_op))
+    ExprDivideByConst(node, expr_type, left_op->parent->size);
+
+  if(StructIsPointerToObject(left_op) && StructIsArithmetic(right_op))
+    SubexprMultiplyByConst(node, 1, left_op->parent->size);
+
+  TryFold();
 }
 
-void BasicAssignExpr(){
+void BasicAssignExpr(int initializer){
   TreeNode* node = TreeInsertNode(tree, ASSIGN_EXPR, 2);
 
   if(!CheckSubexprValidity(node, 2)) return;
@@ -134,28 +144,37 @@ void BasicAssignExpr(){
     ConvertChildToPointer(node, 1);
   }
 
-  if(!StructIsModifiable(node->children[0]->expr_node->type)){
-    ReportError("Cannot modify non-modifiable object.");
+  if(initializer == 0 && (node->children[0]->expr_node->kind != LVALUE
+      || !StructIsModifiable(node->children[0]->expr_node->type))){
+    ReportError("Cannot modify non-modifiable or non-lvalue objects.");
     return;
   }
 
   Struct* op1 = StructGetUnqualified(node->children[0]->expr_node->type);
   Struct* op2 = StructGetUnqualified(node->children[1]->expr_node->type);
-
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->kind = RVALUE;
-  expr_node->type = op1;
+  Struct* expr_type = 0;
 
   if(StructIsArithmetic(op1) && StructIsArithmetic(op2)){
-    // expr_node->type = op1;
+    // all good
   }
   else if(StructIsStructOrUnion(op1) && StructIsStructOrUnion(op2)
       && StructIsCompatible(op1, op2)){
-    // expr_node->type = op1;
+    // all good
   }
   else if(StructIsPointer(op1) && StructIsPointer(op2)){
     Struct* pointed1 = op1->parent;
     Struct* pointed2 = op2->parent;
+
+    if(StructIsCompatibleUnqualified(pointed1, pointed2)){
+      // all good
+    }
+    else if(StructIsVoidPtr(op2)) {
+      // all good
+    }
+    else {
+      ReportError("Incompatible types for assignment.");
+      return;
+    }
 
     int qualifiers1 = pointed1->kind == STRUCT_QUALIFIED ? pointed1->attributes : 0;
     int qualifiers2 = pointed2->kind == STRUCT_QUALIFIED ? pointed2->attributes : 0;
@@ -164,26 +183,24 @@ void BasicAssignExpr(){
       ReportError("Pointed objects qualifications are not compatible for assignment.");
       return;
     }
-
-    if(StructIsCompatibleUnqualified(pointed1, pointed2)){
-      // expr_node->type = op1;
-    }
-    else if(StructIsVoidPtr(StructGetUnqualified(pointed2))) {
-      // expr_node->type = op1;
-    }
-    else {
-      ReportError("Incompatible types for assignment.");
-      return;
-    }
+  }
+  else if(StructIsPointer(op1) && IsNullPointer(node->children[1]->expr_node)){
+    // all good
   }
   else {
     ReportError("Incompatible types for assignment.");
     return;
   }
 
-  node->expr_node = expr_node;
+  expr_type = op1;
+
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = RVALUE;
+  node->expr_node->type = expr_type;
 
   ConvertChildToArithmetic(node, 1);
+
+  SubexprImplCast(node, 1, expr_type);
 }
 
 void MulAssignExpr(Production production){
@@ -191,26 +208,30 @@ void MulAssignExpr(Production production){
 
   if(!CheckSubexprValidity(node, 2)) return;
 
-  if(!StructIsModifiable(node->children[0]->expr_node->type)){
-    ReportError("Cannot modify non-modifiable object.");
+  if(node->children[0]->expr_node->kind != LVALUE
+      || !StructIsModifiable(node->children[0]->expr_node->type)){
+    ReportError("Cannot modify non-modifiable or non-lvalue objects.");
     return;
   }
 
   Struct* op1 = StructGetUnqualified(node->children[0]->expr_node->type);
   Struct* op2 = StructGetUnqualified(node->children[1]->expr_node->type);
+  Struct* expr_type = 0;
 
   if(!StructIsArithmetic(op1) || !StructIsArithmetic(op2)){
     ReportError("Illegal operands for multiplication.");
     return;
   }
 
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->kind = RVALUE;
-  expr_node->type = op1;
+  expr_type = op1;
 
-  node->expr_node = expr_node;
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = RVALUE;
+  node->expr_node->type = op1;
   
   ConvertChildToArithmetic(node, 1);
+
+  SubexprImplCast(node, 1, expr_type);
 }
 
 void AddAssignExpr(){
@@ -218,32 +239,43 @@ void AddAssignExpr(){
 
   if(!CheckSubexprValidity(node, 2)) return;
 
-  if(!StructIsModifiable(node->children[0]->expr_node->type)){
-    ReportError("Cannot modify non-modifiable object.");
+  if(StructIsArray(node->children[0]->expr_node->type)
+    || StructIsFunction(node->children[0]->expr_node->type)) ConvertChildToPointer(node, 0);
+  if(StructIsArray(node->children[1]->expr_node->type)
+    || StructIsFunction(node->children[1]->expr_node->type)) ConvertChildToPointer(node, 1);
+
+  if(node->children[0]->expr_node->kind != LVALUE
+      || !StructIsModifiable(node->children[0]->expr_node->type)){
+    ReportError("Cannot modify non-modifiable or non-lvalue objects.");
     return;
   }
 
   Struct* op1 = StructGetUnqualified(node->children[0]->expr_node->type);
   Struct* op2 = StructGetUnqualified(node->children[1]->expr_node->type);
+  Struct* expr_type = 0;
 
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->kind = RVALUE;
-  expr_node->type = op1;
-
-  if(StructIsPointerToObject(op1) && StructIsArithmetic(op2)){
-    SubexprMultiplyByConst(node, 1, StructGetParentUnqualified(op1)->size);
+  if(StructIsPointer(op1) && StructIsArithmetic(op2)){
+    // all good
   }
   else if(StructIsArithmetic(op1) && StructIsArithmetic(op2)){
-    
+    // all good
   }
   else{
     ReportError("Illegal operands for addition.");
     return;
   }
 
-  node->expr_node = expr_node;
+  expr_type = op1;
+
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = RVALUE;
+  node->expr_node->type = expr_type;
   
   ConvertChildToArithmetic(node, 1);
+  SubexprImplCast(node, 1, expr_type);
+
+  if(StructIsPointer(op1))
+    SubexprMultiplyByConst(node, 1, StructGetParentUnqualified(op1)->size);
 }
 
 void SubAssignExpr(){
@@ -251,29 +283,41 @@ void SubAssignExpr(){
 
   if(!CheckSubexprValidity(node, 2)) return;
 
-  if(!StructIsModifiable(node->children[0]->expr_node->type)){
-    ReportError("Cannot modify non-modifiable object.");
+  if(StructIsArray(node->children[0]->expr_node->type)
+    || StructIsFunction(node->children[0]->expr_node->type)) ConvertChildToPointer(node, 0);
+  if(StructIsArray(node->children[1]->expr_node->type)
+    || StructIsFunction(node->children[1]->expr_node->type)) ConvertChildToPointer(node, 1);
+
+  if(node->children[0]->expr_node->kind != LVALUE
+      || !StructIsModifiable(node->children[0]->expr_node->type)){
+    ReportError("Cannot modify non-modifiable or non-lvalue objects.");
     return;
   }
 
   Struct* op1 = StructGetUnqualified(node->children[0]->expr_node->type);
   Struct* op2 = StructGetUnqualified(node->children[1]->expr_node->type);
-
-  ExprNode* expr_node = ExprNodeCreateEmpty();
-  expr_node->kind = RVALUE;
-  expr_node->type = op1;
+  Struct* expr_type = 0;
 
   if(StructIsPointerToObject(op1) && StructIsArithmetic(op2)){
-    SubexprMultiplyByConst(node, 1, StructGetParentUnqualified(op1)->size);
+    // all good
   }
   else if(StructIsArithmetic(op1) && StructIsArithmetic(op2)){
-    
+    // all good
   }
   else{
     ReportError("Illegal operands for subtraction.");
     return;
   }
-  node->expr_node = expr_node;
+
+  expr_type = op1;
+
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = RVALUE;
+  node->expr_node->type = expr_type;
   
   ConvertChildToArithmetic(node, 1);
+  SubexprImplCast(node, 1, expr_type);
+
+  if(StructIsPointer(op1))
+    SubexprMultiplyByConst(node, 1, StructGetParentUnqualified(op1)->size);
 }

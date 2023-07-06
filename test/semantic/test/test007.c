@@ -40,3 +40,11 @@ struct str10{
     int x;
   } x;
 };
+
+struct str11{
+  struct str11* x;
+  struct str12* y;
+  struct str11 {
+    int a;
+  } z;
+};

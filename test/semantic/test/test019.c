@@ -22,6 +22,11 @@ int main(){
   int* j = (int*)"AAA"; // OK
 
   char* k = &a; // ERROR
-  int* l = &e; // OK
+  int* l = &e; // OK - const address to non const pointer
   const int* m = &a; // OK (warning?)
+
+  static const volatile int* n = 1; // ERROR
+  static const volatile int* o = (const volatile int*)1; // OK
+
+  static const volatile int* p = (const volatile int*)1 + 3; // OK - 13
 }

@@ -27,3 +27,5 @@ int h = 7; // same linkage - OK
 auto int i; // ERROR - illegal storage spec
 
 register char j; // ERROR - illegal storage spec
+
+struct a k; // tentative definition of incomplete type

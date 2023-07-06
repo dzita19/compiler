@@ -7,7 +7,7 @@
 
 static Struct* declarator_type = 0;
 
-static int reserve_storage_stack(Struct* str){
+int reserve_storage_stack(Struct* str){
   int current_stack_counter = (int)(long)stack_frame_stack.top->info;
 
   int addr = (current_stack_counter + str->align - 1) / str->align * str->align + str->size;
@@ -17,13 +17,13 @@ static int reserve_storage_stack(Struct* str){
   return addr; // + str->size;
 }
 
-static int reserve_unnamed_static(Struct* str){
+int reserve_unnamed_static(Struct* str){
   int addr = (current_static_counter + str->align - 1) / str->align * str->align;
   current_static_counter = addr + str->size;
   return addr;
 }
 
-static int reserve_storage_struct(Struct* str, Struct* parent){
+int reserve_storage_struct(Struct* str, Struct* parent){
   int addr = (parent->size + str->align - 1) / str->align * str->align;
   if(parent->align < str->align) parent->align = str->align;
   parent->size = addr + str->size;
@@ -41,13 +41,13 @@ static Obj* define_object(int storage, int linkage){
   NameFrame* name_frame = StackPeek(&name_stack);
     
   Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
+  Obj* obj;
+  int add_to_static_objs = 0;
 
   if(declarator_type->type == TYPE_INCOMPLETE){
     ReportError("Cannot instantiate incomplete type.");
     return 0;
   }
-
-  Obj* obj;
 
   if(obj_found) {
     if(obj_found->kind != OBJ_VAR){
@@ -66,6 +66,7 @@ static Obj* define_object(int storage, int linkage){
       else{
         obj_found->specifier &= LINKAGE_CLEAR;
         obj_found->specifier |= linkage;
+        add_to_static_objs = (storage == STORAGE_STATIC);
       }
     }
 
@@ -88,11 +89,14 @@ static Obj* define_object(int storage, int linkage){
 
     name_frame->name = 0;
     SymtabInsert(symtab, obj);
+
+    add_to_static_objs = (storage == STORAGE_STATIC);
   }
 
   if(storage == STORAGE_AUTO) obj->address = reserve_storage_stack(obj->type);
-  else {
-    if(linkage == LINKAGE_NONE) obj->address = reserve_unnamed_static(obj->type);
+  else if(linkage == LINKAGE_NONE) obj->address = reserve_unnamed_static(obj->type);
+
+  if(add_to_static_objs){
     obj->init_vals = LinkedListCreateEmpty();
 
     Node* new_node = NodeCreateEmpty();
@@ -111,6 +115,8 @@ static Obj* tentative_object(int linkage){
   NameFrame* name_frame = StackPeek(&name_stack);
     
   Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
+  Obj* obj;
+  int add_to_static_objs = 0;
 
   if(declarator_type->type == TYPE_INCOMPLETE){
     ReportError("Cannot instantiate incomplete type.");
@@ -134,22 +140,35 @@ static Obj* tentative_object(int linkage){
       else{
         obj_found->specifier &= LINKAGE_CLEAR;
         obj_found->specifier |= linkage;
+        add_to_static_objs = 1;
       }
     }
 
     obj_found->type = StructComposite(obj_found->type, declarator_type);
-    return obj_found;
+    obj = obj_found;
+  }
+  else{
+    obj = ObjCreateEmpty();
+    obj->kind = OBJ_VAR;
+    obj->type = declarator_type;
+    obj->specifier = STORAGE_STATIC | linkage | TENTATIVE;
+    obj->name = name_frame->name;
+
+    declarator_type = 0;
+    name_frame->name = 0;
+    SymtabInsert(symtab, obj);
+
+    add_to_static_objs = 1;
   }
 
-  Obj* obj = ObjCreateEmpty();
-  obj->kind = OBJ_VAR;
-  obj->type = declarator_type;
-  obj->specifier = STORAGE_STATIC | linkage | TENTATIVE;
-  obj->name = name_frame->name;
+  if(add_to_static_objs){
+    obj->init_vals = LinkedListCreateEmpty();
 
-  declarator_type = 0;
-  name_frame->name = 0;
-  SymtabInsert(symtab, obj);
+    Node* new_node = NodeCreateEmpty();
+    new_node->info = obj;
+
+    LinkedListInsertLast(&static_obj_list, new_node);
+  }
 
   return obj;
 }
@@ -187,10 +206,10 @@ static Obj* declare_function(int linkage){
   NameFrame* name_frame = StackPeek(&name_stack);
 
   Scope* current_scope = symtab->current_scope;
-  if(fdef_counter < 0) {
+
+  // if this declaration is not nested, switch to outer scope to insert obj (current scope is func prototype scope)
+  if(param_declaration_depth == 0){
     current_scope = current_scope->outer;
-    fdef_counter = 0; // reset as if NotFunctionDefinition would do
-    param_scope_open = 0;
   }
 
   Obj* obj_found = ScopeFindNamespace(current_scope, name_frame->name, NAMESPACE_ORDINARY);
@@ -376,10 +395,10 @@ static Obj* declarator_variable(int initialized){
       switch(storage){
       case STATIC:
         return tentative_object(LINKAGE_INTERNAL);
-      case EXTERN:
-        return extern_object();
       case NO_STORAGE_CLASS:
         return tentative_object(LINKAGE_EXTERNAL);
+      case EXTERN:
+        return extern_object();
       default:
         ReportError("Illegal storage class specifier for file scope.");
         return 0;
@@ -414,6 +433,7 @@ static Obj* declarator_variable(int initialized){
 
   }
 
+  return 0;
 }
 
 static Obj* declarator_parameter(int abstract){
@@ -464,7 +484,7 @@ static Obj* declarator_parameter(int abstract){
     return 0;
   }
 
-  if(fdef_counter > 0) return 0;
+  if(param_declaration_width != 1 || param_declaration_depth != 1) return 0;
   if(name_frame->name == 0) return 0; // do not add unnamed function parameters
 
   Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
@@ -478,7 +498,8 @@ static Obj* declarator_parameter(int abstract){
   obj->type = declarator_type;
   obj->specifier = STORAGE_AUTO | LINKAGE_NONE | DEFINED;
   obj->name = name_frame->name;
-  obj->address = ArgPassAllocAddr(&declaration_arg_pass, obj->type);
+  obj->address = 0; // address will be set when function body is entered (because of return address location)
+  // obj->address = ArgPassAllocAddr(&declaration_arg_pass, obj->type);
 
   declarator_type = 0;
   name_frame->name = 0;
@@ -545,7 +566,8 @@ static Obj* redeclarator_parameter(void){
 
   obj_found->type = declarator_type;
   obj_found->specifier = STORAGE_AUTO | LINKAGE_NONE | DEFINED;
-  obj_found->address = ArgPassAllocAddr(&declaration_arg_pass, obj_found->type);
+  obj_found->address = 0; // address will be set when function body is entered (because of return address location)
+  // obj_found->address = ArgPassAllocAddr(&declaration_arg_pass, obj_found->type);
 
   declarator_type = 0;
 
@@ -652,7 +674,6 @@ static Obj* declarator_typedef(){
 static Obj* declarator_typename(){
   TypeFrame* type_frame = StackPeek(&type_stack);
   LinkedList* indirection_frame = StackPeek(&indirection_stack);
-  NameFrame* name_frame = StackPeek(&name_stack);
 
   extern Stack typename_stack;
 
@@ -669,6 +690,8 @@ static Obj* declarator_typename(){
   // if(declarator_type == 0) return;
   
   StackPush(&typename_stack, declarator_type);
+
+  return 0;
 }
 
 void IdentifierName(){
@@ -752,7 +775,7 @@ void AbstractDeclarator(){
 void NonprototypeParam(void){
   NameFrame* name_frame = StackPeek(&name_stack);
 
-  if(fdef_counter > 0) {
+  if(param_declaration_depth > 0) {
     ReportError("Identifier list can only be used in function definition.");
     return;
   }
@@ -803,6 +826,11 @@ void EnumeratorCustom(){
   Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
 
   ConstExpr* const_expr = StackPop(&const_expr_stack);
+  if(const_expr->kind != VAL_ARITHM || !StructIsArithmetic(const_expr->type)){
+    ReportError("Enumerator expression is not constant.");
+    ConstExprDrop(const_expr);
+    return;
+  }
   current_enum_constant = const_expr->value;
   ConstExprDrop(const_expr);
 

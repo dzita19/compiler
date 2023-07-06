@@ -2,39 +2,84 @@
 
 #include "../expr/expr.h"
 
-void Label(){
+void Label(void){
+  char* label_name = QueueDelete(&identifier_queue);
 
+  Obj* obj_ref = ScopeFindNamespace(function_scope, label_name, NAMESPACE_LABEL);
+  if(obj_ref == 0){
+    obj_ref = ObjCreateEmpty();
+    obj_ref->kind = OBJ_LABEL;
+    obj_ref->name = label_name;
+    obj_ref->specifier = DEFINED;
+
+    ScopeInsert(function_scope, obj_ref);
+  }
+  else if(obj_ref->specifier == DECLARED){
+    obj_ref->specifier = DEFINED;
+    StringDrop(label_name);
+  }
+  else{
+    ReportError("Label already defined in this function.");
+    StringDrop(label_name);
+    return;
+  }
+
+  TreeNode* node = TreeInsertNode(tree, LABEL_STMT, 0);
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = BASIC_LABEL;
+  node->expr_node->obj_ref = obj_ref;
+
+  Statement();
 }
 
-void LabelStmt(){
+void GotoStmt(void){
+  char* label_name = QueueDelete(&identifier_queue);
 
+  Obj* obj_ref = ScopeFindNamespace(function_scope, label_name, NAMESPACE_LABEL);
+  if(obj_ref == 0){
+    obj_ref = ObjCreateEmpty();
+    obj_ref->kind = OBJ_LABEL;
+    obj_ref->name = label_name;
+    obj_ref->specifier = DECLARED;
+
+    ScopeInsert(function_scope, obj_ref);
+  }
+
+  else{
+    StringDrop(label_name);
+  }
+
+  TreeNode* node = TreeInsertNode(tree, GOTO_STMT, 0);
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->kind = BASIC_LABEL;
+  node->expr_node->obj_ref = obj_ref;
+  
+  Statement();
 }
 
-
-void GotoStmt(){
-
-}
-
-void ContinueStmt(){
+void ContinueStmt(void){
   if(loop_count == 0){
     ReportError("Continue statement must be inside a loop.");
   }
 
-  TreeInsertNode(tree, CONTINUE_STMT, 0);
+  // TreeNode* node = 
+  TreeInsertNode(tree, CONTINUE_STMT, 0);  
   Statement();
 }
 
-void BreakStmt(){
+void BreakStmt(void){
   if(loop_count == 0 && switch_count == 0){
     ReportError("Continue statement must be inside a loop or switch statement.");
   }
 
+  // TreeNode* node = 
   TreeInsertNode(tree, BREAK_STMT, 0);
   Statement();
 }
 
-void ReturnStmt(){
-  TreeNode* node = TreeInsertNode(tree, RETURN_STMT, 0);
+void ReturnStmt(void){
+  // TreeNode* node = 
+  TreeInsertNode(tree, RETURN_STMT, 0);
   Statement();
 
   if(current_function_body == 0){
@@ -50,8 +95,7 @@ void ReturnStmt(){
 
 }
 
-void ReturnExprStmt(){
-
+void ReturnExprStmt(void){
   TreeNode* node = TreeInsertNode(tree, RETURN_EXPR_STMT, 1);
   Statement();
 

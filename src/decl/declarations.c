@@ -17,7 +17,7 @@ Stack   const_expr_stack        = (Stack){ 0 };
 
 LinkedList static_obj_list      = (LinkedList){ 0, 0 };
 
-ArgPass declaration_arg_pass    = (ArgPass){ 0, -2 * POINTER_SIZE };
+CallFrame param_frame           = (CallFrame){ 0, -2 * POINTER_SIZE };
 
 uint8_t ellipsis                = 0;
 uint8_t full_decl_specifiers    = 0;
@@ -27,16 +27,18 @@ int32_t current_enum_constant   = 0;
 
 uint8_t block_level             = 0;
 Obj*    current_function_body   = 0;
-int32_t fdef_counter            = 0;
-uint8_t param_scope_open        = 0;
+int32_t param_declaration_depth = 0;
+int32_t param_declaration_width = 0;
 uint8_t nonprototype_redecl     = 0;
 
 Obj*    current_obj_definition  = 0;
 int32_t current_static_counter  = 0;
 Stack   stack_frame_stack       = (Stack){ 0 };
+int     for_declaration_active  = 0;
+int     for_declarator_counter  = 0;
 
 
-TypeFrame* TypeFrameCreateEmpty(){
+TypeFrame* TypeFrameCreateEmpty(void){
   TypeFrame* type_frame = malloc(sizeof(TypeFrame));
   type_frame->current_type = 0;
   type_frame->storage_specifier = 0;
@@ -88,14 +90,14 @@ void NameFrameClear(NameFrame* name_frame){
   name_frame->tag_type = TAG_NONE;
 }
 
-InitFrame* InitFrameCreateEmpty(){
+InitFrame* InitFrameCreateEmpty(void){
   InitFrame* init_frame = malloc(sizeof(InitFrame));
   init_frame->kind   = INIT_ERROR;
   init_frame->type   = 0;
   init_frame->field  = 0;
   init_frame->index  = 0;
-  init_frame->offset = 0;
-  init_frame->parent_offset = 0;
+  // init_frame->offset = 0;
+  // init_frame->parent_offset = 0;
 
   init_frame_alloc++;
 
@@ -108,11 +110,13 @@ void InitFrameDrop(InitFrame* init_frame){
   init_frame_free++;
 }
 
-ConstExpr* ConstExprCreateEmpty(){
+ConstExpr* ConstExprCreateEmpty(void){
   ConstExpr* const_expr = malloc(sizeof(ConstExpr));
-  const_expr->obj_ref = 0;
-  const_expr->value = 0;
-  const_expr->type = 0;
+  const_expr->obj_ref     = 0;
+  const_expr->string_ref  = 0;
+  const_expr->value       = 0;
+  const_expr->kind        = VAL_ERROR;
+  const_expr->type        = 0;
 
   const_expr_alloc++;
 
@@ -128,7 +132,7 @@ void ConstExprDrop(ConstExpr* const_expr){
 #include <stdio.h>
 #include "../symtab/static_val.h"
 
-void StaticObjListDump(){
+void StaticObjListDump(void){
   printf("Static objects list: [\n");
   for(Node* node = static_obj_list.first; node; node = node->next){
     Obj* obj = node->info;
@@ -150,7 +154,7 @@ void StaticObjListDump(){
   printf("]\n");
 }
 
-void declarations_init(){
+void declarations_init(void){
   symtab = SymtabCreateEmpty();
   SymtabOpenScope(symtab, SCOPE_FILE);
 
@@ -163,7 +167,7 @@ void declarations_init(){
   StackPush(&stack_frame_stack, 0);
 }
 
-void declarations_free(){
+void declarations_free(void){
   //SymtabCloseScope(symtab); - ADD IT WHEN IT MAKES SENSE
 
   SymtabDrop(symtab);

@@ -32,31 +32,31 @@ typedef enum StorageClassSpecifier {
 	REGISTER,
 } StorageClassSpecifier;
 
-extern const int  DECLARED,
-                  DEFINED,
-                  TENTATIVE;
+#define DECLARED              0 << 0
+#define DEFINED               1 << 0
+#define TENTATIVE             2 << 0
 
-extern const int  TAG_NONE,
-                  TAG_STRUCT,
-                  TAG_UNION,
-                  TAG_ENUM;
+#define TAG_NONE              0 << 2
+#define TAG_STRUCT            1 << 2
+#define TAG_UNION             2 << 2
+#define TAG_ENUM              3 << 2
 
-extern const int  STORAGE_STATIC,
-                  STORAGE_AUTO;
+#define STORAGE_STATIC        0 << 2
+#define STORAGE_AUTO          1 << 2
 
-extern const int  LINKAGE_NONE,
-                  LINKAGE_EXTERNAL,
-                  LINKAGE_INTERNAL;
+#define LINKAGE_NONE          0 << 3
+#define LINKAGE_EXTERNAL      1 << 3
+#define LINKAGE_INTERNAL      2 << 3
 
-extern const int  DEFINITION_FETCH,
-                  TAG_FETCH,
-                  STORAGE_FETCH,
-                  LINKAGE_FETCH;
+#define DEFINITION_FETCH      3 << 0
+#define TAG_FETCH             3 << 2
+#define STORAGE_FETCH         1 << 2
+#define LINKAGE_FETCH         3 << 3
 
-extern const int  DEFINITION_CLEAR,
-                  TAG_CLEAR,
-                  STORAGE_CLEAR,
-                  LINKAGE_CLEAR;
+#define DEFINITION_CLEAR    ~(3 << 0)
+#define TAG_CLEAR           ~(3 << 2)
+#define STORAGE_CLEAR       ~(1 << 2)
+#define LINKAGE_CLEAR       ~(3 << 3)
 
 extern ObjNamespace namespaces[OBJ_KIND_COUNT];
 

@@ -15,3 +15,13 @@ const int f();
 const int (*g)();
 
 const int (*h(void))();
+
+void (*i(int x))(int y), (*j(int x))(int y);
+
+void (*j(int x))(int y){
+  
+}
+
+void (*k(int (*x)(int y)))(int z){
+  
+}

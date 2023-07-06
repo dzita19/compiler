@@ -81,6 +81,7 @@ void ScopeInsert(Scope* scope, Obj* obj){
 }
 
 Obj* ScopeFind(Scope* scope, const char* symbol_name){
+  if(symbol_name == 0) return 0;
   for(Node* node = scope->objs.first; node; node = node->next){
     Obj* obj = node->info;
     if(obj->name == 0) continue;
@@ -90,6 +91,7 @@ Obj* ScopeFind(Scope* scope, const char* symbol_name){
 }
 
 Obj* ScopeFindNamespace(Scope* scope, const char* symbol_name, ObjNamespace namespace){
+  if(symbol_name == 0) return 0;
   for(Node* node = scope->objs.first; node; node = node->next){
     Obj* obj = node->info;
     if(obj->name == 0) continue;

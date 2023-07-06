@@ -3,13 +3,12 @@
 
 #include "../stmt.h"
 
-void Label();
-void LabelStmt();
+void Label(void);
 
-void GotoStmt();
-void ContinueStmt();
-void BreakStmt();
-void ReturnStmt();
-void ReturnExprStmt();
+void GotoStmt(void);
+void ContinueStmt(void);
+void BreakStmt(void);
+void ReturnStmt(void);
+void ReturnExprStmt(void);
 
 #endif

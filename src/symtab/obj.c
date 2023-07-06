@@ -7,32 +7,6 @@
 
 #include "static_val.h"
 
-const int DECLARED          =   0 << 0,
-          DEFINED           =   1 << 0,
-          TENTATIVE         =   2 << 0;
-
-const int TAG_NONE          =   0 << 2,
-          TAG_STRUCT        =   1 << 2,
-          TAG_UNION         =   2 << 2,
-          TAG_ENUM          =   3 << 2;
-
-const int STORAGE_STATIC    =   0 << 2,
-          STORAGE_AUTO      =   1 << 2;
-
-const int LINKAGE_NONE      =   0 << 3,
-          LINKAGE_EXTERNAL  =   1 << 3,
-          LINKAGE_INTERNAL  =   2 << 3;
-
-const int DEFINITION_FETCH  =   3 << 0,
-          TAG_FETCH         =   3 << 2,
-          STORAGE_FETCH     =   1 << 2,
-          LINKAGE_FETCH     =   3 << 3;
-
-const int DEFINITION_CLEAR  = ~(3 << 0),
-          TAG_CLEAR         = ~(3 << 2),
-          STORAGE_CLEAR     = ~(1 << 2),
-          LINKAGE_CLEAR     = ~(3 << 3);
-
 ObjNamespace namespaces[OBJ_KIND_COUNT] = {
   [OBJ_VAR]   = NAMESPACE_ORDINARY,
   [OBJ_TYPE]  = NAMESPACE_ORDINARY,
@@ -45,12 +19,12 @@ ObjNamespace namespaces[OBJ_KIND_COUNT] = {
 Obj* ObjCreateEmpty(){
   Obj* obj = malloc(sizeof(Obj));
 
-  obj->name = 0;
-  obj->kind = 0;
-  obj->address = 0;
+  obj->name      = 0;
+  obj->kind      = 0;
+  obj->address   = 0;
   obj->specifier = 0;
-  obj->type = 0;
-  obj->members = (LinkedList){ 0, 0 };
+  obj->type      = 0;
+  obj->members   = (LinkedList){ 0, 0 };
   obj->init_vals = 0;
 
   obj_alloc++;
@@ -132,14 +106,16 @@ void ObjDump(Obj* obj){
   else printf("Name: $empty; ");
 
   if(obj->kind == OBJ_VAR){
-    printf("Address: 0x%04X; Definition: %s; Storage: %s; Linkage: %s;\n",
-      obj->address,
+    if(obj->address >= 0) printf("Address: 0x%04X; ",  +obj->address);
+    else                  printf("Address: -0x%04X; ", -obj->address);
+    printf("Definition: %s; Storage: %s; Linkage: %s;\n",
       definition_print[(obj->specifier >> 0) & 3],
       storage_print   [(obj->specifier >> 2) & 1],
       linkage_print   [(obj->specifier >> 3) & 3]);
   }
   else if(obj->kind == OBJ_ENUM){
-    printf("Value: 0x%04X;\n", obj->address);
+    if(obj->address >= 0) printf("Value: 0x%04X;\n",  +obj->address);
+    else                  printf("Value: -0x%04X;\n", -obj->address);
   }
   else if(obj->kind == OBJ_TAG){
     printf("Tag type: %s; Definition: %s; Size: 0x%04X; Align: 0x%04X\n",
@@ -147,6 +123,9 @@ void ObjDump(Obj* obj){
       definition_print[(obj->specifier >> 0) & 3],
       obj->type->size, 
       obj->type->align);
+  }
+  else if(obj->kind == OBJ_LABEL){
+    printf("Definition: %s;\n", definition_print[(obj->specifier >> 0) & 3]);
   }
   else{
     printf("\n");
@@ -163,7 +142,7 @@ void ObjDump(Obj* obj){
     print_indent();
     printf("]\n");
   }
-  else{
+  else if(obj->kind != OBJ_LABEL){
     print_indent();
     printf("Type: [");
 

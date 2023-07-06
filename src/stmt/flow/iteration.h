@@ -3,12 +3,14 @@
 
 #include "../stmt.h"
 
-void WhileOpen();
-void DoOpen();
-void ForOpen();
+void WhileOpen(void);
+void DoOpen(void);
+void ForOpen(void);
+void ForDeclaration(void);
+void ForExpression(void);
 
-void WhileStmt();
-void DoWhileStmt();
-void ForStmt(int increment);
+void WhileStmt(void);
+void DoWhileStmt(void);
+void ForStmt(void);
 
 #endif
