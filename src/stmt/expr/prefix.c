@@ -81,7 +81,7 @@ void UnaryExpr(Production production){
   TryFold();
 }
 
-void BitNegExpr(){
+void BitNotExpr(){
   TreeNode* node = TreeInsertNode(tree, BIT_NOT_EXPR, 1);
 
   if(!CheckSubexprValidity(node, 1)) return;
@@ -107,16 +107,19 @@ void BitNegExpr(){
   TryFold();
 }
 
-void LogNegExpr(){
+void LogNotExpr(){
   TreeNode* node = TreeInsertNode(tree, LOG_NOT_EXPR, 1);
 
   if(!CheckSubexprValidity(node, 1)) return;
+
+  if(StructIsArray(node->children[0]->expr_node->type)
+    || StructIsFunction(node->children[0]->expr_node->type)) ConvertChildToPointer(node, 0);
 
   Struct* operand = StructGetUnqualified(node->children[0]->expr_node->type);
   Struct* expr_type = 0;
 
   if(!StructIsScalar(operand)){
-    ReportError("Only scalar types allowed for bitwise operations.");
+    ReportError("Only scalar types allowed for logic operations.");
     return;
   }
 

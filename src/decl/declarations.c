@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 Symtab* symtab                  = 0;
-uint8_t semantic_errors         = 0;
+int     semantic_errors         = 0;
 
 Stack   typedef_stack           = (Stack){ 0 }; 
 Stack   type_stack              = (Stack){ 0 };
@@ -16,34 +16,36 @@ Stack   initializer_stack       = (Stack){ 0 };
 Stack   const_expr_stack        = (Stack){ 0 };
 
 LinkedList static_obj_list      = (LinkedList){ 0, 0 };
+LinkedList label_name_list      = (LinkedList){ 0, 0 };
+LinkedList global_name_list     = (LinkedList){ 0, 0 };
+LinkedList extern_name_list     = (LinkedList){ 0, 0 };
 
 CallFrame param_frame           = (CallFrame){ 0, -2 * POINTER_SIZE };
 
 uint8_t ellipsis                = 0;
-uint8_t full_decl_specifiers    = 0;
 uint8_t current_qualifiers      = 0;
 uint8_t current_function_level  = 0;
 int32_t current_enum_constant   = 0;
 
 uint8_t block_level             = 0;
+Obj*    latest_function_decl    = 0;
 Obj*    current_function_body   = 0;
-int32_t param_declaration_depth = 0;
-int32_t param_declaration_width = 0;
+Stack   param_scope_stack       = (Stack){ 0 };
+Scope*  func_prototype_scope    = 0;
 uint8_t nonprototype_redecl     = 0;
 
 Obj*    current_obj_definition  = 0;
 int32_t current_static_counter  = 0;
 Stack   stack_frame_stack       = (Stack){ 0 };
-int     for_declaration_active  = 0;
-int     for_declarator_counter  = 0;
 
 
 TypeFrame* TypeFrameCreateEmpty(void){
   TypeFrame* type_frame = malloc(sizeof(TypeFrame));
-  type_frame->current_type = 0;
-  type_frame->storage_specifier = 0;
-  type_frame->type_specifiers = 0;
-  type_frame->type_qualifiers = 0;
+  type_frame->current_type         = 0;
+  type_frame->storage_specifier    = 0;
+  type_frame->type_specifiers      = 0;
+  type_frame->type_qualifiers      = 0;
+  type_frame->full_decl_specifiers = 0;
 
   type_frame_alloc++;
 
@@ -57,16 +59,17 @@ void TypeFrameDrop(TypeFrame* type_frame){
 }
 
 void TypeFrameClear(TypeFrame* type_frame){
-  type_frame->current_type = 0;
-  type_frame->storage_specifier = 0;
-  type_frame->type_specifiers = 0;
-  type_frame->type_qualifiers = 0;
+  type_frame->current_type         = 0;
+  type_frame->storage_specifier    = 0;
+  type_frame->type_specifiers      = 0;
+  type_frame->type_qualifiers      = 0;
+  type_frame->full_decl_specifiers = 0;
 }
 
 NameFrame* NameFrameCreateEmpty(){
   NameFrame* name_frame = malloc(sizeof(NameFrame));
-  name_frame->name = 0;
-  name_frame->tag_type = TAG_NONE;
+  name_frame->name      = 0;
+  name_frame->tag_type  = TAG_NONE;
 
   name_frame_alloc++;
 
@@ -86,7 +89,7 @@ void NameFrameClear(NameFrame* name_frame){
   if(name_frame->name) {
     StringDrop(name_frame->name);
   }
-  name_frame->name = 0;
+  name_frame->name     = 0;
   name_frame->tag_type = TAG_NONE;
 }
 
@@ -142,7 +145,7 @@ void StaticObjListDump(void){
     }
     // with no linkage
     else{
-      printf(" Obj offset: 0x%04X [\n", obj->address);
+      printf(" Obj offset: %d [\n", obj->address);
     }
     for(Node* val = obj->init_vals->first; val; val = val->next){
       printf(" -");
@@ -150,6 +153,33 @@ void StaticObjListDump(void){
       printf("\n");
     }
     printf(" ]\n");
+  }
+  printf("]\n");
+}
+
+void LabelNameListDump(void){
+  printf("Label names list: [\n");
+  for(Node* node = label_name_list.first; node; node = node->next){
+    char* name = node->info;
+    printf(" Obj name: %s\n", name);
+  }
+  printf("]\n");
+}
+
+void GlobalNameListDump(void){
+  printf("Global names list: [\n");
+  for(Node* node = global_name_list.first; node; node = node->next){
+    char* name = node->info;
+    printf(" Obj name: %s\n", name);
+  }
+  printf("]\n");
+}
+
+void ExternNameListDump(void){
+  printf("Extern names list: [\n");
+  for(Node* node = extern_name_list.first; node; node = node->next){
+    char* name = node->info;
+    printf(" Obj name: %s\n", name);
   }
   printf("]\n");
 }
@@ -181,6 +211,21 @@ void declarations_free(void){
   StackPop(&stack_frame_stack);
 
   LinkedListDelete(&static_obj_list);
+  
+  for(Node* node = label_name_list.first; node; node = node->next){
+    StringDrop((char*)node->info);
+  }
+  LinkedListDelete(&label_name_list);
+
+  for(Node* node = global_name_list.first; node; node = node->next){
+    StringDrop((char*)node->info);
+  }
+  LinkedListDelete(&global_name_list);
+
+  for(Node* node = extern_name_list.first; node; node = node->next){
+    StringDrop((char*)node->info);
+  }
+  LinkedListDelete(&extern_name_list);
 }
 
 Queue identifier_queue = { 0, 0 };

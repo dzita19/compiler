@@ -54,6 +54,8 @@
     "stdint.h": "c",
     "resources.h": "c",
     "link_flow.h": "c",
-    "intermediate.h": "c"
+    "intermediate.h": "c",
+    "stdlib.h": "c",
+    "wait.h": "c"
   }
 }

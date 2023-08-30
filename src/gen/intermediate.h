@@ -7,7 +7,6 @@
 #include "assembler.h"
 #include "abi.h"
 #include "link_flow.h"
-#include "resources.h"
 #include "util/vector.h"
 
 typedef enum IrOpcode{
@@ -18,8 +17,14 @@ typedef enum IrOpcode{
   IR_PUSHB,
   IR_PUSHW,
   IR_PUSHL,
+  IR_VPUSHB,
+  IR_VPUSHW,
+  IR_VPUSHL,
   IR_POP,
+  IR_VPOP,   // same as pop, but cannot be optimized out
+  // doesn't kill actual register content - used when register content is assigned to result of ternary operator
   IR_DUP,
+  IR_REVIV,    // revives value inside a register with no need for recalculations
 
   IR_STORB,
   IR_STORW,
@@ -28,12 +33,17 @@ typedef enum IrOpcode{
   IR_DERFB,
   IR_DERFW,
   IR_DERFL,
+  IR_FDRFB, // fetch and deref
+  IR_FDRFW, // fetch and deref
+  IR_FDRFL, // fetch and deref
   
   IR_ENTER, // enter the function call
   IR_EXIT,  // exit  the function call
   IR_CALL,
   IR_ALIGN,
-  IR_ABIRET, // fetch abi return value [NOOP]!!!
+  IR_DEALGN,
+  IR_SETRET,
+  IR_GETRET, // fetch abi return value [NOOP]!!!
 
   IR_INC,
   IR_DEC,
@@ -48,8 +58,11 @@ typedef enum IrOpcode{
   IR_ZXWL,
 
   IR_MUL,
+  IR_IMUL,
   IR_DIV,
+  IR_IDIV,
   IR_MOD,
+  IR_IMOD,
   IR_ADD,
   IR_SUB,
 
@@ -71,10 +84,20 @@ typedef enum IrOpcode{
   IR_JGE,
   IR_JLT,
   IR_JLE,
+  IR_JA,
+  IR_JB,
+  IR_JAE,
+  IR_JBE,
 
   IR_LOGENT, // sentinel - marks entry of a logic domain
   IR_LOGEXT, // sentinel - marks exit of a logic domain
   IR_COND,   // sentinel - stops invalid optimizations    [NOOP]!!!
+
+  IR_TABENT,
+  IR_TABEXT,
+  IR_TABLIN,
+
+  IR_ASM,
 
 } IrOpcode; // every instr has at most one operand
 
@@ -94,7 +117,10 @@ typedef enum IrOperand{
   IR_OP_ARITHM,
   IR_OP_STRING,
   IR_OP_LABEL,
+  IR_OP_SWTAB,
 } IrOperand;
+
+typedef struct StackAlloc StackAlloc;
 
 typedef struct IrInstr{
   IrOpcode  opcode;
@@ -103,7 +129,9 @@ typedef struct IrInstr{
   Obj* obj_ref;
   int  string_ref;
   int  offset;
+  int  reg_ref; // used for STACK_READ
   int  depth; // stack depth
+  StackAlloc* stack_alloc;
 } IrInstr;
 
 extern FILE* irout;
@@ -121,20 +149,24 @@ extern void IrFree(void);
 extern void SwitchSequence(Vector* sequence);
 
 extern int  InstrGetDepth(IrInstr*);
-extern void CalculateDepth(void);
+extern int  InstrNumOfResults(IrOpcode); // returns whether the result of the instruction is stored in a register
+extern void IrCalculateDepth(void);
 
-extern void InsertInstr(IrOpcode, IrAddr, IrOperand, Obj* obj_ref, int string_ref, int offset);
+extern int  InstrGetOperandDepth(int operation_index, int operand_position);
+extern int  InstrFindOperand(int operation_index, int operand_position);
+
+extern void InsertInstr(IrOpcode, IrAddr, IrOperand, Obj* obj_ref, int string_ref, int offset, int reg_ref);
 extern void InsertInstrNoOp(IrOpcode);
 extern void InsertInstrStackPop(IrOpcode);
-extern void InsertInstrStackRead(IrOpcode, IrAddr, int offset);
-extern void InsertInstrArg(IrOpcode, int offset);
+extern void InsertInstrStackRead(IrOpcode, IrAddr, int reg_ref, int offset);
+extern void InsertInstrArg(IrOpcode, IrAddr addr, int offset);
 extern void InsertInstrObj(IrOpcode, IrAddr, Obj* obj_ref, int offset);
 extern void InsertInstrString(IrOpcode, IrAddr, int string_ref, int offset);
 extern void InsertInstrArithm(IrOpcode, IrAddr, int offset);
 extern void InsertInstrLabel(IrOpcode, int label_index);
+extern void InsertInstrSwitchTab(IrOpcode, int tab_index);
 extern void InsertNewFunct(Obj* obj_ref);
 extern void InsertNewLabel(int label_index);
-
-extern int IsGeneratingResult(IrOpcode); // returns whether the result of the instruction is stored in a register
+// extern void InsertNewSwitchTab(int tab_index);
 
 #endif

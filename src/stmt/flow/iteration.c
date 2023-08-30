@@ -14,16 +14,19 @@ void ForOpen(void){
   StackPush(&stack_frame_stack, stack_frame_stack.top->info);
   SymtabOpenScope(symtab, SCOPE_BLOCK);
 
-  for_declaration_active = 1;
+  StackPush(&statement_stack, 0);
   loop_count++;
 }
 
-void ForDeclaration(void){  
-  TreeInsertNode(tree, FOR_DECL, for_declarator_counter);
+void ForDeclaration(void){
+  int num_of_stmts = (int)(long)StackPop(&statement_stack);
+  TreeInsertNode(tree, FOR_DECL, num_of_stmts);
 
-  for_declarator_counter = 0;
-  for_declaration_active = 0;
   Statement();
+}
+
+void ForNoDeclaration(void){
+  StackPop(&statement_stack);
 }
 
 void ForExpression(void){
@@ -38,12 +41,17 @@ void WhileStmt(void){
   UnifyStatements(2);
 
   if(node->children[0]->expr_node == 0){
-    ReportError("Error in while loop condition.");
+    ReportError("Error in while-loop condition.");
     return;
   }
 
+  if(StructIsArray(node->children[0]->expr_node->type)
+      || StructIsFunction(node->children[0]->expr_node->type)){
+    ConvertChildToPointer(node, 0);
+  }
+
   if(!StructIsScalar(node->children[0]->expr_node->type)){
-    ReportError("Illegal while loop condition.");
+    ReportError("Illegal while-loop condition.");
     return;
   }
 
@@ -58,19 +66,24 @@ void DoWhileStmt(void){
   UnifyStatements(2);
 
   if(node->children[1]->expr_node == 0){
-    ReportError("Error in do-while loop condition.");
+    ReportError("Error in do-while-loop condition.");
     return;
+  }
+  
+  if(StructIsArray(node->children[1]->expr_node->type)
+      || StructIsFunction(node->children[1]->expr_node->type)){
+    ConvertChildToPointer(node, 1);
   }
 
   if(!StructIsScalar(node->children[1]->expr_node->type)){
-    ReportError("Illegal do-while loop condition.");
+    ReportError("Illegal do-while-loop condition.");
     return;
   }
 
   ConvertChildToLogic(node, 1);
 }
 
-// init: 0, cond: 1, body: 2, inc: 3, endfor: 4, 
+// init: 0, cond: 1, body: 2, inc: 3, ;;;;;;endfor: 4, 
 void ForStmt(void){
   loop_count--;
 
@@ -87,17 +100,37 @@ void ForStmt(void){
   StackPop(&stack_frame_stack);
   SymtabCloseScope(symtab);
 
-  if(node->children[1]->production != VOID_EXPR && node->children[1]->expr_node == 0){
-    ReportError("Error in for loop condition.");
+  if((node->children[0]->production != VOID_EXPR
+        && node->children[0]->production != FOR_DECL && node->children[0]->expr_node == 0)
+      || (node->children[1]->production != VOID_EXPR && node->children[1]->expr_node == 0)
+      || (node->children[3]->production != VOID_EXPR && node->children[3]->expr_node == 0)) {
     return;
   }
 
-  if(node->children[1]->production != VOID_EXPR
-      && !StructIsScalar(node->children[1]->expr_node->type)){
-    ReportError("Illegal for loop condition.");
+  if(node->children[0]->expr_node 
+      && (StructIsArray(node->children[0]->expr_node->type)
+      || StructIsFunction(node->children[0]->expr_node->type))){
+    ConvertChildToPointer(node, 0);
+  }
+  
+  if(node->children[1]->expr_node 
+      && (StructIsArray(node->children[1]->expr_node->type)
+      || StructIsFunction(node->children[1]->expr_node->type))){
+    ConvertChildToPointer(node, 1);
+  }
+  if(node->children[3]->expr_node 
+      && (StructIsArray(node->children[3]->expr_node->type)
+      || StructIsFunction(node->children[3]->expr_node->type))){
+    ConvertChildToPointer(node, 3);
+  }
+
+  if(node->children[1]->production != VOID_EXPR && !StructIsScalar(node->children[1]->expr_node->type)){
+    ReportError("Illegal for-loop condition.");
     return;
   }
 
+  if(node->children[0]->production != VOID_EXPR)
+    ConvertChildToArithmetic(node, 0);
   if(node->children[1]->production != VOID_EXPR)
     ConvertChildToLogic(node, 1);
   if(node->children[3]->production != VOID_EXPR)

@@ -15,18 +15,21 @@
 
 extern Tree*   tree;
 extern Vector* string_table;
-extern Scope*  function_scope;    // used for labels inside one function
+extern Scope*  function_scope;      // used for labels inside one function
 
-extern Stack function_call_stack; // Stack(int) - counts num of args per nested function call
-extern Stack typename_stack;      // for type referencing in expressions - sizeof expressions !!!
-extern Stack comma_expr_stack;    // Stack(int) - counts num of exprs per nested comma list
-extern Stack statement_stack;     // Stack(int) - counts num of statements per nested block 
+extern Obj*    rval_call_storage;   // used to save results of functions returning structs
+
+extern Stack   function_call_stack; // Stack(int) - counts num of args per nested function call
+extern Stack   typename_stack;      // for type referencing in expressions - sizeof expressions !!!
+extern Stack   comma_expr_stack;    // Stack(int) - counts num of exprs per nested comma list
+extern Stack   statement_stack;     // Stack(int) - counts num of statements per nested block 
   // (initially open for translation unit)
 
-extern Stack switch_stack;        // Stack(LinkedList(int)) - case expressions per nested stack
+extern Stack   switch_stack;        // Stack(LinkedList(ExprNode*)*) - case expressions per nested stack
+extern Vector* switch_archive;      // store every switch linked list - to be retreived during code generation
 
-extern int   loop_count;
-extern int   switch_count;
+extern int     loop_count;
+extern int     switch_count;
 
 void stmt_init(void);
 void stmt_free(void);
@@ -45,8 +48,7 @@ void UnifyStatements(int); // unify N statements into one
 void ExpressionStmt(void);
 void EmptyStmt(void);
 
-void IsFunctionDefintion(void);
-void NotFunctionDefinition(void);
+void InlineAssembly(void);
 void TranslationUnit(void);
 
 #endif

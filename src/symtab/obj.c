@@ -106,19 +106,19 @@ void ObjDump(Obj* obj){
   else printf("Name: $empty; ");
 
   if(obj->kind == OBJ_VAR){
-    if(obj->address >= 0) printf("Address: 0x%04X; ",  +obj->address);
-    else                  printf("Address: -0x%04X; ", -obj->address);
+    if(obj->address >= 0) printf("Address: %d; ",  +obj->address);
+    else                  printf("Address: -%d; ", -obj->address);
     printf("Definition: %s; Storage: %s; Linkage: %s;\n",
       definition_print[(obj->specifier >> 0) & 3],
       storage_print   [(obj->specifier >> 2) & 1],
       linkage_print   [(obj->specifier >> 3) & 3]);
   }
   else if(obj->kind == OBJ_ENUM){
-    if(obj->address >= 0) printf("Value: 0x%04X;\n",  +obj->address);
-    else                  printf("Value: -0x%04X;\n", -obj->address);
+    if(obj->address >= 0) printf("Value: %d;\n",  +obj->address);
+    else                  printf("Value: -%d;\n", -obj->address);
   }
   else if(obj->kind == OBJ_TAG){
-    printf("Tag type: %s; Definition: %s; Size: 0x%04X; Align: 0x%04X\n",
+    printf("Tag type: %s; Definition: %s; Size: %d; Align: %d\n",
       tag_type_print  [(obj->specifier >> 2) & 3],
       definition_print[(obj->specifier >> 0) & 3],
       obj->type->size, 

@@ -6,6 +6,7 @@
 #define JUMP_IF_TRUE  0
 #define JUMP_IF_FALSE 1
 #define JUMP_ALWAYS   2
+#define JUMP_CASE     3
 
 // describes only nodes that alter the flow
 // do NOT allocate if node is only a target of jump

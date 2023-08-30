@@ -18,8 +18,7 @@ void FullInitialization(){
     TreeInsertNode(tree, INITIALIZATION, total_init_count);
     total_init_count = 0;
 
-    if(for_declaration_active) for_declarator_counter++;
-    else Statement();
+    Statement();
   }
 
   if(initializer_error != 0) {
@@ -107,9 +106,6 @@ static void InitializerPushObj(void){
   primary->expr_node->kind = ADDRESS_OF;
   primary->expr_node->obj_ref = current_obj_definition;
 
-  extern void DerefExpr(void);
-  DerefExpr();
-
   for(Node* node = list.first; node; node = node->next){
     InitFrame* init_frame = node->info;
 
@@ -118,15 +114,18 @@ static void InitializerPushObj(void){
       Obj* member = init_frame->field->info;
 
       field_ref->expr_node->address += member->address;
-      field_ref->expr_node->type     = member->type;
+      field_ref->expr_node->type     = StructToPtr(member->type);
     }
     else if(init_frame->kind == INIT_ARRAY){
       TreeNode* array_ref = StackPeek(&tree->stack);
 
       array_ref->expr_node->address += init_frame->index * init_frame->type->parent->size;
-      array_ref->expr_node->type     = init_frame->type->parent;
+      array_ref->expr_node->type     = StructToPtr(init_frame->type->parent);
     }
   }
+
+  extern void DerefExpr(void);
+  DerefExpr();
 
   LinkedListDelete(&list);
 }
@@ -138,7 +137,8 @@ static void InitializerStatic(void){
     return; // return if error in basic assignment
   }
 
-  int        offset       = initializer->children[0]->expr_node->address;
+  // get offset from lval of the assignment
+  int        offset       = initializer->children[0]->children[0]->expr_node->address;
   Struct*    current_type = initializer->children[1]->expr_node->type;
 
   StackPush(&tree->stack, initializer->children[1]); // push right-hand side of the assignment 
@@ -150,7 +150,7 @@ static void InitializerStatic(void){
 
   if(StructIsArithmetic(current_type) || StructIsPointer(current_type)){ // type is compatible (checked in basic assignment)
     if(const_expr->kind == VAL_ERROR) {
-      ReportError("Incompatible types for initialization.");
+      ReportError("Incompatible types for initialization of object %s.", current_obj_definition->name);
       ConstExprDrop(const_expr);
       InitializerCleanup();
       return;

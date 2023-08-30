@@ -1,96 +1,37 @@
-/* TEST 021: Arithmetic, bitwise (integers) */
+/* TEST 021: Initializers */
+
+struct s1 {
+  int x, y;
+};
+
+struct s2 {
+  char a; struct s1 b; char c[3];
+};
+
+struct s2 a = { 0, { 1, 2 }, { 3, 4, 5 } };
+
+union u1 { int x; struct { char a, b; } y; };
+
+union u1 b = { 1, { 2, 3 } };
+
+union u2 { char x[4]; int y; };
+
+union u2 c = { { 0, 1, 2, 3 }, 4 };
 
 int main(void){
-  int a, b;
-  a + b;
-  a - b;
-  a * b;
-  a / b;
-  a % b;
-
-  a += b;
-  a -= b;
-  a *= b;
-  a /= b;
-  a %= b;
-
-  a | b;
-  a ^ b;
-  a & b;
-
-  a |= b;
-  a ^= b;
-  a &= b;
-
-  char c; 
-  c + a; // check types
-
-  struct str1 {
-    int x, y;
-  } d;
-
-  a + d;
-  c - d;
-  a * d;
-  c | d;
-
-  int* e, *f;
-  e + a;
-  a + e;
-  e - a;
-  a - e;
-  e + f;
-  e - f;
-
-  a + (int)d; // ERROR
-  e + (int)f; // OK
-
-  3 + 4U;
-
-  3 + (unsigned char)'d';
-
-  char* g;
-  g + 3; // check if 3 is multiplied by 4
-
-  char h; short i;
-
-  h * i; // cast into signed 
-
-  (unsigned)4 - h; // cast into unsigned
-
-  a + i; // cast into signed
-
-  int *j, *k;
-
-  j - k; // unsigned
-
-  j + '\0'; // cast '\0' into unsigned
-  k - 4; // cast 4 into unsigned 
-
-  // FOLDS, NEUTRALS
-  int x;
-
-  x + 0; // neutral
-  x - 0; // neutral
-  x + 1;
-  x - 1;
-
-  x * 0; // fold 0
-  x * 1; // neutral
-  x * 2;
-  x / 1; // neutral
-  x % 1; // fold 0
-
-  x << 0; // neutral
-  x >> 0; // neutral
-  x << 1;
-  x >> 1;
-
-  x & 0; // fold 0
-  x & 0xFFFFFFFF; // neutral
-  x ^ 0; // neutral
-  x ^ 0xFFFFFFFF;
-  x | 0; // neutral
-  x | 0xFFFFFFFF; // fold 0xFFFFFFFF
-
+  struct s2 a = { 0, { 1, 2 }, { 3, 4, 5 } };
+  struct s2 b = a;
+  struct s1 c = { 1, 2 };
+  struct s2 d = { 0, c, { 1, 2 } };
 }
+
+int f(void){
+  struct s1 a;
+  struct s2 b = { 1, a, };
+}
+
+struct {
+  int a, b;
+} d = { 0 };
+
+struct s2 e = { 0, 0, 0, 0, 0, 0, 0, 0, }; // 3 ERRORS

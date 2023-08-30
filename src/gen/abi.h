@@ -17,6 +17,7 @@ All general purpose registers are volatile (except stack pointer, base pointer a
 */
 
 #define PARAM_REGS_COUNT 0
+#define SCALAR_RET_REG   0
 
 #define FRAME_ALIGNMENT 8
 

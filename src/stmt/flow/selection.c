@@ -21,36 +21,34 @@ void CaseLabel(void){
   }
 
   LinkedList* switch_frame = StackPeek(&switch_stack);
-  for(Node* node = switch_frame->first; node; node = node->next){
-    ExprNode* case_expr = node->info;
-    if(case_expr->kind == CASE_LABEL && case_expr->address == const_expr->value){
-      ReportError("Case label already defined.");
-      ConstExprDrop(const_expr);
-      return;
+  Node* node = 0;
+  for(node = switch_frame->first; node; node = node->next){
+    TreeNode* case_node = node->info;
+    if(case_node->expr_node->kind == CASE_LABEL){
+      if(case_node->expr_node->address == const_expr->value){
+        ReportError("Case label with value %d already defined.", case_node->expr_node->address);
+        ConstExprDrop(const_expr);
+        return;
+      }
+      else if(case_node->expr_node->address > const_expr->value){
+        break;
+      }
     }
   }
 
-  TreeNode* node = TreeInsertNode(tree, CASE_STMT, 0);
-  node->expr_node = ExprNodeCreateEmpty();
-  node->expr_node->kind = CASE_LABEL;
-  node->expr_node->address = const_expr->value;
+  TreeNode* tree_node = TreeInsertNode(tree, CASE_STMT, 0);
+  tree_node->expr_node = ExprNodeCreateEmpty();
+  tree_node->expr_node->kind = CASE_LABEL;
+  tree_node->expr_node->address = const_expr->value;
 
   ConstExprDrop(const_expr);
 
   Node* case_node = NodeCreateEmpty();
-  case_node->info = node->expr_node;
+  case_node->info = tree_node;
 
-  LinkedListInsertLast(switch_frame, case_node);
+  if(node) LinkedListInsertBefore(switch_frame, node, case_node); 
+  else LinkedListInsertLast(switch_frame, case_node);
   Statement();
-
-  /*StackNode* stack_node = tree->stack.top;
-  for(int i = 0; i < (int)(long)statement_stack.top->info; i++, stack_node = stack_node->next){
-    TreeNode* node = stack_node->info;
-    if(node->production == INITIALIZATION){
-      ReportError("Initialization cannot be skipped by case label.");
-      break;
-    }
-  }*/
 }
 
 void DefaultLabel(void){
@@ -59,32 +57,23 @@ void DefaultLabel(void){
   }
 
   LinkedList* switch_frame = StackPeek(&switch_stack);
-  for(Node* node = switch_frame->first; node; node = node->next){
-    ExprNode* case_expr = node->info;
-    if(case_expr->kind == DEFAULT_LABEL){
+  if(switch_frame->first){
+    TreeNode* default_node = switch_frame->first->info;
+    if(default_node->expr_node->kind == DEFAULT_LABEL){
       ReportError("Default label already defined.");
       return;
     }
-  }
+  } 
 
   TreeNode* node = TreeInsertNode(tree, DEFAULT_STMT, 0);
   node->expr_node = ExprNodeCreateEmpty();
   node->expr_node->kind = DEFAULT_LABEL;
 
   Node* default_node = NodeCreateEmpty();
-  default_node->info = node->expr_node;
+  default_node->info = node;
 
-  LinkedListInsertLast(switch_frame, default_node);
+  LinkedListInsertFirst(switch_frame, default_node);
   Statement();
-
-  /*StackNode* stack_node = tree->stack.top;
-  for(int i = 0; i < (int)(long)statement_stack.top->info; i++, stack_node = stack_node->next){
-    TreeNode* node = stack_node->info;
-    if(node->production == INITIALIZATION){
-      ReportError("Initialization cannot be skipped by case label.");
-      break;
-    }
-  }*/
 }
 
 
@@ -98,7 +87,9 @@ void ElseOpen(void){
 
 void SwitchOpen(void){
   switch_count++;
-  StackPush(&switch_stack, LinkedListCreateEmpty());
+  LinkedList* case_list = LinkedListCreateEmpty();
+  StackPush(&switch_stack, case_list);
+  VectorPush(switch_archive, case_list);
 }
 
 
@@ -107,12 +98,17 @@ void IfStmt(void){
   UnifyStatements(2);
 
   if(node->children[0]->expr_node == 0){
-    ReportError("Error in if statement condition.");
+    ReportError("Error in if-statement condition.");
     return;
   }
 
+  if(StructIsArray(node->children[0]->expr_node->type)
+      || StructIsFunction(node->children[0]->expr_node->type)){
+    ConvertChildToPointer(node, 0);
+  }
+
   if(!StructIsScalar(node->children[0]->expr_node->type)){
-    ReportError("Illegal if statement condition.");
+    ReportError("Illegal if-statement condition.");
     return;
   }
 
@@ -120,38 +116,56 @@ void IfStmt(void){
 }
 
 void IfElseStmt(void){
-  TreeNode* node = TreeInsertNode(tree, IF_ELSE_STMT, 3);
-  UnifyStatements(3);
+  TreeNode* else_node = StackPop(&tree->stack);
+  TreeInsertNode(tree, VOID_EXPR, 0);
+  Statement();
+  StackPush(&tree->stack, else_node);
+
+  TreeNode* node = TreeInsertNode(tree, IF_ELSE_STMT, 4);
+  UnifyStatements(4);
+  // TreeNode* node = TreeInsertNode(tree, IF_ELSE_STMT, 3);
+  // UnifyStatements(3);
 
   if(node->children[0]->expr_node == 0){
-    ReportError("Error in if-else statement condition.");
+    ReportError("Error in if-else-statement condition.");
     return;
+  }
+
+  if(StructIsArray(node->children[0]->expr_node->type)
+      || StructIsFunction(node->children[0]->expr_node->type)){
+    ConvertChildToPointer(node, 0);
   }
 
   if(!StructIsScalar(node->children[0]->expr_node->type)){
-    ReportError("Illegal if-else statement condition.");
+    ReportError("Illegal if-else-statement condition.");
     return;
   }
-
+  
   ConvertChildToLogic(node, 0);
 }
 
 void SwitchStmt(void){
+  // TreeInsertNode(tree, VOID_EXPR, 0);
+  // Statement();
+
+  // TreeNode* node = TreeInsertNode(tree, SWITCH_STMT, 3);
+  // UnifyStatements(3);
   TreeNode* node = TreeInsertNode(tree, SWITCH_STMT, 2);
   UnifyStatements(2);
 
   switch_count--;
-  LinkedListDrop(StackPop(&switch_stack));
+  StackPop(&switch_stack);
   
   if(node->children[0]->expr_node == 0){
-    ReportError("Error in switch control expression.");
+    ReportError("Error in switch-statement control expression.");
     return;
   }
 
   if(!StructIsArithmetic(node->children[0]->expr_node->type)){
-    ReportError("Illegal switch control expression.");
+    ReportError("Illegal switch-statement control expression.");
     return;
   }
 
   ConvertChildToArithmetic(node, 0);
+  SubexprImplCast(node, 0, predefined_types_struct + INT32_T);
 }

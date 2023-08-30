@@ -4,19 +4,22 @@
 #include "util/queue.h"
 #include "../literals.h"
 
-void IdentifierPrimary(){
+void IdentifierPrimary(void){
   extern void DerefExpr(void);
 
   const char* symbol_name = QueueDelete(&identifier_queue);
   Obj* obj_ref = SymtabFindNamespace(symtab, symbol_name, NAMESPACE_ORDINARY);
-  StringDrop(symbol_name);
   
   if(obj_ref == 0){
     // TreeNode* node = 
     TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
     DerefExpr();
-    ReportError("Symbol not found.");
+    ReportError("Symbol %s not found.", symbol_name);
+    StringDrop(symbol_name);
     return;
+  }
+  else{
+    StringDrop(symbol_name);
   }
 
   if(obj_ref->kind == OBJ_VAR){
@@ -43,7 +46,7 @@ void IdentifierPrimary(){
   }
 }
 
-void ConstantPrimary(){
+void ConstantPrimary(void){
   TreeNode* node = TreeInsertNode(tree, CONSTANT_PRIMARY, 0);
 
   NumLit* numlit = QueueDelete(&numlit_queue);
@@ -56,7 +59,7 @@ void ConstantPrimary(){
   NumLitDrop(numlit);
 }
 
-void StringPrimary(){
+void StringPrimary(void){
   TreeNode* node = TreeInsertNode(tree, STRING_PRIMARY, 0);
 
   const char* string = QueueDelete(&strlit_queue);

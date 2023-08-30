@@ -10,8 +10,13 @@ const char* ir_opcode_names[] = {
   [IR_PUSHB]  = "PUSHB",
   [IR_PUSHW]  = "PUSHW",
   [IR_PUSHL]  = "PUSHL",
+  [IR_VPUSHB] = "VPUSHB",
+  [IR_VPUSHW] = "VPUSHW",
+  [IR_VPUSHL] = "VPUSHL",
   [IR_POP]    = "POP",
+  [IR_VPOP]   = "VPOP",
   [IR_DUP]    = "DUP",
+  [IR_REVIV]  = "REVIV",
 
   [IR_STORB]  = "STORB",
   [IR_STORW]  = "STORW",
@@ -20,12 +25,18 @@ const char* ir_opcode_names[] = {
   [IR_DERFB]  = "DERFB",
   [IR_DERFW]  = "DERFW",
   [IR_DERFL]  = "DERFL",
+
+  [IR_FDRFB]  = "FDRFB",
+  [IR_FDRFW]  = "FDRFW",
+  [IR_FDRFL]  = "FDRFL",
   
   [IR_ENTER]  = "ENTER",
   [IR_EXIT]   = "EXIT",
   [IR_CALL]   = "CALL",
   [IR_ALIGN]  = "ALIGN",
-  [IR_ABIRET] = "ABIRET",
+  [IR_DEALGN] = "DEALGN",
+  [IR_SETRET] = "SETRET",
+  [IR_GETRET] = "GETRET",
 
   [IR_INC]    = "INC",
   [IR_DEC]    = "DEC",
@@ -40,8 +51,11 @@ const char* ir_opcode_names[] = {
   [IR_ZXWL]   = "ZXWL",
 
   [IR_MUL]    = "MUL",
+  [IR_IMUL]   = "IMUL",
   [IR_DIV]    = "DIV",
+  [IR_IDIV]   = "IDIV",
   [IR_MOD]    = "MOD",
+  [IR_IMOD]   = "IMOD",
   [IR_ADD]    = "ADD",
   [IR_SUB]    = "SUB",
 
@@ -63,23 +77,35 @@ const char* ir_opcode_names[] = {
   [IR_JGE]    = "JGE",
   [IR_JLT]    = "JLT",
   [IR_JLE]    = "JLE",
+  [IR_JA]     = "JA",
+  [IR_JB]     = "JB",
+  [IR_JAE]    = "JAE",
+  [IR_JBE]    = "JBE",
 
   [IR_COND]   = "COND",
   [IR_LOGENT] = "LOGENT",
   [IR_LOGEXT] = "LOGEXT",
+
+  [IR_TABENT] = "TABENT",
+  [IR_TABEXT] = "TABEXT",
+  [IR_TABLIN] = "TABLIN",
+
+  [IR_ASM]    = "ASM",
 };
 
 FILE* irout = 0;
 
 IrInstr* IrInstrCreateEmpty(void){
-  IrInstr* ir_instr = malloc(sizeof(IrInstr));
-  ir_instr->opcode     = IR_NOP;
-  ir_instr->addr       = IR_ADDR_DIRECT;
-  ir_instr->operand    = IR_OP_NO_OPERAND;
-  ir_instr->obj_ref    = 0;
-  ir_instr->string_ref = 0;
-  ir_instr->offset     = 0;
-  ir_instr->depth      = 0;
+  IrInstr* ir_instr     = malloc(sizeof(IrInstr));
+  ir_instr->opcode      = IR_NOP;
+  ir_instr->addr        = IR_ADDR_DIRECT;
+  ir_instr->operand     = IR_OP_NO_OPERAND;
+  ir_instr->obj_ref     = 0;
+  ir_instr->string_ref  = 0;
+  ir_instr->offset      = 0;
+  ir_instr->reg_ref     = 0;
+  ir_instr->depth       = 0;
+  ir_instr->stack_alloc = 0;
 
   ir_instr_alloc++;
 
@@ -88,13 +114,13 @@ IrInstr* IrInstrCreateEmpty(void){
 
 void IrInstrDump(IrInstr* ir_instr){
   if(ir_instr->opcode == IR_FUNCT){
-    fprintf(irout, "%s", ir_instr->obj_ref->name);
+    fprintf(irout, "%s:", ir_instr->obj_ref->name);
   }
   else if(ir_instr->opcode == IR_LABEL){
-    fprintf(irout, "%s%d", default_base_strings, ir_instr->offset);
+    fprintf(irout, "%s%d:", default_base_text, ir_instr->offset);
   }
   else {
-    if(IsGeneratingResult(ir_instr->opcode)) fprintf(irout, "   + ");
+    if(InstrNumOfResults(ir_instr->opcode)) fprintf(irout, "   + ");
     else fprintf(irout, "     ");
     fprintf(irout, "%-2d %-6s", ir_instr->depth, ir_opcode_names[ir_instr->opcode]);
   }
@@ -106,7 +132,9 @@ void IrInstrDump(IrInstr* ir_instr){
     fprintf(irout, " ");
     if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "[");
     // for(int i = 0; i < ir_instr->offset + 1; i++) fprintf(irout, "#");
-    fprintf(irout, "#%u", ir_instr->depth - ir_instr->offset - InstrGetDepth(ir_instr));
+    fprintf(irout, "#%u,", ir_instr->depth - ir_instr->reg_ref - InstrGetDepth(ir_instr));
+    if(ir_instr->offset >= 0) fprintf(irout, "+%d", +ir_instr->offset);
+    else                      fprintf(irout, "-%d", -ir_instr->offset);
     if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "]");
   } break;
   case IR_OP_ARG:{
@@ -141,7 +169,13 @@ void IrInstrDump(IrInstr* ir_instr){
   case IR_OP_LABEL:{
     fprintf(irout, " ");
     if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "[");
-    fprintf(irout, "%s%d", default_base_strings, ir_instr->offset);
+    fprintf(irout, "%s%d", default_base_text, ir_instr->offset);
+    if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "]");
+  } break;
+  case IR_OP_SWTAB:{
+    fprintf(irout, " ");
+    if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "[");
+    fprintf(irout, "%s%d", default_base_switch, ir_instr->offset);
     if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "]");
   } break;
   }
@@ -167,6 +201,9 @@ void IrInit(void){
 }
 
 void IrFree(void){
+  for(int i = 0; i < ir_sequence->size; i++)      IrInstrDrop(VectorGet(ir_sequence, i));
+  for(int i = 0; i < postinc_sequence->size; i++) IrInstrDrop(VectorGet(postinc_sequence, i));
+
   VectorDrop(ir_sequence);
   VectorDrop(postinc_sequence);
   ir_sequence      = 0;
@@ -191,11 +228,18 @@ int InstrGetDepth(IrInstr* ir_instr){
   case IR_PUSHB:
   case IR_PUSHW:
   case IR_PUSHL:
+  case IR_VPUSHB:
+  case IR_VPUSHW:
+  case IR_VPUSHL:
     return +1;
 
   case IR_POP:
     return -1;
+  case IR_VPOP:
+    return -1;
   case IR_DUP:
+    return +1;
+  case IR_REVIV:
     return +1;
 
   case IR_STORB:
@@ -208,14 +252,22 @@ int InstrGetDepth(IrInstr* ir_instr){
   case IR_DERFL:
     return 0;
 
+  case IR_FDRFB:
+  case IR_FDRFW:
+  case IR_FDRFL:
+    return +1;
+
   case IR_ENTER:
   case IR_EXIT:
     return 0;
   case IR_CALL:
     return ir_instr->operand == IR_OP_STACK_POP ? -1 : 0;
   case IR_ALIGN:
+  case IR_DEALGN:
     return 0;
-  case IR_ABIRET:
+  case IR_SETRET:
+    return -1;
+  case IR_GETRET:
     return +1;
 
   case IR_INC:
@@ -232,8 +284,11 @@ int InstrGetDepth(IrInstr* ir_instr){
     return 0;
 
   case IR_MUL:
+  case IR_IMUL:
   case IR_DIV:
+  case IR_IDIV:
   case IR_MOD:
+  case IR_IMOD:
   case IR_ADD:
   case IR_SUB:
 
@@ -257,83 +312,31 @@ int InstrGetDepth(IrInstr* ir_instr){
   case IR_JGE:
   case IR_JLT:
   case IR_JLE:
-    return 0;
+  case IR_JA:
+  case IR_JB:
+  case IR_JAE:
+  case IR_JBE:
+    return ir_instr->operand == IR_OP_STACK_POP ? -1 : 0;
 
   case IR_LOGENT:
   case IR_LOGEXT:
     return 0;
   case IR_COND:
     return +1;
+
+  case IR_TABENT:
+  case IR_TABEXT:
+  case IR_TABLIN:
+    return 0;
+
+  case IR_ASM:
+    return 0;
   }
 
   return 0;
 }
 
-void CalculateDepth(void){
-  IrInstr* ir_instr      = VectorGet(ir_sequence, 0);
-  IrInstr* prev_ir_instr = 0;
-  ir_instr->depth = InstrGetDepth(ir_instr);
-
-  for(int i = 1; i < ir_sequence->size; i++){
-    ir_instr      = VectorGet(ir_sequence, i);
-    prev_ir_instr = VectorGet(ir_sequence, i - 1);
-    ir_instr->depth = prev_ir_instr->depth + InstrGetDepth(ir_instr);
-  }
-}
-
-
-void InsertInstr(IrOpcode opcode, IrAddr addr, IrOperand operand, Obj* obj_ref, int string_ref, int offset){
-  IrInstr* ir_instr = IrInstrCreateEmpty();
-  ir_instr->opcode     = opcode;
-  ir_instr->addr       = addr;
-  ir_instr->operand    = operand;
-  ir_instr->obj_ref    = obj_ref;
-  ir_instr->string_ref = string_ref;
-  ir_instr->offset     = offset;
-
-  VectorPush(ir_sequence, ir_instr);
-}
-void InsertInstrNoOp(IrOpcode opcode){
-  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, 0);
-}
-
-void InsertInstrStackPop(IrOpcode opcode){
-  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_STACK_POP, 0, 0, 0);
-}
-
-void InsertInstrStackRead(IrOpcode opcode, IrAddr addr, int offset){
-  InsertInstr(opcode, addr, IR_OP_STACK_READ, 0, 0, offset);
-}
-
-void InsertInstrArg(IrOpcode opcode, int offset){
-  InsertInstr(opcode, IR_ADDR_INDIRECT, IR_OP_ARG, 0, 0, offset);
-}
-
-void InsertInstrObj(IrOpcode opcode, IrAddr addr, Obj* obj_ref, int offset){
-  InsertInstr(opcode, addr, IR_OP_OBJ, obj_ref, 0, offset);
-}
-
-void InsertInstrString(IrOpcode opcode, IrAddr addr, int string_ref, int offset){
-  InsertInstr(opcode, addr, IR_OP_STRING, 0, string_ref, offset);
-}
-
-void InsertInstrArithm(IrOpcode opcode, IrAddr addr, int offset){
-  InsertInstr(opcode, addr, IR_OP_ARITHM, 0, 0, offset);
-}
-
-void InsertInstrLabel(IrOpcode opcode, int label_index){
-  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_LABEL, 0, 0, label_index);
-}
-
-void InsertNewFunct(Obj* obj_ref){
-  InsertInstr(IR_FUNCT, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, obj_ref, 0, 0);
-}
-
-void InsertNewLabel(int label_index){
-  InsertInstr(IR_LABEL, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, label_index);
-}
-
-int IsGeneratingResult(IrOpcode opcode){
+int InstrNumOfResults(IrOpcode opcode){
   switch(opcode){
   case IR_NOP:
   case IR_FUNCT:
@@ -343,12 +346,19 @@ int IsGeneratingResult(IrOpcode opcode){
   case IR_PUSHB:
   case IR_PUSHW:
   case IR_PUSHL:  
+  case IR_VPUSHB:
+  case IR_VPUSHW:
+  case IR_VPUSHL:
     return 1;
   case IR_POP:
     return 0;
+  case IR_VPOP:
+    return 0;
   case IR_DUP:
     return 1;
-
+  case IR_REVIV:
+    return 1;
+    
   case IR_STORB:
   case IR_STORW:
   case IR_STORL:
@@ -358,13 +368,21 @@ int IsGeneratingResult(IrOpcode opcode){
   case IR_DERFW:
   case IR_DERFL:
     return 1;
+
+  case IR_FDRFB:
+  case IR_FDRFW:
+  case IR_FDRFL:
+    return 1;
   
   case IR_ENTER:
   case IR_EXIT:
   case IR_CALL:
   case IR_ALIGN:
+  case IR_DEALGN:
     return 0;
-  case IR_ABIRET:
+  case IR_SETRET:
+    return 0;
+  case IR_GETRET:
     return 1;
 
   case IR_INC:
@@ -382,8 +400,11 @@ int IsGeneratingResult(IrOpcode opcode){
     return 1;
 
   case IR_MUL:
+  case IR_IMUL:
   case IR_DIV:
+  case IR_IDIV:
   case IR_MOD:
+  case IR_IMOD:
   case IR_ADD:
   case IR_SUB:
     return 1;
@@ -409,6 +430,10 @@ int IsGeneratingResult(IrOpcode opcode){
   case IR_JGE:
   case IR_JLT:
   case IR_JLE:
+  case IR_JA:
+  case IR_JB:
+  case IR_JAE:
+  case IR_JBE:
     return 0;
 
   case IR_LOGENT:
@@ -416,7 +441,114 @@ int IsGeneratingResult(IrOpcode opcode){
     return 0;
   case IR_COND:
     return 1;
+
+  case IR_TABENT:
+  case IR_TABEXT:
+  case IR_TABLIN:
+    return 0;
+
+  case IR_ASM:
+    return 0;
   }
 
   return 0;
 }
+
+void IrCalculateDepth(void){
+  IrInstr* ir_instr      = VectorGet(ir_sequence, 0);
+  IrInstr* prev_ir_instr = 0;
+
+  if(ir_instr == 0) return; // no instructions in this file
+
+  ir_instr->depth = InstrGetDepth(ir_instr);
+
+  for(int i = 1; i < ir_sequence->size; i++){
+    ir_instr      = VectorGet(ir_sequence, i);
+    prev_ir_instr = VectorGet(ir_sequence, i - 1);
+    ir_instr->depth = prev_ir_instr->depth + InstrGetDepth(ir_instr);
+  }
+}
+
+int InstrGetOperandDepth(int operation_index, int operand_position){
+  IrInstr* operation = VectorGet(ir_sequence, operation_index);
+  return operation->depth - operand_position - InstrGetDepth(operation);
+}
+
+int InstrFindOperand(int operation_index, int operand_position){
+  IrInstr* operation = VectorGet(ir_sequence, operation_index);
+  int target_depth = operation->depth - operand_position - InstrGetDepth(operation);
+  
+  int i = operation_index - 1;
+  IrInstr* operand = 0;
+  while(1){
+    operand = VectorGet(ir_sequence, i);
+    // if(InstrNumOfResults(operand->opcode) && operand->depth == target_depth) break;
+    // if((operand->opcode == IR_FDRFB || operand->opcode == IR_FDRFW || operand->opcode == IR_FDRFL)
+    //   && operand->depth - 1 == target_depth) break;
+    if(operand->depth >= target_depth && operand->depth - InstrNumOfResults(operand->opcode) < target_depth) break;
+    else i--;
+  }
+
+  return i;
+}
+
+
+void InsertInstr(IrOpcode opcode, IrAddr addr, IrOperand operand, Obj* obj_ref, int string_ref, int offset, int reg_ref){
+  IrInstr* ir_instr = IrInstrCreateEmpty();
+  ir_instr->opcode     = opcode;
+  ir_instr->addr       = addr;
+  ir_instr->operand    = operand;
+  ir_instr->obj_ref    = obj_ref;
+  ir_instr->string_ref = string_ref;
+  ir_instr->offset     = offset;
+  ir_instr->reg_ref    = reg_ref;
+
+  VectorPush(ir_sequence, ir_instr);
+}
+void InsertInstrNoOp(IrOpcode opcode){
+  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, 0, 0);
+}
+
+void InsertInstrStackPop(IrOpcode opcode){
+  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_STACK_POP, 0, 0, 0, 0);
+}
+
+void InsertInstrStackRead(IrOpcode opcode, IrAddr addr, int reg_ref, int offset){
+  InsertInstr(opcode, addr, IR_OP_STACK_READ, 0, 0, offset, reg_ref);
+}
+
+void InsertInstrArg(IrOpcode opcode, IrAddr addr, int offset){
+  InsertInstr(opcode, addr, IR_OP_ARG, 0, 0, offset, 0);
+}
+
+void InsertInstrObj(IrOpcode opcode, IrAddr addr, Obj* obj_ref, int offset){
+  InsertInstr(opcode, addr, IR_OP_OBJ, obj_ref, 0, offset, 0);
+}
+
+void InsertInstrString(IrOpcode opcode, IrAddr addr, int string_ref, int offset){
+  InsertInstr(opcode, addr, IR_OP_STRING, 0, string_ref, offset, 0);
+}
+
+void InsertInstrArithm(IrOpcode opcode, IrAddr addr, int offset){
+  InsertInstr(opcode, addr, IR_OP_ARITHM, 0, 0, offset, 0);
+}
+
+void InsertInstrLabel(IrOpcode opcode, int label_index){
+  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_LABEL, 0, 0, label_index, 0);
+}
+
+void InsertInstrSwitchTab(IrOpcode opcode, int tab_index){
+  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_SWTAB, 0, 0, tab_index, 0);
+}
+
+void InsertNewFunct(Obj* obj_ref){
+  InsertInstr(IR_FUNCT, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, obj_ref, 0, 0, 0);
+}
+
+void InsertNewLabel(int label_index){
+  InsertInstr(IR_LABEL, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, label_index, 0);
+}
+
+// void InsertNewSwitchTab(int tab_index){
+//   InsertInstr(IR_TABENT, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, tab_index, 0);
+// }

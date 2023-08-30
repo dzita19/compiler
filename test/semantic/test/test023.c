@@ -1,52 +1,70 @@
-/* TEST 023: Type cast */
+/* TEST 023: Logic */
+int main(void){  
+  int a, b;
+  a > b;
+  a < b;
+  a >= b;
+  a <= b;
+  a == b;
+  a != b;
 
-int main(void){
+  int* c; const int* d;
+  void* e;
+  char* f;
 
-  int   a; unsigned int   b;
-  short c; unsigned short d;
-  char  e; unsigned char  f;
-  void* p;
-
-  // both int rank
-  a + a; // i32
-  a + b; // u32
-  b + a; // u32
-  b + b; // u32
+  c < d; // OK
+  c < e; // ERROR
+  e > c; // ERROR
+  c < 0; // ERROR
+  0 > c; // ERROR
+  c < f; // ERROR
   ;;
 
-  // one is higher rank
-  a + c; // i32
-  a + d; // i32
-  a + e; // i32
-  a + f; // i32
-  b + c; // u32
-  b + d; // u32
-  b + e; // u32
-  b + f; // u32
+  c == d; // OK
+  c == e; // OK
+  e == c; // OK
+  c == 0; // OK
+  0 == c; // OK
+  c == f; // ERROR
   ;;
 
-  // both are below int rank
-  c + d; // i32
-  c + e; // i32
-  c + f; // i32
-  d + e; // i32
-  d + f; // u32
-  e + f; // i32
-  ;;
+  a < 0 && b >= 0;
 
-  // one is ptr
-  p + a; // u32
-  p + b; // u32
-  p + c; // u32
-  p + d; // u32
-  p + e; // u32
-  p + f; // u32
-  ;;
+  a && b;
+  a || b;
 
-  a < b; // result is i32, operands are u32
-  b < c;
-  p > (const void*)a;
-  p > (const void*)c;
-  ;;
+  // FOLDS, CONSTANTS
+  int x;
 
+  x > 0x7FFFFFFF; // fold 0 
+  x > 0x7FFFFFFFU;
+  x > 0xFFFFFFFF; 
+  x > 0xFFFFFFFFU; // fold 0
+
+  x < 0x00000000; // fold 0
+  x < 0x00000000U;
+  x < 0x80000000; 
+  x < 0x80000000U; // fold 0
+
+  x >= 0x00000000;
+  x >= 0x00000000U; // fold 1
+  x >= 0x80000000; // fold 1
+  x >= 0x80000000U;
+
+  x <= 0x7FFFFFFF; // fold 1
+  x <= 0x7FFFFFFFU;
+  x <= 0xFFFFFFFF;
+  x <= 0xFFFFFFFFU; // fold 1
+
+  x && 0; // fold 0
+  x && 1; // neutral
+  x && x;
+  0 && x; // fold 0
+  1 && x; // neutral
+
+  x || 0; // neutral
+  x || 1; // fold 1
+  x || x;
+  0 || x; // neutral
+  1 || x; // fold 1
 }

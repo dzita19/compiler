@@ -33,16 +33,16 @@ extern void print_indent();
 void StaticValDump(StaticVal* val){
   extern Vector* string_table;
 
-  printf("Offset: 0x%04X; Size: 0x%04X; ", val->offset, val->size);
+  printf("Offset: %d; Size: %d; ", val->offset, val->size);
   if(val->kind == VAL_ADDRESS && val->obj_ref) {
     if((val->obj_ref->specifier & LINKAGE_FETCH) == LINKAGE_NONE)
-      printf("Address of: $unnamed + 0x%04X; ", val->obj_ref->address);
+      printf("Address of: $unnamed + %d; ", val->obj_ref->address);
     else
       printf("Address of: %s; ", val->obj_ref->name);
   }
   if(val->kind == VAL_STRING) printf("String: \"%s\"; ", (char*)VectorGet(string_table, val->string_ref));
-  if(val->value >= 0) printf("Value: 0x%04X; ",  +val->value);
-  else                printf("Value: -0x%04X; ", -val->value);
+  if(val->value >= 0) printf("Value: %d; ",  +val->value);
+  else                printf("Value: -%d; ", -val->value);
 }
 
 void StaticValAddToList(StaticVal* new_val, LinkedList* list){

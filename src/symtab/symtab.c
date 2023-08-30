@@ -205,11 +205,9 @@ Obj* SymtabFindPredefined(uint32_t type_specifiers){
       return predefined_types_obj + INT32_T;
     case UNSIGNED:
     case UNSIGNED | INT:
-      return predefined_types_obj + UINT32_T;
-      return predefined_types_obj + INT64_T;
     case UNSIGNED | LONG:
     case UNSIGNED | LONG | INT:
-      return predefined_types_obj + UINT64_T;
+      return predefined_types_obj + UINT32_T;
     default:
       return 0;
   }

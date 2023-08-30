@@ -20,8 +20,8 @@ void        LinkedListDrop(LinkedList*); // claims ownership of the object
 
 void        LinkedListInsertFirst (LinkedList*, Node*);
 void        LinkedListInsertLast  (LinkedList*, Node*);
-void        LinkedListInsertAfter (LinkedList*, Node*, Node*);
-void        LinkedListInsertBefore(LinkedList*, Node*, Node*);
+void        LinkedListInsertAfter (LinkedList*, Node* insert_after,  Node* node);
+void        LinkedListInsertBefore(LinkedList*, Node* insert_before, Node* node);
 Node*       LinkedListRemoveFirst (LinkedList*);
 Node*       LinkedListRemoveLast  (LinkedList*);
 Node*       LinkedListRemoveFrom  (LinkedList*, Node*);

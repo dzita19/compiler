@@ -163,13 +163,10 @@ void PointerQualifier(){
 }
 
 void FunctionParamsOpen(){
-  if(param_declaration_width == 0){
-    SymtabOpenScope(symtab, SCOPE_FUNC_PROTOTYPE);
-  }
-  if(param_declaration_depth == 0){
-    param_declaration_width++;
-  }
-  param_declaration_depth++;
+  Scope* param_scope = ScopeCreateEmpty();
+  param_scope->type = SCOPE_FUNC_PROTOTYPE;
+
+  StackPush(&param_scope_stack, param_scope);
 
   StackPush(&typedef_stack, 0);
   StackPush(&type_stack, TypeFrameCreateEmpty());
@@ -179,8 +176,9 @@ void FunctionParamsOpen(){
 }
 
 void FunctionParamsClose(){
-  // if(fdef_counter > 0) 
-  param_declaration_depth--; 
+  Scope* param_scope = StackPop(&param_scope_stack);
+  if(StackEmpty(&param_scope_stack) && func_prototype_scope == 0) func_prototype_scope = param_scope;
+  else ScopeDrop(param_scope);
 
   StackPop(&typedef_stack);
   TypeFrameDrop(StackPop(&type_stack));

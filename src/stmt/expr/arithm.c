@@ -97,7 +97,7 @@ void SubExpr(){
   if(StructIsArithmetic(left_op) && StructIsArithmetic(right_op)){
     expr_type = StructGetExprIntType(left_op, right_op);
   }
-  else if(StructIsPointer(left_op) && StructIsPointerToObject(right_op)){
+  else if(StructIsPointer(left_op) && StructIsPointer(right_op)){
     // left and right op must be of the same type
     if(StructIsCompatibleUnqualified(left_op->parent, right_op->parent)){ 
       expr_type = predefined_types_struct + UINT32_T;
@@ -107,7 +107,7 @@ void SubExpr(){
       return;
     }
   }
-  else if(StructIsPointerToObject(left_op) && StructIsArithmetic(right_op)){
+  else if(StructIsPointer(left_op) && StructIsArithmetic(right_op)){
     expr_type = left_op;
   }
   else {
@@ -125,10 +125,10 @@ void SubExpr(){
   SubexprImplCast(node, 0, expr_type);
   SubexprImplCast(node, 1, expr_type);
 
-  if(StructIsPointer(left_op) && StructIsPointerToObject(right_op))
+  if(StructIsPointer(left_op) && StructIsPointer(right_op))
     ExprDivideByConst(node, expr_type, left_op->parent->size);
 
-  if(StructIsPointerToObject(left_op) && StructIsArithmetic(right_op))
+  if(StructIsPointer(left_op) && StructIsArithmetic(right_op))
     SubexprMultiplyByConst(node, 1, left_op->parent->size);
 
   TryFold();
@@ -162,13 +162,16 @@ void BasicAssignExpr(int initializer){
     // all good
   }
   else if(StructIsPointer(op1) && StructIsPointer(op2)){
-    Struct* pointed1 = op1->parent;
-    Struct* pointed2 = op2->parent;
+    Struct* pointed1 = StructGetParentUnqualified(op1);
+    Struct* pointed2 = StructGetParentUnqualified(op2);
 
-    if(StructIsCompatibleUnqualified(pointed1, pointed2)){
+    if(StructIsCompatible(pointed1, pointed2)){
       // all good
     }
-    else if(StructIsVoidPtr(op2)) {
+    else if(StructIsVoid(pointed1)){ // maybe shouldn't
+      // all good
+    }
+    else if(StructIsVoid(pointed2)) {
       // all good
     }
     else {
@@ -176,8 +179,8 @@ void BasicAssignExpr(int initializer){
       return;
     }
 
-    int qualifiers1 = pointed1->kind == STRUCT_QUALIFIED ? pointed1->attributes : 0;
-    int qualifiers2 = pointed2->kind == STRUCT_QUALIFIED ? pointed2->attributes : 0;
+    int qualifiers1 = op1->parent->kind == STRUCT_QUALIFIED ? op1->parent->attributes : 0;
+    int qualifiers2 = op2->parent->kind == STRUCT_QUALIFIED ? op2->parent->attributes : 0;
 
     if(qualifiers1 != (qualifiers1 | qualifiers2)){
       ReportError("Pointed objects qualifications are not compatible for assignment.");
@@ -223,7 +226,8 @@ void MulAssignExpr(Production production){
     return;
   }
 
-  expr_type = op1;
+  // expr_type = op1;
+  expr_type = StructGetExprIntType(op1, op1);
 
   node->expr_node = ExprNodeCreateEmpty();
   node->expr_node->kind = RVALUE;
@@ -265,7 +269,8 @@ void AddAssignExpr(){
     return;
   }
 
-  expr_type = op1;
+  // expr_type = op1;
+  expr_type = StructGetExprIntType(op1, op1);
 
   node->expr_node = ExprNodeCreateEmpty();
   node->expr_node->kind = RVALUE;
@@ -298,7 +303,7 @@ void SubAssignExpr(){
   Struct* op2 = StructGetUnqualified(node->children[1]->expr_node->type);
   Struct* expr_type = 0;
 
-  if(StructIsPointerToObject(op1) && StructIsArithmetic(op2)){
+  if(StructIsPointer(op1) && StructIsArithmetic(op2)){
     // all good
   }
   else if(StructIsArithmetic(op1) && StructIsArithmetic(op2)){
@@ -309,7 +314,8 @@ void SubAssignExpr(){
     return;
   }
 
-  expr_type = op1;
+  // expr_type = op1;
+  expr_type = StructGetExprIntType(op1, op1);
 
   node->expr_node = ExprNodeCreateEmpty();
   node->expr_node->kind = RVALUE;

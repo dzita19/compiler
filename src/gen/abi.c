@@ -54,10 +54,18 @@ ArgAlloc* GetArgAllocation(CallFrame* call_frame, Struct* str){
     arg_alloc->mode = ARG_TO_REG;
     arg_alloc->addr = call_frame->regs++;  
   }
+  // params are not aligned to 4byte address
+  // else{
+  //   arg_alloc->mode = ARG_TO_STACK;
+  //   arg_alloc->addr = (call_frame->stack + str->align - 1) / str->align * str->align;
+  //   call_frame->stack = arg_alloc->addr + str->size;
+  // }
+  // 
+  // params are aligned to 4byte address
   else{
     arg_alloc->mode = ARG_TO_STACK;
-    arg_alloc->addr = (call_frame->stack + str->align - 1) / str->align * str->align;
-    call_frame->stack = arg_alloc->addr + str->size;
+    arg_alloc->addr = (call_frame->stack + POINTER_SIZE - 1) / POINTER_SIZE * POINTER_SIZE;
+    call_frame->stack = arg_alloc->addr + (str->size + POINTER_SIZE - 1) / POINTER_SIZE * POINTER_SIZE;
   }
 
   return arg_alloc;
@@ -92,10 +100,19 @@ int CallFrameAllocAddr(CallFrame* call_frame, Struct* str){
     stack_frame_stack.top->info = (void*)(long)current_stack_counter;
     return addr; // + str->size;
   }
+
   // arg is passed through stack, address is allocated inside the caller stack frame
+  // params are not aligned to 4byte address
+  // else{
+  //   int addr = (call_frame->stack - str->align + 1) / str->align * str->align;
+  //   call_frame->stack = addr - str->size;
+
+  //   return addr;
+  // }
+  // params are aligned to 4byte address
   else{
-    int addr = (call_frame->stack - str->align + 1) / str->align * str->align;
-    call_frame->stack = addr - str->size;
+    int addr = (call_frame->stack - POINTER_SIZE + 1) / POINTER_SIZE * POINTER_SIZE;
+    call_frame->stack = addr - (str->size + POINTER_SIZE - 1) / POINTER_SIZE * POINTER_SIZE;
 
     return addr;
   }

@@ -24,6 +24,17 @@ void* StackPeek(Stack* stack){
   return stack->top->info;
 }
 
-extern int StackEmpty(Stack* stack){
+int StackEmpty(Stack* stack){
   return stack->top == 0;
+}
+
+int StackSize (Stack* stack){
+  StackNode* current = stack->top;
+  int size = 0;
+  while(current){
+    size++;
+    current = current->next;
+  }
+
+  return size;
 }

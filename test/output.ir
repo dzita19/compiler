@@ -1,20 +1,60 @@
-f 
-     0  ENTER  0
-     0  EXIT   0
-
-main 
-     0  ENTER  24
-   + 1  PUSHL  &x
+main: 
+     0  ENTER  32
+   + 1  PUSHL  &b2
    + 2  DUP    
    + 3  PUSHL  1
      1  STORL  
    + 1  DERFL  
-   + 2  PUSHL  0
-     0  CMP    
-     0  JEQ    .LP1
-   + 1  PUSHL  &y
-   + 2  PUSHL  &z
-   + 2  DERFL  
-     0  STORL  
-.LP1 
-     0  EXIT   24
+     0  POP    
+   + 1  PUSHL  &b2+4
+   + 2  DUP    
+   + 3  PUSHL  2
+     1  STORL  
+   + 1  DERFL  
+     0  POP    
+   + 1  PUSHL  &p
+   + 1  DERFL  
+   + 1  ADD    4
+   + 2  DUP    
+   + 3  PUSHL  &a1
+   + 4  PUSHL  [#3,+0]
+     3  STORL  [#2,+0]
+     2  POP    
+     1  POP    
+     0  POP    
+   + 1  PUSHL  &q
+   + 1  DERFL  
+   + 1  DERFL  
+   + 1  ADD    4
+   + 2  DUP    
+   + 3  PUSHL  &a1
+   + 4  PUSHL  [#3,+0]
+     3  STORL  [#2,+0]
+     2  POP    
+     1  POP    
+     0  POP    
+     0  EXIT   32
+
+main: 
+     0  ENTER  32
+   + 1  PUSHL  1
+     0  STORL  [&b2]
+   + 1  PUSHL  2
+     0  STORL  [&b2+4]
+   + 1  PUSHL  [&p]
+   + 1  ADD    4
+   + 2  DUP    
+   + 3  PUSHL  [&a1]
+     2  STORL  [#2,+0]
+     1  POP    
+     0  POP    
+   + 1  PUSHL  [&q]
+   + 1  DERFL  
+   + 1  ADD    4
+   + 2  DUP    
+   + 3  PUSHL  [&a1]
+     2  STORL  [#2,+0]
+     1  POP    
+     0  POP    
+     0  EXIT   32
+

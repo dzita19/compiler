@@ -106,7 +106,8 @@ extern int yydebug;
     GOTO_ = 312,
     CONTINUE_ = 313,
     BREAK_ = 314,
-    RETURN_ = 315
+    RETURN_ = 315,
+    ASM_ = 316
   };
 #endif
 
@@ -121,7 +122,7 @@ union YYSTYPE
 	char* id;
 	char* strlit;
 
-#line 125 "src/yy/y.tab.h"
+#line 126 "src/yy/y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

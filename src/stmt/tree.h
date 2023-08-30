@@ -12,6 +12,7 @@ typedef enum Production{
   CONSTANT_PRIMARY,
   STRING_PRIMARY,
 
+  FIELD_REF_EXPR,
   FUNCTION_CALL_EXPR,
   POST_INC_EXPR,
   POST_DEC_EXPR,
@@ -73,12 +74,12 @@ typedef enum Production{
   DEFAULT_STMT,
 
   INITIALIZATION,
+  FOR_DECL,
 
   COMPOUND_STMT,
 
   EXPRESSION_STMT,
   EMPTY_STMT,
-  FOR_DECL,
 
   IF_STMT,
   IF_ELSE_STMT,
@@ -93,6 +94,8 @@ typedef enum Production{
   BREAK_STMT,
   RETURN_STMT,
   RETURN_EXPR_STMT,
+
+  INLINE_ASM_STMT,
 
   FUNC_PROLOGUE,
   FUNC_EPILOGUE,
@@ -111,7 +114,6 @@ extern const int   production_kind[];
 typedef struct ExprNode  ExprNode;
 typedef struct LogicNode LogicNode;
 typedef struct MemAlloc  MemAlloc;
-// typedef struct AllocNode AllocNode;
 
 typedef struct TreeNode{
   int id;

@@ -1,0 +1,1 @@
+extern void* get_variadic_param(int* variadic_cntr, int size);

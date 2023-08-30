@@ -1,37 +1,32 @@
-/* TEST 020: Initializers */
+/* TEST 020: Initializers (static, auto) */
 
-struct s1 {
-  int x, y;
+struct str1{
+  int a, *b, c[3];
 };
 
-struct s2 {
-  char a; struct s1 b; char c[3];
-};
+int main(){
+  int a = 14 * 7;
+  int b = a * 4;
+  int *c = &b + (int)(&a - 1);
 
-struct s2 a = { 0, { 1, 2 }, { 3, 4, 5 } };
+  int d = 4 - b * *c + (char)4;
 
-union u1 { int x; struct { char a, b; } y; };
+  const int e = 0;
 
-union u1 b = { 1, { 2, 3 } };
+  struct str1 f = { 0, 0, { 1, 2, 3 }};
+  static struct str1 g = { 0, 0, { 1, 2, 3 }};
 
-union u2 { char x[4]; int y; };
+  int h = 'a';
 
-union u2 c = { { 0, 1, 2, 3 }, 4 };
+  int* i = "AAA"; // ERROR
+  int* j = (int*)"AAA"; // OK
 
-int main(void){
-  struct s2 a = { 0, { 1, 2 }, { 3, 4, 5 } };
-  struct s2 b = a;
-  struct s1 c = { 1, 2 };
-  struct s2 d = { 0, c, { 1, 2 } };
+  char* k = &a; // ERROR
+  int* l = &e; // OK - const address to non const pointer
+  const int* m = &a; // OK (warning?)
+
+  static const volatile int* n = 1; // ERROR
+  static const volatile int* o = (const volatile int*)1; // OK
+
+  static const volatile int* p = (const volatile int*)1 + 3; // OK - 13
 }
-
-int f(void){
-  struct s1 a;
-  struct s2 b = { 1, a, };
-}
-
-struct {
-  int a, b;
-} d = { 0 };
-
-struct s2 e = { 0, 0, 0, 0, 0, 0, 0, 0, }; // 3 ERRORS

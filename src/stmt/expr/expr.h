@@ -45,7 +45,6 @@ void InsertConstant          (int value);
 void ConvertChildToArithmetic(TreeNode*, int index);
 void ConvertChildToLogic     (TreeNode*, int index);
 void ConvertChildToPointer   (TreeNode*, int index);
-TreeNode* ExprToPointer      (TreeNode*); // converts TreeNode* from array or function designator to pointer...
 
 void ExprDivideByConst       (TreeNode*, Struct* type, int value);
 void SubexprMultiplyByConst  (TreeNode*, int index, int value);

@@ -60,7 +60,20 @@ static int AddressAdditionFold(void){
     pointer_index = 1;
     value = node->children[0]->expr_node->address;
   }
-  else return 0;
+  else if(node->children[0]->production == FIELD_REF_EXPR
+      && node->children[1]->production == CONSTANT_PRIMARY) {
+
+    pointer = node->children[0];
+    pointer_index = 0;
+    value = node->children[1]->expr_node->address;
+  }
+  else if(node->children[1]->production == FIELD_REF_EXPR
+      && node->children[0]->production == CONSTANT_PRIMARY){
+
+    pointer = node->children[1];
+    pointer_index = 1;
+    value = node->children[0]->expr_node->address;
+  } else return 0;
 
   node->children[pointer_index]->parent = node->parent;
   // node->children[pointer_index]->parent = 0;
@@ -86,6 +99,13 @@ static int AddressSubtractionFold(void){
     value = node->children[1]->expr_node->address;
   }
   else if(node->children[0]->production == STRING_PRIMARY
+      && node->children[1]->production == CONSTANT_PRIMARY) {
+
+    pointer = node->children[0];
+    pointer_index = 0;
+    value = node->children[1]->expr_node->address;
+  }
+  else if(node->children[0]->production == FIELD_REF_EXPR
       && node->children[1]->production == CONSTANT_PRIMARY) {
 
     pointer = node->children[0];

@@ -3,8 +3,8 @@
 
 #include "expr.h"
 
-void IdentifierPrimary();
-void ConstantPrimary();
-void StringPrimary();
+void IdentifierPrimary(void);
+void ConstantPrimary(void);
+void StringPrimary(void);
 
 #endif

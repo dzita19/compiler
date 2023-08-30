@@ -26,8 +26,6 @@ static Obj* TagDeclaration(int defined){
 }
 
 void Declaration(){
-  full_decl_specifiers = 0;
-
   TypeFrameClear(StackPeek(&type_stack));
 }
 
@@ -74,13 +72,13 @@ void DeclarationSpecifiers(int try_redeclare){
       if((tag_obj->specifier & TAG_FETCH) != (obj_found->specifier & TAG_FETCH)){
         ObjDrop(type_frame->current_type);
         type_frame->current_type = 0;
-        ReportError("Tag already declared with different tag type.");
+        ReportError("Tag %s already declared with different tag type.", obj_found->name);
         return;
       }
       if((obj_found->specifier & DEFINITION_FETCH) == DEFINED){
         ObjDrop(type_frame->current_type);
         type_frame->current_type = 0;
-        ReportError("Tag already defined in this scope.");
+        ReportError("Tag %s already defined in this scope.", obj_found->name);
         return;
       }
       
@@ -115,7 +113,7 @@ void DeclarationSpecifiers(int try_redeclare){
       if(((tag_obj->specifier) & TAG_FETCH) != ((obj_found->specifier) & TAG_FETCH)){
         ObjDrop(tag_obj);
         type_frame->current_type = 0;
-        ReportError("Tag already declared with different tag type.");
+        ReportError("Tag %s already declared with different tag type.", obj_found->name);
         return;
       }
 
@@ -132,7 +130,8 @@ void DeclarationSpecifiers(int try_redeclare){
 }
 
 void FullDeclarationSpecifiers(){
-  full_decl_specifiers = 1;
+  TypeFrame* type_frame = StackPeek(&type_stack);
+  type_frame->full_decl_specifiers = 1;
 
   int try_redeclare = 0;
   DeclarationSpecifiers(try_redeclare);
@@ -170,7 +169,7 @@ void TypeSpecifierRef(TypeSpecifier specifier){
 
 void TypeQualifierRef(TypeQualifier qualifier){
   TypeFrame* type_frame = StackPeek(&type_stack);
-  if(full_decl_specifiers == 0) {
+  if(type_frame->full_decl_specifiers == 0) {
     type_frame->type_qualifiers |= qualifier;
   }
   else current_qualifiers |= qualifier;
@@ -255,13 +254,16 @@ void TagDeclared(){
 
 void IsFunctionDefinition(void){
   nonprototype_redecl = 1;
-  param_declaration_width = 0;
+  SymtabInsertScope(symtab, func_prototype_scope);
+  func_prototype_scope = 0;
+  current_function_body = latest_function_decl;
   // don't close func prototype scope
   Declaration();
 }
 
 void NotFunctionDefinition(void){
-  param_declaration_width = 0;
-  if(symtab->current_scope->type == SCOPE_FUNC_PROTOTYPE)
-    SymtabRemoveCurrentScope(symtab);
+  if(func_prototype_scope){
+    ScopeDrop(func_prototype_scope);
+    func_prototype_scope = 0;
+  }
 }

@@ -26,16 +26,15 @@ typedef enum AsmInstr{
   ASM_POPB,
   ASM_POPW,
   ASM_POPL,
-
-  ASM_MOVB,
-  ASM_MOVW,
-  ASM_MOVL,
   
   ASM_ADD,
   ASM_SUB,
   ASM_MUL,
+  ASM_IMUL,
   ASM_DIV,
+  ASM_IDIV,
   ASM_MOD,
+  ASM_IMOD,
   ASM_CMP,
   ASM_AND,
   ASM_OR,
@@ -44,6 +43,10 @@ typedef enum AsmInstr{
   ASM_ASR,
   ASM_LSL,
   ASM_LSR,
+
+  ASM_MOVB,
+  ASM_MOVW,
+  ASM_MOVL,
 
   ASM_JMP,
   ASM_JEQ,
@@ -63,6 +66,7 @@ typedef enum AsmInstrType{
   ASM_NOOP,   // nullary
   ASM_ONEOP,  // unary  - reg only
   ASM_TWOOP,  // binary - operand and reg
+  ASM_MOVEOP, // binary - operand and reg or reg and operand
   ASM_BRANCH, // branch - reg or simple operand
 } AsmInstrType;
 
@@ -79,10 +83,6 @@ typedef enum AsmReg{
   REG_SP,
   REG_BP,
 } AsmReg;
-
-#define REG_TO_REG 0
-#define MEM_TO_REG 0
-#define REG_TO_MEM 1
 
 extern const char*  instr_names[];
 extern AsmInstrType instr_types[];

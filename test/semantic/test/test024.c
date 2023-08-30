@@ -1,41 +1,52 @@
-/* TEST 024: Pointers vs Arrays */
-
-struct str1{
-  char x; int y; short z; 
-};
+/* TEST 024: Type cast */
 
 int main(void){
-  int **a, b[3][4];
-  static struct str1 *c[] = { (struct str1*)1, 0, };
-  struct str1 *d[] = { 0, (struct str1*)a };
-  extern struct str1 *e[];
-  struct str1 f[3][4];
+
+  int   a; unsigned int   b;
+  short c; unsigned short d;
+  char  e; unsigned char  f;
+  void* p;
+
+  // both int rank
+  a + a; // i32
+  a + b; // u32
+  b + a; // u32
+  b + b; // u32
   ;;
 
-  a[1];
-  b[1];
+  // one is higher rank
+  a + c; // i32
+  a + d; // i32
+  a + e; // i32
+  a + f; // i32
+  b + c; // u32
+  b + d; // u32
+  b + e; // u32
+  b + f; // u32
   ;;
 
-  a[1][3]; // addition of (addition of (value of a) and 0x04) and 0x0c
-  b[2][1]; // value of y+0x24
+  // both are below int rank
+  c + d; // i32
+  c + e; // i32
+  c + f; // i32
+  d + e; // i32
+  d + f; // u32
+  e + f; // i32
   ;;
 
-  c[1][3];
-  d[1][3];
-  e[1][3]; // addition of (value of e+0x04) and 0x24
-  f[1][3]; // value of f+0x54
+  // one is ptr
+  p + a; // u32
+  p + b; // u32
+  p + c; // u32
+  p + d; // u32
+  p + e; // u32
+  p + f; // u32
   ;;
 
-  a += 1;
-  a[1] += 1;
-  c += 1; // ERROR
-  c[1] += 1;
-  d[1] += 1;
+  a < b; // result is i32, operands are u32
+  b < c;
+  p > (const void*)a;
+  p > (const void*)c;
   ;;
-
-  a = (void*)(a - a); // a-a is divided by 4
-  a -= 4; // 4 is multiplied by 4
-  4 + a; // +16
-  a + 4; // +16
 
 }

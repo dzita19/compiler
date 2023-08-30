@@ -7,6 +7,7 @@ void WhileOpen(void);
 void DoOpen(void);
 void ForOpen(void);
 void ForDeclaration(void);
+void ForNoDeclaration(void);
 void ForExpression(void);
 
 void WhileStmt(void);

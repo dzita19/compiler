@@ -96,30 +96,6 @@ void EqualityExpr(Production production){
     return;
   } 
 
-  /*if(StructIsArithmetic(op1) && StructIsArithmetic(op2)){
-    comparison_type = StructGetExprIntType(op1, op2);
-  }
-  else if(StructIsPointer(op1) && StructIsPointer(op2)
-      && StructIsCompatible(op1, op2)){
-    comparison_type = StructComposite(op1, op2);
-  }
-  else if(StructIsPointer(op1) && (StructIsVoidPtr(op2))){
-    comparison_type = op1;
-  }
-  else if(StructIsPointer(op2) && (StructIsVoidPtr(op1))){
-    comparison_type = op2;
-  }
-  else if(StructIsPointer(op1) && IsNullPointer(node->children[1]->expr_node)){
-    comparison_type = op1;
-  }
-  else if(StructIsPointer(op2) && IsNullPointer(node->children[0]->expr_node)){
-    comparison_type = op2;
-  }
-  else {
-    ReportError("Illegal operands for relational operation.");
-    return;
-  }*/
-
   expr_type = predefined_types_struct + INT32_T;
 
   node->expr_node = ExprNodeCreateEmpty();
@@ -173,8 +149,6 @@ void CondExpr(){
 
   if(!CheckSubexprValidity(node, 3)) return;
 
-  if(StructIsArray(node->children[0]->expr_node->type)
-    || StructIsFunction(node->children[0]->expr_node->type)) ConvertChildToPointer(node, 0);
   if(StructIsArray(node->children[1]->expr_node->type)
     || StructIsFunction(node->children[1]->expr_node->type)) ConvertChildToPointer(node, 1);
   if(StructIsArray(node->children[2]->expr_node->type)
@@ -201,20 +175,45 @@ void CondExpr(){
     expr_type = predefined_types_struct + VOID_T;
   }
   else if(StructIsPointer(if_true) && StructIsPointer(if_false)){
-    Struct* pointed1 = StructGetParentUnqualified(if_true);
-    Struct* pointed2 = StructGetParentUnqualified(if_false);
-
-    if(StructIsCompatible(pointed1, pointed2)){
-      expr_type = StructComposite(pointed1, pointed2);
+    /*
+    // check basic assign and function call for reference
+    // -- there is one difference - in assign and function call, lval and param ARE DETERMINING THE TYPE
+    // -- that's the reason why there are different qualifications allowed, and here they are not allowed
+    if(StructIsCompatible(if_true, if_false)){
+      expr_type = StructComposite(if_true, if_false);
     }
-    else if(StructIsVoidPtr(pointed1)){
-      expr_type = pointed2;
+    else if(StructIsVoidPtr(if_false)){
+      expr_type = if_true;
     }
-    else if(StructIsVoidPtr(pointed2)){
-      expr_type = pointed1;
+    else if(StructIsVoidPtr(if_true)){
+      expr_type = if_false;
     }
     else{
       ReportError("Incompatible second and third operand for ternary operator.");
+      return;
+    }*/
+    Struct* pointed_true  = StructGetParentUnqualified(if_true);
+    Struct* pointed_false = StructGetParentUnqualified(if_false);
+
+    int qualifiers1 = if_true->parent->kind  == STRUCT_QUALIFIED ? if_true->parent->attributes  : 0;
+    int qualifiers2 = if_false->parent->kind == STRUCT_QUALIFIED ? if_false->parent->attributes : 0;
+    
+    if(StructIsCompatible(pointed_true, pointed_false)){
+      expr_type = StructQualify(StructToPtr(StructComposite(pointed_true, pointed_false)), qualifiers1);
+    }
+    else if(StructIsVoid(pointed_true)) {
+      expr_type = if_false;
+    }
+    else if(StructIsVoid(pointed_false)){
+      expr_type = if_true;
+    }
+    else {
+      ReportError("Incompatible operand type for ternary operator.");
+      return;
+    }
+
+    if(qualifiers1 != qualifiers2){
+      ReportError("Pointed objects qualifications are not compatible for ternary operator.");
       return;
     }
   }

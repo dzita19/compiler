@@ -6,8 +6,8 @@
 void DerefExpr();
 void UnaryExpr(Production production);
 void AddressExpr();
-void BitNegExpr();
-void LogNegExpr();
+void BitNotExpr();
+void LogNotExpr();
 void SizeofExpr();
 void SizeofTypeExpr();
 

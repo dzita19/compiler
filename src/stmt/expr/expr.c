@@ -38,8 +38,8 @@ void ExprNodeDump(ExprNode* node){
   switch(node->kind){
   case LVALUE:
     if(node->obj_ref) printf("Name: %s; ", node->obj_ref->name);
-    if(node->address >= 0) printf("Address: 0x%04X; ",  +node->address);
-    else                   printf("Address: -0x%04X; ", -node->address);
+    if(node->address >= 0) printf("Address: %d; ",  +node->address);
+    else                   printf("Address: -%d; ", -node->address);
     printf("Type: ");
     StructDump(node->type);
     printf(";");
@@ -48,12 +48,14 @@ void ExprNodeDump(ExprNode* node){
   case RVALUE:
     printf("Type: ");
     StructDump(node->type);
-    printf(";");
+    printf("; ");
+    if(node->address >= 0) printf("Address: %d;",  +node->address);
+    else                   printf("Address: -%d;", -node->address);
     break;
 
   case ADDRESS_OF:
     if(node->obj_ref) printf("Name: %s; ", node->obj_ref->name);
-    printf("Address: 0x%04X; ", node->address);
+    printf("Address: %d; ", node->address);
     printf("Type: ");
     StructDump(node->type);
     printf(";");
@@ -62,7 +64,7 @@ void ExprNodeDump(ExprNode* node){
   case NUM_LITERAL:
     printf("Type: ");
     StructDump(node->type);
-    printf("; Value: 0x%04X;", node->address);
+    printf("; Value: %d;", node->address);
     break;
 
   case STR_LITERAL:
@@ -72,7 +74,7 @@ void ExprNodeDump(ExprNode* node){
     break;
 
   case CASE_LABEL:
-    printf("Value: 0x%04X;", node->address);
+    printf("Value: %d;", node->address);
     break;
 
   case BASIC_LABEL:
@@ -155,35 +157,17 @@ void ConvertChildToLogic(TreeNode* node, int index){
 
 void ConvertChildToPointer(TreeNode* node, int index){
   TreeNode* child = node->children[index];
-  if(StructIsArray(child->expr_node->type)){
-    child->expr_node->type = StructArrayToPtr(child->expr_node->type);
-  }
-  else if(StructIsFunction(child->expr_node->type)){
-    TreeNode* ptr_node = child->children[0];
-    node->children[index] = ptr_node;
-    ptr_node->parent = node;
-    child->parent = 0;
-    child->children[0] = 0;
+  TreeNode* ptr_node = child->children[0];
+  ptr_node->expr_node->type = StructIsArray(child->expr_node->type) 
+    ? StructArrayToPtr(child->expr_node->type)
+    : StructFunctionToPtr(child->expr_node->type);
 
-    TreeNodeDrop(child);
-  }
-}
+  ptr_node->parent = node;
+  node->children[index] = ptr_node;
+  child->parent = 0;
+  child->children[0] = 0;
 
-TreeNode* ExprToPointer(TreeNode* node){
-  if(StructIsArray(node->expr_node->type)){
-    node->expr_node->type = StructArrayToPtr(node->expr_node->type);
-    return node;
-  }
-  else if(StructIsFunction(node->expr_node->type)){
-    TreeNode* ptr_node = node->children[0];
-    ptr_node->parent = 0;
-    node->children[0] = 0;
-    TreeNodeDrop(node);
-
-    return ptr_node;
-  }
-
-  return node;
+  TreeNodeDrop(child);
 }
 
 void ExprDivideByConst (TreeNode* node, Struct* type, int value){
@@ -216,11 +200,6 @@ void SubexprImplCast(TreeNode* node, int index, Struct* type){
   Struct* child_type = node->children[index]->expr_node->type;
   if(StructIsPointer(child_type)) child_type = predefined_types_struct + UINT32_T;
 
-  /*int father_rank = (type       - (predefined_types_struct + INT8_T)) >> 1;
-  int child_rank  = (child_type - (predefined_types_struct + INT8_T)) >> 1;
-
-  if(father_rank == child_rank) return;*/
-
   if(type == child_type) return;
 
   StackPush(&typename_stack, type);
@@ -237,31 +216,10 @@ void VoidExpr(void){
 
 void CommaExprOpen(void){
   StackPush(&comma_expr_stack, 0);
-
-  TreeNode* node = StackPeek(&tree->stack);
-
-  if(node->expr_node == 0) return;
-
-  if(StructIsArray(node->expr_node->type)
-      || StructIsFunction(node->expr_node->type)){
-    
-    StackPop(&tree->stack);
-    node = ExprToPointer(node);
-    StackPush(&tree->stack, node);
-  }
 }
 
 void CommaExpr(void){
   comma_expr_stack.top->info++;
-
-  TreeNode* node = StackPeek(&tree->stack);
-
-  if(node->expr_node == 0) return;
-
-  if(StructIsArray(node->expr_node->type)
-      || StructIsFunction(node->expr_node->type)){
-    node = ExprToPointer(node);
-  }
 }
 
 void FullExpr(void){
@@ -269,7 +227,16 @@ void FullExpr(void){
 
   if(comma_list_len == 0) return;
 
-  TreeNode* node = TreeInsertNode(tree, COMMA_EXPR, 1 + comma_list_len);
+  TreeNode* node = TreeInsertNode(tree, COMMA_EXPR, comma_list_len + 1);
+
+  if(!CheckSubexprValidity(node, comma_list_len + 1));
+  
+  for(int i = 0; i < node->num_of_children; i++){
+    if(StructIsArray(node->children[i]->expr_node->type)
+        || StructIsFunction(node->children[i]->expr_node->type)){
+      ConvertChildToPointer(node, i);
+    }
+  }
 
   node->expr_node = ExprNodeCreateEmpty();
   node->expr_node->kind = RVALUE;

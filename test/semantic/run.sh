@@ -1,10 +1,16 @@
-build/compiler test/semantic/test/test000.c > test/semantic/test/output000.txt
-build/compiler test/semantic/test/test001.c > test/semantic/test/output001.txt
-build/compiler test/semantic/test/test002.c > test/semantic/test/output002.txt
-build/compiler test/semantic/test/test003.c > test/semantic/test/output003.txt
-build/compiler test/semantic/test/test004.c > test/semantic/test/output004.txt
-build/compiler test/semantic/test/test005.c > test/semantic/test/output005.txt
-build/compiler test/semantic/test/test006.c > test/semantic/test/output006.txt
-build/compiler test/semantic/test/test007.c > test/semantic/test/output007.txt
-build/compiler test/semantic/test/test008.c > test/semantic/test/output008.txt
-build/compiler test/semantic/test/test009.c > test/semantic/test/output009.txt
+build/compiler test/semantic/test/test000.s test/semantic/test/test000.c > test/semantic/test/output000.txt
+build/compiler test/semantic/test/test001.s test/semantic/test/test001.c > test/semantic/test/output001.txt
+build/compiler test/semantic/test/test002.s test/semantic/test/test002.c > test/semantic/test/output002.txt
+build/compiler test/semantic/test/test003.s test/semantic/test/test003.c > test/semantic/test/output003.txt
+build/compiler test/semantic/test/test004.s test/semantic/test/test004.c > test/semantic/test/output004.txt
+build/compiler test/semantic/test/test005.s test/semantic/test/test005.c > test/semantic/test/output005.txt
+build/compiler test/semantic/test/test006.s test/semantic/test/test006.c > test/semantic/test/output006.txt
+build/compiler test/semantic/test/test007.s test/semantic/test/test007.c > test/semantic/test/output007.txt
+build/compiler test/semantic/test/test008.s test/semantic/test/test008.c > test/semantic/test/output008.txt
+build/compiler test/semantic/test/test009.s test/semantic/test/test009.c > test/semantic/test/output009.txt
+build/compiler test/semantic/test/test010.s test/semantic/test/test010.c > test/semantic/test/output010.txt
+build/compiler test/semantic/test/test011.s test/semantic/test/test011.c > test/semantic/test/output011.txt
+build/compiler test/semantic/test/test012.s test/semantic/test/test012.c > test/semantic/test/output012.txt
+build/compiler test/semantic/test/test013.s test/semantic/test/test013.c > test/semantic/test/output013.txt
+build/compiler test/semantic/test/test014.s test/semantic/test/test014.c > test/semantic/test/output014.txt
+build/compiler test/semantic/test/test015.s test/semantic/test/test015.c > test/semantic/test/output015.txt

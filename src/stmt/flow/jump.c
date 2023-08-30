@@ -19,7 +19,7 @@ void Label(void){
     StringDrop(label_name);
   }
   else{
-    ReportError("Label already defined in this function.");
+    ReportError("Label %s already defined in this function.", obj_ref->name);
     StringDrop(label_name);
     return;
   }
@@ -59,7 +59,7 @@ void GotoStmt(void){
 
 void ContinueStmt(void){
   if(loop_count == 0){
-    ReportError("Continue statement must be inside a loop.");
+    ReportError("Continue statement must be inside an iteration statement.");
   }
 
   // TreeNode* node = 
@@ -69,7 +69,7 @@ void ContinueStmt(void){
 
 void BreakStmt(void){
   if(loop_count == 0 && switch_count == 0){
-    ReportError("Continue statement must be inside a loop or switch statement.");
+    ReportError("Continue statement must be inside an iteration or switch statement.");
   }
 
   // TreeNode* node = 
@@ -78,7 +78,6 @@ void BreakStmt(void){
 }
 
 void ReturnStmt(void){
-  // TreeNode* node = 
   TreeInsertNode(tree, RETURN_STMT, 0);
   Statement();
 
@@ -96,20 +95,48 @@ void ReturnStmt(void){
 }
 
 void ReturnExprStmt(void){
-  TreeNode* node = TreeInsertNode(tree, RETURN_EXPR_STMT, 1);
-  Statement();
 
   if(current_function_body == 0){
     ReportError("Unknown function type.");
+    TreeInsertNode(tree, RETURN_EXPR_STMT, 1);
+    Statement();
     return;
   }
-  
-  Struct* return_type = StructGetParentUnqualified(current_function_body->type);
+
+  TreeNode* node = 0;
+
+  if(!StructIsScalar(current_function_body->type->parent) 
+      && !StructIsVoid(current_function_body->type->parent)){
+    Obj* ret_val_obj = SymtabFind(symtab, "$return_addr");
+    // TreeNode* ret_expr = StackPop(&tree->stack);
+
+    TreeNode* ret_val = TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
+
+    ret_val->expr_node = ExprNodeCreateEmpty();
+    ret_val->expr_node->type = StructToPtr(ret_val_obj->type);
+    ret_val->expr_node->kind = ADDRESS_OF;
+    ret_val->expr_node->obj_ref  = ret_val_obj;
+
+    // StackPush(&tree->stack, ret_expr);
+    node = TreeInsertNode(tree, RETURN_EXPR_STMT, 2);
+    Statement();
+  }
+  else{
+    node = TreeInsertNode(tree, RETURN_EXPR_STMT, 1);
+    Statement();
+  }
 
   if(node->children[0]->expr_node == 0){
     ReportError("Error in return expression.");
     return;
   }
+
+  if(StructIsArray(node->children[0]->expr_node->type) 
+      || StructIsFunction(node->children[0]->expr_node->type)){
+    ConvertChildToPointer(node, 0);
+  }
+  
+  Struct* return_type = StructGetParentUnqualified(current_function_body->type);
 
   if(StructIsArithmetic(return_type) && StructIsArithmetic(node->children[0]->expr_node->type)){
     SubexprImplCast(node, 0, return_type);

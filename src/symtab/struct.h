@@ -105,11 +105,12 @@ extern Struct*    StructGetParentUnqualified(Struct*);
 
 extern Struct*    StructStringLiteral();
 extern Struct*    StructVoidPtr();
+
 extern Struct*    StructToPtr(Struct* str);
 extern Struct*    StructArrayToPtr(Struct* array);
 extern Struct*    StructFunctionToPtr(Struct* function);
 extern Struct*    StructQualify(Struct* str, int qualifiers);
-extern Struct*    StructGetHigherRank(Struct* str1, Struct* str2);
+extern Struct*    StructGetHigherRank(Struct* str);
 extern Struct*    StructGetExprIntType(Struct* str1, Struct* str2);
 extern Struct*    StructArrayLengthSpecification(Struct* str, uint32_t length);
 

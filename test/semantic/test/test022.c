@@ -1,70 +1,96 @@
-/* TEST 022: Logic */
-int main(void){  
+/* TEST 022: Arithmetic, bitwise (integers) */
+
+int main(void){
   int a, b;
-  a > b;
-  a < b;
-  a >= b;
-  a <= b;
-  a == b;
-  a != b;
+  a + b;
+  a - b;
+  a * b;
+  a / b;
+  a % b;
 
-  int* c; const int* d;
-  void* e;
-  char* f;
+  a += b;
+  a -= b;
+  a *= b;
+  a /= b;
+  a %= b;
 
-  c < d; // OK
-  c < e; // ERROR
-  e > c; // ERROR
-  c < 0; // ERROR
-  0 > c; // ERROR
-  c < f; // ERROR
-  ;;
+  a | b;
+  a ^ b;
+  a & b;
 
-  c == d; // OK
-  c == e; // OK
-  e == c; // OK
-  c == 0; // OK
-  0 == c; // OK
-  c == f; // ERROR
-  ;;
+  a |= b;
+  a ^= b;
+  a &= b;
 
-  a < 0 && b >= 0;
+  char c; 
+  c + a; // check types
 
-  a && b;
-  a || b;
+  struct str1 {
+    int x, y;
+  } d;
 
-  // FOLDS, CONSTANTS
+  a + d;
+  c - d;
+  a * d;
+  c | d;
+
+  int* e, *f;
+  e + a;
+  a + e;
+  e - a;
+  a - e;
+  e + f;
+  e - f;
+
+  a + (int)d; // ERROR
+  e + (int)f; // OK
+
+  3 + 4U;
+
+  3 + (unsigned char)'d';
+
+  char* g;
+  g + 3; // check if 3 is multiplied by 4
+
+  char h; short i;
+
+  h * i; // cast into signed 
+
+  (unsigned)4 - h; // cast into unsigned
+
+  a + i; // cast into signed
+
+  int *j, *k;
+
+  j - k; // unsigned
+
+  j + '\0'; // cast '\0' into unsigned
+  k - 4; // cast 4 into unsigned 
+
+  // FOLDS, NEUTRALS
   int x;
 
-  x > 0x7FFFFFFF; // fold 0 
-  x > 0x7FFFFFFFU;
-  x > 0xFFFFFFFF; 
-  x > 0xFFFFFFFFU; // fold 0
+  x + 0; // neutral
+  x - 0; // neutral
+  x + 1;
+  x - 1;
 
-  x < 0x00000000; // fold 0
-  x < 0x00000000U;
-  x < 0x80000000; 
-  x < 0x80000000U; // fold 0
+  x * 0; // fold 0
+  x * 1; // neutral
+  x * 2;
+  x / 1; // neutral
+  x % 1; // fold 0
 
-  x >= 0x00000000;
-  x >= 0x00000000U; // fold 1
-  x >= 0x80000000; // fold 1
-  x >= 0x80000000U;
+  x << 0; // neutral
+  x >> 0; // neutral
+  x << 1;
+  x >> 1;
 
-  x <= 0x7FFFFFFF; // fold 1
-  x <= 0x7FFFFFFFU;
-  x <= 0xFFFFFFFF;
-  x <= 0xFFFFFFFFU; // fold 1
+  x & 0; // fold 0
+  x & 0xFFFFFFFF; // neutral
+  x ^ 0; // neutral
+  x ^ 0xFFFFFFFF;
+  x | 0; // neutral
+  x | 0xFFFFFFFF; // fold 0xFFFFFFFF
 
-  x && 0; // fold 0
-  x && 1; // neutral
-  x && x;
-  0 && x; // fold 0
-  1 && x; // neutral
-
-  x || 0; // neutral
-  x || 1; // fold 1
-  x || x;
-  0 || x; // neutral
-  1 || x; // fold 1
 }

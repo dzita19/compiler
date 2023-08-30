@@ -16,56 +16,26 @@
 #include "gen/abi.h"
 
 extern Symtab* symtab;
-extern uint8_t semantic_errors;
+extern int     semantic_errors;
 
 extern Stack typedef_stack;
-// stack(Obj*)
-  // open:  tag def open, function param open
-  // close: tag def close,  function param close
-  // owner: symtab
-
 extern Stack type_stack;
-// stack(TypeFrame*)
-  // open:   initial, function param open
-  // close:           function param close
-  // update:          storage spec's, type spec's, type qual's
-  // clean:           declaration, param declaration
-  // owner: declarations
-
 extern Stack indirection_stack;
-// stack(list(Indirection))
-  // open:  initial, function param open
-  // close:          function param close
-  // add:            ptr, type qual's, direct (abstract) declarators
-  // clean:          full declarator, param declaration
-  // owner: declarations
-
 extern Stack parameter_stack;
-// stack(list(Struct*))
-  // open:   function param open
-  // close:  function param close
-  // remove: declarator (in accordance with indirection stack)
-  // add:    param declaration (?) - maybe it's deducible from typedef stack
-  // owner:  declarations
-
 extern Stack name_stack;
-// stack(NameFrame)
-  // open:   initial, function param open,  tag def open
-  // close:           function param close, tag def close
-  // update:          identifiers
-  // owner: declarations
-
 
 extern Stack initializer_stack; // Stack(InitFrame*)
-
 extern Stack const_expr_stack; // Stack(ConstExpr*)
 
-extern LinkedList static_obj_list; // LinkedList(Obj*)
+extern LinkedList static_obj_list;  // LinkedList(Obj*)
+extern LinkedList label_name_list;  // LinkedList(char*) - list of symbols that generate a label (also functions)
+extern LinkedList global_name_list; // LinkedList(char*) - list of symbols that generate global declaration
+extern LinkedList extern_name_list; // LinkedList(char*) - list of symbols that generate extern declaration
 
 extern CallFrame param_frame; // to allocate memory for function parameters
 
 extern uint8_t ellipsis;
-extern uint8_t full_decl_specifiers; // 0 if not, 1 if is. when 0, qualifiers are added to type frame, else to indirections
+// extern uint8_t full_decl_specifiers; // 0 if not, 1 if is. when 0, qualifiers are added to type frame, else to indirections
   // important - needs to be reset after typename is recognized (because it is not followed by )
 extern uint8_t current_qualifiers;
 extern uint8_t current_function_level;
@@ -73,8 +43,9 @@ extern int32_t current_enum_constant;
 
 extern uint8_t block_level;
 extern Obj*    current_function_body;
-extern int32_t param_declaration_depth; // counts how many of param declarations are nested together
-extern int32_t param_declaration_width; // counts how many param declarations are in the same level
+extern Obj*    latest_function_decl;
+extern Stack   param_scope_stack;
+extern Scope*  func_prototype_scope;
 extern uint8_t nonprototype_redecl;
   // at beginning of full declaration, fdef and pso are both 0 (and so shall be at the end)
   // pso is set to 1 when pso is 0 and fparam open is reduced (also add new scope)
@@ -85,14 +56,13 @@ extern uint8_t nonprototype_redecl;
 extern Obj*    current_obj_definition;
 extern int32_t current_static_counter;
 extern Stack   stack_frame_stack; // nested stack counter per block
-extern int     for_declaration_active;
-extern int     for_declarator_counter;
 
 typedef struct TypeFrame{
   Obj* current_type;
   int type_specifiers;
   int storage_specifier;
   int type_qualifiers;
+  int full_decl_specifiers;
 } TypeFrame;
 
 TypeFrame*  TypeFrameCreateEmpty(void);
@@ -139,6 +109,9 @@ InitFrame* InitFrameCreateEmpty(void);
 void       InitFrameDrop(InitFrame*);
 
 void StaticObjListDump(void);
+void LabelNameListDump(void);
+void GlobalNameListDump(void);
+void ExternNameListDump(void);
 
 void declarations_init(void);
 void declarations_free(void);

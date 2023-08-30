@@ -11,13 +11,14 @@ FILE* ccout = 0;
 
 const char* dir_names[] = {
   [DIR_SECTION] = ".section",
+  [DIR_END]     = ".end",
   [DIR_BYTE]    = ".byte",
   [DIR_WORD]    = ".word",
   [DIR_LONG]    = ".long",
   [DIR_ZERO]    = ".zero",
   [DIR_SKIP]    = ".skip",
-  [DIR_GLOBL]   = ".globl",
-  [DIR_EXTRN]   = ".extrn",
+  [DIR_GLOBL]   = ".global",
+  [DIR_EXTRN]   = ".extern",
   [DIR_NOTYP]   = ".notyp",
   [DIR_FUNCT]   = ".funct",
   [DIR_OBJCT]   = ".objct",
@@ -58,17 +59,31 @@ void GenAsmSymbolLabel(const char* name){
 }
 
 void GenAsmTextLabel(const char* base, int i){
-  fprintf(ccout, "%s%04X:\n", base, i);
+  fprintf(ccout, "%s%d:\n", base, i);
 }
 
 void GenAsmStringLabel(int string_ref){
-  fprintf(ccout, "%s%04X:\n", default_base_strings, string_ref);
+  fprintf(ccout, "%s%d:\n", default_base_strings, string_ref);
 }
 
 void GenAsmSection(const char* name){
   GenAsmTxt(dir_names[DIR_SECTION], PRIMARY_WIDTH);
   fprintf(ccout, "%s", name);
   fprintf(ccout, "\n");
+}
+
+void GenAsmEnd(void){
+  GenAsmTxt(dir_names[DIR_END], 0);
+}
+
+void GenAsmGlobal(const char* name){
+  GenAsmTxt(dir_names[DIR_GLOBL], 0);
+  fprintf(ccout, " %s\n", name);
+}
+
+void GenAsmExtern(const char* name){
+  GenAsmTxt(dir_names[DIR_EXTRN], 0);
+  fprintf(ccout, " %s\n", name);
 }
 
 void GenAsmData(int length, int data){
@@ -79,7 +94,7 @@ void GenAsmData(int length, int data){
 
   GenAsmTab(TAB_WIDTH);
   GenAsmTxt(dir_names[directive], SECONDARY_WIDTH);
-  fprintf(ccout, "0x%02X\n", data);
+  fprintf(ccout, "%d\n", data);
 }
 
 void GenAsmDataObj(int length, Obj* obj, int offset){
@@ -105,7 +120,7 @@ void GenAsmDataObj(int length, Obj* obj, int offset){
     offset = -offset;
   }
 
-  if(offset != 0) fprintf(ccout, "0x%02X\n", offset);
+  if(offset != 0) fprintf(ccout, "%d\n", offset);
   else fprintf(ccout, "\n");
 }
 
@@ -118,7 +133,7 @@ void GenAsmDataString(int length, int string_ref, int offset){
   GenAsmTab(TAB_WIDTH);
   GenAsmTxt(dir_names[directive], SECONDARY_WIDTH);
 
-  fprintf(ccout, "%s%04X", default_base_strings, string_ref);
+  fprintf(ccout, "%s%d", default_base_strings, string_ref);
 
   if(offset > 0){
     fprintf(ccout, "+");
@@ -128,8 +143,20 @@ void GenAsmDataString(int length, int string_ref, int offset){
     offset = -offset;
   }
 
-  if(offset != 0) fprintf(ccout, "0x%02X\n", offset);
+  if(offset != 0) fprintf(ccout, "%d\n", offset);
   else fprintf(ccout, "\n");
+}
+
+void GenAsmDataLabel(int length, int label_index){
+  int directive;
+  if(length == 1)      directive = DIR_BYTE;
+  else if(length == 2) directive = DIR_WORD;
+  else if(length == 4) directive = DIR_LONG;
+
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(dir_names[directive], SECONDARY_WIDTH);
+
+  fprintf(ccout, "%s%d\n", default_base_text, label_index);
 }
 
 void GenAsmSkip(int length){
@@ -152,6 +179,133 @@ void GenAsmAsciz(const char* asciz){
   fprintf(ccout, "\"%s\"\n", asciz);
 }
 
+
+
+static void GenAsmOperandReg(int addressing, int reg_index, int offset){
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "[");
+
+  fprintf(ccout, "%s", reg_names[reg_index]);
+
+  if(offset > 0){
+    fprintf(ccout, "+%d",  +offset);
+  }
+  else if(offset < 0){
+    fprintf(ccout, "-%d", -offset);
+  }
+
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
+}
+
+static void GenAsmOperandObj(int addressing, Obj* obj, int offset){
+  if((obj->specifier & STORAGE_FETCH) == STORAGE_STATIC
+      && (obj->specifier & LINKAGE_FETCH) != LINKAGE_NONE){
+
+    if(addressing == ASM_INDIRECT) fprintf(ccout, "[");
+    fprintf(ccout, "%s", obj->name);
+    if(offset > 0){
+      fprintf(ccout, "+%d", +offset);
+    }
+    else if(offset < 0){
+      fprintf(ccout, "-%d", -offset);
+    }
+    if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
+  }
+  else if((obj->specifier & STORAGE_FETCH) == STORAGE_STATIC
+      && (obj->specifier & LINKAGE_FETCH) == LINKAGE_NONE){
+
+    offset += obj->address;
+
+    if(addressing == ASM_INDIRECT) fprintf(ccout, "[");
+    fprintf(ccout, "%s", default_base_objs);
+    if(offset > 0){
+      fprintf(ccout, "+%d", +offset);
+    }
+    else if(offset < 0){
+      fprintf(ccout, "-%d", -offset);
+    }
+    if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
+  }
+  else if((obj->specifier & STORAGE_FETCH) == STORAGE_AUTO){
+
+    offset -= obj->address;
+    if(addressing == ASM_INDIRECT) fprintf(ccout, "[");
+
+    fprintf(ccout, "%s", reg_names[REG_BP]);
+    if(offset > 0){
+      fprintf(ccout, "+%d", +offset);
+    }
+    else if(offset < 0){
+      fprintf(ccout, "-%d", -offset);
+    }
+
+    if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
+  }
+}
+
+static void GenAsmOperandArithm(int addressing, int value){
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "[");
+
+  // print offset
+  if(value >= 0){
+    fprintf(ccout, "%d",  +value);
+  }
+  else if(value < 0){
+    fprintf(ccout, "-%d", -value);
+  }
+
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
+}
+
+static void GenAsmOperandString(int addressing, int string_ref, int offset){
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "[");
+    
+  // print symbol
+  fprintf(ccout, "%s%d", default_base_strings, string_ref);
+  
+  // print offset
+  if(offset > 0){
+    fprintf(ccout, "+%d", +offset);
+  }
+  else if(offset < 0){
+    fprintf(ccout, "-%d", -offset);
+  }
+
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
+}
+
+static void GenAsmOperandLabel(int addressing, int label_index, int offset){
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "[");
+
+  fprintf(ccout, "%s%d", default_base_text, label_index);
+  if(offset > 0){
+    fprintf(ccout, "+%d", +offset);
+  }
+  else if(offset < 0){
+    fprintf(ccout, "-%d", -offset);
+  }
+
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
+}
+
+static void GenAsmOperandSwtab(int addressing, int swtab_index, int offset){
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "[");
+
+  fprintf(ccout, "%s%d", default_base_switch, swtab_index);
+  if(offset > 0){
+    fprintf(ccout, "+%d", +offset);
+  }
+  else if(offset < 0){
+    fprintf(ccout, "-%d", -offset);
+  }
+
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
+}
+
+static void GenAsmComma(void){
+  fprintf(ccout, ", ");
+}
+
+
 void GenAsmInstrNoop(AsmInstr instr){
   if(instr_types[instr] != ASM_NOOP) return;
   GenAsmTab(TAB_WIDTH);
@@ -167,222 +321,198 @@ void GenAsmInstrOneop(AsmInstr instr, int reg){
   fprintf(ccout, "%s\n", reg_names[reg]);
 }
 
-static void GenAsmOperand(AsmAddress addr_mode, StaticValKind target_mode, int reg, Obj* obj, int string_ref, int offset){
-  if(target_mode == VAL_ARITHM){
-    if(addr_mode == ADDR_IMMED) fprintf(ccout, "$");
-    if(addr_mode == ADDR_REGDIR && offset != 0) fprintf(ccout, "$(");
-    if(addr_mode == ADDR_REGIND) fprintf(ccout, "(");
-    
-    if(addr_mode == ADDR_REGDIR || addr_mode == ADDR_REGIND) {
-      fprintf(ccout, "%s", reg_names[reg]);
-      if(offset != 0) fprintf(ccout, ",");
-    }
-    else if(offset == 0) fprintf(ccout, "0x%02X", offset);
 
-    // print offset
-    if(offset > 0){
-      fprintf(ccout, "0x%02X", offset);
-    }
-    else if(offset < 0){
-      offset = -offset;
-      fprintf(ccout, "-0x%02X", offset);
-    }
 
-    if(addr_mode == ADDR_REGDIR && offset != 0) fprintf(ccout, ")");
-    if(addr_mode == ADDR_REGIND) fprintf(ccout, ")");
-  }
-  else if(target_mode == VAL_ADDRESS){
-    if((obj->specifier & STORAGE_FETCH) == STORAGE_STATIC
-        && (obj->specifier & LINKAGE_FETCH) != LINKAGE_NONE){
-      if(addr_mode == ADDR_IMMED) fprintf(ccout, "$");
-      fprintf(ccout, "%s", obj->name);
-      if(offset > 0){
-        fprintf(ccout, "+0x%02X", +offset);
-      }
-      else if(offset < 0){
-        fprintf(ccout, "-0x%02X", -offset);
-      }
-    }
-    else if((obj->specifier & STORAGE_FETCH) == STORAGE_STATIC
-        && (obj->specifier & LINKAGE_FETCH) == LINKAGE_NONE){
-      offset += obj->address;
-
-      if(addr_mode == ADDR_IMMED) fprintf(ccout, "$");
-      fprintf(ccout, "%s", default_base_objs);
-      if(offset > 0){
-        fprintf(ccout, "+0x%02X", +offset);
-      }
-      else if(offset < 0){
-        fprintf(ccout, "-0x%02X", -offset);
-      }
-    }
-    else if((obj->specifier & STORAGE_FETCH) == STORAGE_AUTO){
-      offset -= obj->address;
-      if(addr_mode == ADDR_IMMED && offset != 0) fprintf(ccout, "$(");
-      if(addr_mode == ADDR_MEMDIR) fprintf(ccout, "(");
-
-      fprintf(ccout, "%s", reg_names[REG_BP]);
-      if(offset != 0) fprintf(ccout, ",");
-      if(offset > 0){
-        fprintf(ccout, "0x%02X", +offset);
-      }
-      else if(offset < 0){
-        fprintf(ccout, "-0x%02X", -offset);
-      }
-
-      if(addr_mode == ADDR_IMMED && offset != 0) fprintf(ccout, ")");
-      if(addr_mode == ADDR_MEMDIR) fprintf(ccout, ")");
-    }
-  }
-  else if(target_mode == VAL_STRING){
-    if(addr_mode != ADDR_IMMED && addr_mode != ADDR_MEMDIR) return;
-    if(addr_mode == ADDR_IMMED) fprintf(ccout, "$");
-    
-    // print symbol
-    fprintf(ccout, "%s%04X", default_base_strings, string_ref);
-    
-    // print offset
-    if(offset > 0){
-      fprintf(ccout, "+0x%02X", +offset);
-    }
-    else if(offset < 0){
-      fprintf(ccout, "-0x%02X", -offset);
-    }
-  }
-}
-
-void GenAsmInstrTwoop(AsmInstr instr, AsmAddress address_mode, 
-    int src_reg, int src_offset, int dst_reg, int direction){
-
-  if(instr_types[instr] != ASM_TWOOP) return;
-  if(direction == REG_TO_MEM && 
-    (instr != ASM_MOVB && instr != ASM_MOVL && instr != ASM_MOVW)) return;
+void GenAsmInstrLoadReg(AsmInstr instr, int addressing, int src_reg, int src_offset, int dst_reg){
+  if(instr_types[instr] != ASM_MOVEOP) return;
 
   GenAsmTab(TAB_WIDTH);
   GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
-  if(direction == REG_TO_MEM){ // dst and source are reversed
-    fprintf(ccout, "%s, ", reg_names[dst_reg]);
-  }
-  
-  GenAsmOperand(address_mode, VAL_ARITHM, src_reg, 0, 0, src_offset);
-
-  if(direction == MEM_TO_REG){ // dst and source are NOT reversed
-    fprintf(ccout, ", %s", reg_names[dst_reg]);
-  }
-
+  GenAsmOperandReg(addressing, src_reg, src_offset);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_DIRECT, dst_reg, 0);
   fprintf(ccout, "\n");
 }
 
-void GenAsmInstrTwoopObj(AsmInstr instr, AsmAddress address_mode, 
-    Obj* src_obj, int src_offset, int dst_reg, int direction){
+void GenAsmInstrLoadObj(AsmInstr instr, int addressing, Obj* src_obj, int src_offset, int dst_reg){
+  if(instr_types[instr] != ASM_MOVEOP) return;
+  
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandObj(addressing, src_obj, src_offset);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_DIRECT, dst_reg, 0);
+  fprintf(ccout, "\n");
+}
 
-  if(instr_types[instr] != ASM_TWOOP) return;
-  if(direction == REG_TO_MEM && 
-    (instr != ASM_MOVB && instr != ASM_MOVL && instr != ASM_MOVW)) return;
+void GenAsmInstrLoadArithm(AsmInstr instr, int addressing, int src_value, int dst_reg){
+  if(instr_types[instr] != ASM_MOVEOP) return;
 
   GenAsmTab(TAB_WIDTH);
   GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
-  if(direction == REG_TO_MEM){ // dst and source are reversed
-    fprintf(ccout, "%s, ", reg_names[dst_reg]);
-  }
-  
-  GenAsmOperand(address_mode, VAL_ADDRESS, 0, src_obj, 0, src_offset);
-
-  if(direction == MEM_TO_REG){ // dst and source are NOT reversed
-    fprintf(ccout, ", %s", reg_names[dst_reg]);
-  }
-
+  GenAsmOperandArithm(addressing, src_value);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_DIRECT, dst_reg, 0);
   fprintf(ccout, "\n");
 }
 
-void GenAsmInstrTwoopString(AsmInstr instr, AsmAddress address_mode, 
-    int string_ref, int src_offset, int dst_reg, int direction){
-      
-  if(instr_types[instr] != ASM_TWOOP) return;
-  if(direction == REG_TO_MEM && 
-    (instr != ASM_MOVB && instr != ASM_MOVL && instr != ASM_MOVW)) return;
+void GenAsmInstrLoadString(AsmInstr instr, int addressing, int src_string_ref, int src_offset, int dst_reg){
+  if(instr_types[instr] != ASM_MOVEOP) return;
 
   GenAsmTab(TAB_WIDTH);
   GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
-  if(direction == REG_TO_MEM){ // dst and source are reversed
-    fprintf(ccout, "%s, ", reg_names[dst_reg]);
-  }
-  
-  GenAsmOperand(address_mode, VAL_STRING, 0, 0, string_ref, src_offset);
-
-  if(direction == MEM_TO_REG){ // dst and source are NOT reversed
-    fprintf(ccout, ", %s", reg_names[dst_reg]);
-  }
-
+  GenAsmOperandString(addressing, src_string_ref, src_offset);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_DIRECT, dst_reg, 0);
   fprintf(ccout, "\n");
 }
 
-void GenAsmInstrBranchLabel(AsmInstr instr, int label_index){
+
+
+void GenAsmInstrStoreReg(AsmInstr instr, int dst_reg, int dst_offset, int src_reg){
+  if(instr_types[instr] != ASM_MOVEOP) return;
+
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandReg(ASM_DIRECT, src_reg, 0);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_INDIRECT, dst_reg, dst_offset);
+  fprintf(ccout, "\n");
+}
+
+void GenAsmInstrStoreObj(AsmInstr instr, Obj* dst_obj, int dst_offset, int src_reg){
+  if(instr_types[instr] != ASM_MOVEOP) return;
+
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);  
+  GenAsmOperandReg(ASM_DIRECT, src_reg, 0);
+  GenAsmComma();
+  GenAsmOperandObj(ASM_INDIRECT, dst_obj, dst_offset);
+  fprintf(ccout, "\n");
+}
+
+void GenAsmInstrStoreArithm(AsmInstr instr, int dst_value, int src_reg){
+  if(instr_types[instr] != ASM_MOVEOP) return;
+
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandReg(ASM_DIRECT, src_reg, 0);
+  GenAsmComma();
+  GenAsmOperandArithm(ASM_INDIRECT, dst_value);
+  fprintf(ccout, "\n");
+}
+
+void GenAsmInstrStoreString(AsmInstr instr, int dst_string_ref, int dst_offset, int src_reg){
+  if(instr_types[instr] != ASM_MOVEOP) return;
+
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandReg(ASM_DIRECT, src_reg, 0);
+  GenAsmComma();
+  GenAsmOperandString(ASM_INDIRECT, dst_string_ref, dst_offset);
+  fprintf(ccout, "\n");
+}
+
+
+
+void GenAsmInstrTwoopReg(AsmInstr instr, int addressing, int src_reg, int src_offset, int dst_reg){
+  if(instr_types[instr] != ASM_TWOOP) return;
+  
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandReg(addressing, src_reg, src_offset);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_DIRECT, dst_reg, 0);
+  fprintf(ccout, "\n");
+}
+
+void GenAsmInstrTwoopObj(AsmInstr instr, int addressing, Obj* src_obj, int src_offset, int dst_reg){
+  if(instr_types[instr] != ASM_TWOOP) return;
+  
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandObj(addressing, src_obj, src_offset);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_DIRECT, dst_reg, 0);
+  fprintf(ccout, "\n");
+}
+
+void GenAsmInstrTwoopArithm(AsmInstr instr, int addressing, int src_value, int dst_reg){
+  if(instr_types[instr] != ASM_TWOOP) return;
+
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandArithm(addressing, src_value);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_DIRECT, dst_reg, 0);
+  fprintf(ccout, "\n");
+}
+
+void GenAsmInstrTwoopString(AsmInstr instr, int addressing, int src_string_ref, int src_offset, int dst_reg){
+  if(instr_types[instr] != ASM_TWOOP) return;
+
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandString(addressing, src_string_ref, src_offset);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_DIRECT, dst_reg, 0);
+  fprintf(ccout, "\n");
+}
+
+void GenAsmInstrTwoopSwtab(AsmInstr instr, int src_swtab_index, int src_offset, int dst_reg){
+  if(instr_types[instr] != ASM_TWOOP) return;
+
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandSwtab(ASM_DIRECT, src_swtab_index, src_offset);
+  GenAsmComma();
+  GenAsmOperandReg(ASM_DIRECT, dst_reg, 0);
+  fprintf(ccout, "\n");
+}
+
+
+
+void GenAsmInstrBranchReg(AsmInstr instr, int addressing, int dst_reg, int dst_offset){
   if(instr_types[instr] != ASM_BRANCH) return;
-
+  
   GenAsmTab(TAB_WIDTH);
   GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
-
-  fprintf(ccout, "%s%04X\n", default_base_text, label_index);
+  GenAsmOperandReg(addressing, dst_reg, dst_offset);
+  fprintf(ccout, "\n");
 }
 
-void GenAsmMoveStackFrameToReg(int size, int src_offset, int dst_reg){
-  AsmInstr instr = 0;
-  if(size == 1) instr = ASM_MOVB;
-  if(size == 2) instr = ASM_MOVW;
-  if(size == 4) instr = ASM_MOVL;
-
-  GenAsmInstrTwoop(instr, ADDR_REGIND, REG_BP, -src_offset, dst_reg, MEM_TO_REG);
+void GenAsmInstrBranchObj(AsmInstr instr, int addressing, Obj* dst_obj, int dst_offset){
+  if(instr_types[instr] != ASM_BRANCH) return;
+  
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandObj(addressing, dst_obj, dst_offset);
+  fprintf(ccout, "\n");
 }
 
-void GenAsmMoveRegToStackFrame(int size, int dst_offset, int src_reg){
-  AsmInstr instr = 0;
-  if(size == 1) instr = ASM_MOVB;
-  if(size == 2) instr = ASM_MOVW;
-  if(size == 4) instr = ASM_MOVL;
-
-  GenAsmInstrTwoop(instr, ADDR_REGIND, REG_BP, -dst_offset, src_reg, REG_TO_MEM);
+void GenAsmInstrBranchArithm(AsmInstr instr, int addressing, int dst_value){
+  if(instr_types[instr] != ASM_BRANCH) return;
+  
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandArithm(addressing, dst_value);
+  fprintf(ccout, "\n");
 }
 
-
-void GenAsmLoadReg(AsmInstr instr, int src_reg, int dst_reg){
-  GenAsmInstrTwoop(instr, ADDR_REGDIR, src_reg, 0, dst_reg, REG_TO_REG);
+void GenAsmInstrBranchString(AsmInstr instr, int addressing, int dst_string_ref, int dst_offset){
+  if(instr_types[instr] != ASM_BRANCH) return;
+  
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandString(addressing, dst_string_ref, dst_offset);
+  fprintf(ccout, "\n");
 }
 
-void GenAsmLoadAddress(AsmInstr instr, Obj* src_obj, int src_offset, int dst_reg){
-  GenAsmInstrTwoopObj(instr, ADDR_IMMED, src_obj, src_offset, dst_reg, REG_TO_REG);
-}
-
-void GenAsmLoadConst(AsmInstr instr, int src_const, int dst_reg){
-  GenAsmInstrTwoop(instr, ADDR_IMMED, 0, src_const, dst_reg, REG_TO_REG);
-}
-
-void GenAsmLoadString(AsmInstr instr, int src_string_ref, int src_offset, int dst_reg){
-  GenAsmInstrTwoopString(instr, ADDR_IMMED, src_string_ref, src_offset, dst_reg, REG_TO_REG);
-}
-
-
-void GenAsmLoadDerefAddress(AsmInstr instr, Obj* src_obj, int src_offset, int dst_reg){
-  GenAsmInstrTwoopObj(instr, ADDR_MEMDIR, src_obj, src_offset, dst_reg, MEM_TO_REG);
-}
-
-void GenAsmLoadDerefConst(AsmInstr instr, int src_const, int dst_reg){
-  GenAsmInstrTwoop(instr, ADDR_MEMDIR, 0, src_const, dst_reg, MEM_TO_REG);
-}
-
-void GenAsmLoadDerefString(AsmInstr instr, int src_string_ref, int src_offset, int dst_reg){
-  GenAsmInstrTwoopString(instr, ADDR_MEMDIR, src_string_ref, src_offset, dst_reg, MEM_TO_REG);
-}
-
-
-void GenAsmStoreDerefAddress(AsmInstr instr, Obj* src_obj, int src_offset, int dst_reg){
-  GenAsmInstrTwoopObj(instr, ADDR_MEMDIR, src_obj, src_offset, dst_reg, REG_TO_MEM);
-}
-
-void GenAsmStoreDerefConst(AsmInstr instr, int src_const, int dst_reg){
-  GenAsmInstrTwoop(instr, ADDR_MEMDIR, 0, src_const, dst_reg, REG_TO_MEM);
-}
-
-void GenAsmStoreDerefString(AsmInstr instr, int src_string_ref, int src_offset, int dst_reg){
-  GenAsmInstrTwoopString(instr, ADDR_MEMDIR, src_string_ref, src_offset, dst_reg, REG_TO_MEM);
+void GenAsmInstrBranchLabel(AsmInstr instr, int addressing, int dst_label_index, int dst_offset){
+  if(instr_types[instr] != ASM_BRANCH) return;
+  
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandLabel(addressing, dst_label_index, dst_offset);
+  fprintf(ccout, "\n");
 }

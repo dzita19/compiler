@@ -1,30 +1,28 @@
-/* TEST 018: Initializers (static, const expr) */
+/* TEST 018: Initializers (errors) */
 
-char* a = (char*)((int*)"AAA" + 1); // OK - not made yet
+int a = 0; // OK
 
-char* b = "BBB" - 4 + 7; // OK
-
-char* c = 0; // OK
-
-enum {
-  A = 4, B, C
+struct str1 {
+  int x; 
 };
 
-int d = A + B * 1;
+struct str2;
 
-int* e = &d;
+struct str2 b = 1; // ERROR
 
-int* f = (int*)((char*)((short*)((int*)0 + 1) + 2) + 3); // 11
+struct str2 c = { 2 }; // ERROR
 
-int main(void){
-  static int g;
-  static int* h = &g;
-  static int* i = &g + "CCC"; // ERROR
-}
+struct str2 d = { { 3 } }; // ERROR
 
-int (*j)(void) = 0;
-int (*k)(void) = (int(*)(void))1 + 1; // ERROR 
-// TWO LINE\
-                COMMENT\
+struct str2 {
+  void* x;
+  struct str1 y;
+} e = { 0, { 0 } }; // OK
 
-int l = j;
+struct str2 f = { { 4 }, { 5 } }; // ERROR
+struct str2 g = { 0, 6 };         // ERROR
+struct str2 h = { 0, { 7 }, 8 }; // ERROR
+
+int i[3] = { 1, 2, 3, 4 }; // ERROR
+int j[3] = { { 5 }, 6 }; // ERROR
+int k[3] = { 1 }; // OK

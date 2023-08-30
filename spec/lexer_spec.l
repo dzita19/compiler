@@ -63,6 +63,7 @@ int yywrap();
 "void"				{ count(); return(VOID_); }
 "volatile"		{ count(); return(VOLATILE_); }
 "while"				{ count(); return(WHILE_); }
+"__asm__"			{ count(); return(ASM_); }
 
 {L}({L}|{D})*						{ count(); identifier(yytext);	return(check_identifier_type()); }
 
@@ -86,7 +87,7 @@ int yywrap();
 
 {D}+"."{D}*({E})?{FS}?	{ count(); return(CONSTANT); }
 
-\"([^\\'"\n]|(\\['"?\\abfnrtv])|(\\{O}{1,3})|(\\x{H}+))*\" { count(); string_lit(yytext); return(STRING_LITERAL); }
+\"([^\\"\n]|(\\['"?\\abfnrtv])|(\\{O}{1,3})|(\\x{H}+))*\" { count(); string_lit(yytext); return(STRING_LITERAL); }
 
 "..."					{ count(); return(ELLIPSIS); }
 ">>="					{ count(); return(RIGHT_ASSIGN); }
@@ -212,14 +213,8 @@ int check_identifier_type(){
 	}
 
 	Obj* obj_ref = SymtabFindNamespace(symtab, yytext, NAMESPACE_ORDINARY);
-	if(obj_ref == 0 || obj_ref->kind != OBJ_TYPE) {
-		//printf("identifier2\n");
-		return IDENTIFIER;
-	}
-	else {
-		//printf("typename\n");
-		return TYPE_NAME;
-	} 
+	if(obj_ref == 0 || obj_ref->kind != OBJ_TYPE) return IDENTIFIER;
+	else return TYPE_NAME;
 }
 
 void count()

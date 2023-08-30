@@ -1,28 +1,35 @@
-/* TEST 017: Initializers (errors) */
+/* TEST 017: Functions, function pointers */
 
-int a = 0; // OK
+int a(void);
 
-struct str1 {
-  int x; 
-};
+int b(void, void); // ERROR
 
-struct str2;
+int c(int x, int x); // ERROR
 
-struct str2 b = 1; // ERROR
+int d(int (*x)(void), int (*x)(void));
 
-struct str2 c = { 2 }; // ERROR
+int e(int (*x)(int (*y)(int z)), int (*y)(int (*z)(void))){
 
-struct str2 d = { { 3 } }; // ERROR
+} // only x and y are in symtab
 
-struct str2 {
-  void* x;
-  struct str1 y;
-} e = { 0, { 0 } }; // OK
+int f(x, y, z)
+    int x; char y, z; {
+  return 1;
+}
 
-struct str2 f = { { 4 }, { 5 } }; // ERROR
-struct str2 g = { 0, 6 };         // ERROR
-struct str2 h = { 0, { 7 }, 8 }; // ERROR
+int g(x, y, z); // x, y and z are not in symtab
 
-int i[3] = { 1, 2, 3, 4 }; // ERROR
-int j[3] = { { 5 }, 6 }; // ERROR
-int k[3] = { 1 }; // OK
+int h(x, y, z){ // ERROR - nonprototype function needs redeclaration of parameters
+
+}
+
+int (*i)(int x); // x is not in symtab
+
+int (*j(int x))(int y); // y is not in symtab
+
+int k(void){
+  int x();
+  int (*y)();
+}
+
+int (*l)(int x), (*(*m)(int x))(char y);

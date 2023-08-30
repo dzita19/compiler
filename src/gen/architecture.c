@@ -25,16 +25,15 @@ const char*  instr_names[] = {
   [ASM_POPB]   = "popb",
   [ASM_POPW]   = "popw",
   [ASM_POPL]   = "popl",
-
-  [ASM_MOVB]  = "movb",
-  [ASM_MOVW]  = "movw",
-  [ASM_MOVL]  = "movl",
   
   [ASM_ADD]   = "add",
   [ASM_SUB]   = "sub",
   [ASM_MUL]   = "mul",
+  [ASM_IMUL]  = "imul",
   [ASM_DIV]   = "div",
+  [ASM_IDIV]  = "idiv",
   [ASM_MOD]   = "mod",
+  [ASM_IMOD]  = "imod",
   [ASM_CMP]   = "cmp",
   [ASM_AND]   = "and",
   [ASM_OR]    = "or",
@@ -43,6 +42,10 @@ const char*  instr_names[] = {
   [ASM_ASR]   = "asr",
   [ASM_LSL]   = "lsl",
   [ASM_LSR]   = "lsr",
+
+  [ASM_MOVB]  = "movb",
+  [ASM_MOVW]  = "movw",
+  [ASM_MOVL]  = "movl",
 
   [ASM_JMP]   = "jmp",
   [ASM_JEQ]   = "jeq",
@@ -60,8 +63,9 @@ const char*  instr_names[] = {
 
 AsmInstrType instr_types[] = {
   [ASM_HLT  ... ASM_POPF]  = ASM_NOOP,
-  [ASM_SXBW ... ASM_POPL]   = ASM_ONEOP,
-  [ASM_MOVB ... ASM_LSR]   = ASM_TWOOP,
+  [ASM_SXBW ... ASM_POPL]  = ASM_ONEOP,
+  [ASM_ADD  ... ASM_LSR]   = ASM_TWOOP,
+  [ASM_MOVB ... ASM_MOVL]  = ASM_MOVEOP,
   [ASM_JMP  ... ASM_CALL]  = ASM_BRANCH,
 };
 

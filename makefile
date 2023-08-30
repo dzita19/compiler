@@ -1,18 +1,19 @@
-PROGRAM = compiler
-SPEC_DIR = spec
+PROGRAM   = compiler
+WRAPPER   = cc
+SPEC_DIR  = spec
 BUILD_DIR = build
 
 DEBUG_ENABLED = 1
 
-FLEX_SPEC = lexer_spec.l
+FLEX_SPEC  = lexer_spec.l
 BISON_SPEC = parser_spec.y
 
-FLEX_OUTFILE = lex.yy.c
+FLEX_OUTFILE  = lex.yy.c
 BISON_OUTFILE = y.tab.c
 
 C_SOURCE_LIST = src/yy/$(FLEX_OUTFILE) \
 	src/yy/$(BISON_OUTFILE) \
-	src/compiler.c \
+	src/compiler_main.c \
 	src/util/array.c \
 	src/util/linked_list.c \
 	src/util/logger.c \
@@ -48,7 +49,9 @@ C_SOURCE_LIST = src/yy/$(FLEX_OUTFILE) \
 	src/gen/architecture.c \
 	src/gen/assembler.c \
 	src/gen/generator.c \
-	src/gen/gen_ir.c \
+	src/gen/ir_gen.c \
+	src/gen/ir_opt.c \
+	src/gen/ir_to_asm.c \
 	src/gen/intermediate.c \
 	src/gen/link_flow.c \
 	src/gen/resources.c
@@ -58,14 +61,14 @@ C_OBJECT_LIST += $(addprefix $(BUILD_DIR)/, $(notdir $(C_SOURCE_LIST:.c=.o)))
 
 vpath %.c $(sort $(dir $(C_SOURCE_LIST)))
 
-CC_PATH = gcc
-FLEX_PATH = flex
-BISON_PATH = bison
+CC_PATH     = gcc
+FLEX_PATH   = flex
+BISON_PATH  = bison
 
-INCLUDE = -I src
-WARNINGS = -Wall
+INCLUDE     = -I src
+WARNINGS    = -Wall
 FLAGS_DEBUG = -g
-FLAGS_DEPS = -MMD -MP
+FLAGS_DEPS  = -MMD -MP
 
 FLAGS =
 FLAGS += $(INCLUDE)
@@ -76,7 +79,7 @@ ifeq ($(DEBUG_ENABLED), 1)
 FLAGS += $(FLAGS_DEBUG)
 endif
 
-all: parser_gen lexer_gen $(BUILD_DIR)/$(PROGRAM)
+all: parser_gen lexer_gen $(BUILD_DIR)/$(PROGRAM) $(BUILD_DIR)/$(WRAPPER)
 	$(info BUILT WITHOUT ERRORS)
 
 parser_gen: $(SPEC_DIR)/$(BISON_SPEC) makefile
@@ -90,6 +93,9 @@ clean:
 
 $(BUILD_DIR)/$(PROGRAM) : $(C_OBJECT_LIST) makefile | $(BUILD_DIR)
 	$(CC_PATH) -o $(@) $(C_OBJECT_LIST)
+
+$(BUILD_DIR)/$(WRAPPER) : src/compiler_wrapper.c makefile | $(BUILD_DIR)
+	$(CC_PATH) -o $(@) src/compiler_wrapper.c $(FLAGS)
 
 $(BUILD_DIR)/%.o : %.c makefile | $(BUILD_DIR)
 	$(CC_PATH) -c -o $(@) $(<) $(FLAGS)

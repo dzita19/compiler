@@ -56,8 +56,6 @@ extern int stack_alloc_alloc;
 extern int stack_alloc_free;
 extern int mem_alloc_alloc;
 extern int mem_alloc_free;
-extern int alloc_node_alloc;
-extern int alloc_node_free;
 extern int ir_instr_alloc;
 extern int ir_instr_free;
 

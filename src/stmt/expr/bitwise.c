@@ -14,7 +14,7 @@ void BitExpr(Production production){
     return;
   }
 
-  expr_type = StructGetExprIntType(op1, op2);
+  expr_type = StructGetExprIntType(op1, op1); // op2 doesn't affect the type
 
   node->expr_node = ExprNodeCreateEmpty();
   node->expr_node->kind = RVALUE;
@@ -49,7 +49,8 @@ void BitAssignExpr(Production production){
     return;
   }
 
-  expr_type = op1;
+  // expr_type = op1;
+  expr_type = StructGetExprIntType(op1, op1);
 
   node->expr_node = ExprNodeCreateEmpty();
   node->expr_node->kind = RVALUE;

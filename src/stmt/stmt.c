@@ -7,15 +7,18 @@
 #include <stdio.h>
 #include <string.h>
 
-Tree*   tree           = 0;
-Vector* string_table   = 0;
-Scope*  function_scope = 0;    // used for labels inside one function
+Tree*   tree                = 0;
+Vector* string_table        = 0;
+Scope*  function_scope      = 0;    // used for labels inside one function
 
-Stack function_call_stack = { 0 }; // Stack(int) - counts num of args per nested function call
-Stack typename_stack      = { 0 }; // for type referencing in expressions - sizeof expressions !!!
-Stack comma_expr_stack    = { 0 };
-Stack statement_stack     = { 0 };
-Stack switch_stack        = { 0 }; // Stack(ExprNode*)
+Obj*    rval_call_storage   = 0;
+
+Stack   function_call_stack = { 0 }; // Stack(int) - counts num of args per nested function call
+Stack   typename_stack      = { 0 }; // for type referencing in expressions - sizeof expressions !!!
+Stack   comma_expr_stack    = { 0 };
+Stack   statement_stack     = { 0 };
+Stack   switch_stack        = { 0 }; // Stack(ExprNode*)
+Vector* switch_archive      = 0;
 
 int   loop_count     = 0;
 int   switch_count   = 0;
@@ -25,6 +28,8 @@ void stmt_init(void){
   string_table = VectorInit();
   VectorPush(string_table, 0); // first entry is reserved for static objects with no linkage
 
+  switch_archive = VectorInit();
+
   StackPush(&statement_stack, 0);
 }
 
@@ -32,9 +37,13 @@ void stmt_free(void){
   TreeDrop(tree);
 
   for(int i = 1; i < string_table->size; i++){  // first entry is reserved for static objects with no linkage
-    StringDrop(string_table->content[i]);
+    StringDrop(VectorGet(string_table, i));
   }
   VectorDrop(string_table);
+  for(int i = 0; i < switch_archive->size; i++){
+    LinkedListDrop(VectorGet(switch_archive, i));
+  }
+  VectorDrop(switch_archive);
 }
 
 void StringTabDump(void){
@@ -72,9 +81,7 @@ void BlockClose(void){
   block_level--;
 }
 
-static void CheckFuncPrototyped(void){
-  // if(current_function_body->type->attributes & NONPROTOTYPE) return;
-
+static int CheckFuncPrototyped(void){
   int named_parameters = 0;
   for(Node* node = symtab->current_scope->objs.first; node; node = node->next){
     Obj* param = node->info;
@@ -86,29 +93,34 @@ static void CheckFuncPrototyped(void){
     Struct* param = node->info;
     if(param->type == TYPE_INCOMPLETE) {
       ReportError("Function parameter cannot have incomplete type when body is present.");
+      return 0;
     }
     total_parameters++;
   }
 
   if(total_parameters > named_parameters) {
     ReportError("Unnamed prototyped parameters not allowed when body is present.");
+    return 0;
   }
+  return 1;
 }
 
-static void CheckFuncNonprototype(void){
+static int CheckFuncNonprototype(void){
   for(Node* node = symtab->current_scope->objs.first; node; node = node->next){
     Obj* param = node->info;
     if(param->type == 0) {
-      ReportError("Undefined parameter in nonprototype function.");
+      ReportError("Undefined parameter %s in nonprototype function.", param->name);
+      return 0;
     }
   }
+  return 1;
 }
 
-static void CheckFuncCorrectness(void){
+static int CheckFuncCorrectness(void){
   if(current_function_body->type->attributes & NONPROTOTYPE_FUNCTION) 
-    CheckFuncNonprototype();
+    return CheckFuncNonprototype();
   else
-    CheckFuncPrototyped();
+    return CheckFuncPrototyped();
 }
 
 static void AllocParamsAddress(void){
@@ -141,11 +153,11 @@ void FuncBodyOpen(void){
   TypeFrameClear(StackPeek(&type_stack)); // we can't recognize declaration around function definition
 
   if(current_function_body != 0){
-    CheckFuncCorrectness();
-    AllocParamsAddress();
     if((current_function_body->specifier & DEFINITION_FETCH) == DEFINED){
-      ReportError("Function body already defined.");
+      ReportError("Function body already defined (function %s).", current_function_body->name);
     }
+
+    if(CheckFuncCorrectness()) AllocParamsAddress();
   }
 
   StackPush(&statement_stack, 0);
@@ -165,7 +177,7 @@ static void CheckLabelsCorrectness(void){
   for(Node* curr_node = symtab->current_scope->objs.first; curr_node; curr_node = curr_node->next){
     Obj* obj_ref = curr_node->info;
     if((obj_ref->specifier & DEFINITION_FETCH) != DEFINED){
-      ReportError("Label referenced but never defined.");
+      ReportError("Label %s referenced but never defined.", obj_ref->name);
     }
   }
 }
@@ -185,6 +197,17 @@ void FuncBodyClose(void){
 
   Statement(); // add this compound statement as a statement in enclosing block - TO TRANSLATION UNIT!!!
 
+  // insert all the storage objs
+  if(rval_call_storage){
+    SymtabInsert(symtab, rval_call_storage);
+    stack_frame_stack.top->info = (void*)(long)((int)(long)(stack_frame_stack.top->info + rval_call_storage->type->align - 1) 
+      / rval_call_storage->type->align * rval_call_storage->type->align);
+    stack_frame_stack.top->info += rval_call_storage->type->size;
+
+    rval_call_storage->address = (int)(long)stack_frame_stack.top->info;
+    rval_call_storage = 0;
+  }
+
   SymtabCloseScope(symtab); // remove function body block scope
   SymtabInsertScope(symtab, function_scope);
   CheckLabelsCorrectness();
@@ -197,11 +220,33 @@ void FuncBodyClose(void){
       current_function_body->address = (int)(long)stack_frame_stack.top->info;
     }
     
-    // align to FRAME_ALIGNMENT
-    current_function_body->address = (current_function_body->address + FRAME_ALIGNMENT - 1) / FRAME_ALIGNMENT * FRAME_ALIGNMENT; 
-
     current_function_body->specifier &= DEFINITION_CLEAR;
     current_function_body->specifier |= DEFINED;
+
+    // add to global names
+    if((current_function_body->specifier & LINKAGE_FETCH) == LINKAGE_EXTERNAL){
+      Node* new_node = NodeCreateEmpty();
+      new_node->info = StringDuplicate(current_function_body->name);
+
+      LinkedListInsertLast(&global_name_list, new_node);
+    }
+
+    // add to label names
+    Node* new_node = NodeCreateEmpty();
+    new_node->info = StringDuplicate(current_function_body->name);
+
+    LinkedListInsertLast(&label_name_list, new_node);
+
+    // remove from extern names
+    for(Node* node = extern_name_list.first; node; node = node->next){
+      char* extern_name = node->info;
+      if(strcmp(current_function_body->name, extern_name) == 0) {
+        StringDrop(extern_name);
+        NodeDrop(LinkedListRemoveFrom(&extern_name_list, node));
+        break;
+      }
+    }
+    
     current_function_body = 0;
   }
   
@@ -222,13 +267,23 @@ void ExpressionStmt(void){
   TreeNode* node = TreeInsertNode(tree, EXPRESSION_STMT, 1);
   Statement();
 
-  if(node->children[0]->expr_node) SubexprImplCast(node, 0, predefined_types_struct + INT32_T);
+  if(node->children[0]->expr_node == 0) return;
+  
+  if(StructIsArray(node->children[0]->expr_node->type)
+      || StructIsFunction(node->children[0]->expr_node->type)){
+    ConvertChildToPointer(node, 0);
+  }
   if(node->children[0]->expr_node) ConvertChildToArithmetic(node, 0);
 }
 
 void EmptyStmt(void){
   // TreeNode* node = 
   TreeInsertNode(tree, EMPTY_STMT, 0);
+  Statement();
+}
+
+void InlineAssembly(void){
+  TreeInsertNode(tree, INLINE_ASM_STMT, 1);
   Statement();
 }
 
@@ -240,8 +295,11 @@ void TranslationUnit(void){
   
   for(Node* node = symtab->current_scope->objs.first; node; node = node->next){
     Obj* obj = node->info;
-    if(obj->kind == OBJ_VAR && StructIsArray(obj->type) && obj->type->attributes == 0){
-      ReportError("Array of unspecified size remained undefined.");
+    // if(obj->kind == OBJ_VAR && StructIsArray(obj->type) && obj->type->attributes == 0){
+    //   ReportError("Array of unspecified size remained undefined.");
+    // }
+    if(obj->kind == OBJ_VAR && obj->type->type == TYPE_ARRAY_UNSPEC){
+      ReportError("Array %s of unspecified size remained undefined.", obj->name);
     }
   }
 }

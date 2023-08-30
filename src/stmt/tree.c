@@ -16,6 +16,7 @@ const char* production_names[] = {
   [CONSTANT_PRIMARY]      = "Constant",
   [STRING_PRIMARY]        = "String",
 
+  [FIELD_REF_EXPR]        = "Field ref",
   [FUNCTION_CALL_EXPR]    = "Function call",
   [POST_INC_EXPR]         = "Postfix inc",
   [POST_DEC_EXPR]         = "Postfix dec",
@@ -98,6 +99,8 @@ const char* production_names[] = {
   [RETURN_STMT]           = "Return statement",
   [RETURN_EXPR_STMT]      = "Return expr statement",
 
+  [INLINE_ASM_STMT]       = "Inline assembler",
+
   [FUNC_PROLOGUE]         = "Function prologue",
   [FUNC_EPILOGUE]         = "Function epilogue",
 
@@ -107,6 +110,7 @@ const char* production_names[] = {
 
 const int production_kind[] = {
   [VOID_EXPR          ... COMMA_EXPR]       = PRODUCTION_EXPR,
+  [LABEL_STMT         ... DEFAULT_STMT]     = PRODUCTION_STMT,
   [INITIALIZATION     ... TRANSLATION_UNIT] = PRODUCTION_STMT,
 };
 
@@ -115,14 +119,14 @@ TreeNode* TreeNodeCreateEmpty(){
 
   TreeNode* tree_node = malloc(sizeof(TreeNode));
   tree_node->id = ++tree_node_curr_id;
-  tree_node->label      = 0;
-  tree_node->production = 0;
+  tree_node->label           = 0;
+  tree_node->production      = 0;
   tree_node->num_of_children = 0;
-  tree_node->parent     = 0;
-  tree_node->children   = 0;
-  tree_node->expr_node  = 0;
-  tree_node->logic_node = 0;
-  tree_node->mem_alloc  = 0;
+  tree_node->parent          = 0;
+  tree_node->children        = 0;
+  tree_node->expr_node       = 0;
+  tree_node->logic_node      = 0;
+  tree_node->mem_alloc       = 0;
 
   tree_node_alloc++;
 

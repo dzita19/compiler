@@ -48,14 +48,15 @@
 %token STRUCT_ UNION_ ENUM_ ELLIPSIS
 
 %token CASE_ DEFAULT_ IF_ ELSE_ SWITCH_ WHILE_ DO_ FOR_ GOTO_ CONTINUE_ BREAK_ RETURN_
+%token ASM_
 
 %start translation_unit
 %%
 
 primary_expression
 	: IDENTIFIER 					{ IdentifierPrimary(); }
-	| CONSTANT						{ ConstantPrimary(); }
-	| STRING_LITERAL			{ StringPrimary(); }
+	| CONSTANT						{ ConstantPrimary(); 	 }
+	| STRING_LITERAL			{ StringPrimary(); 		 }
 	| '(' expression ')'	
 	;
 
@@ -89,15 +90,15 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression
-	| INC_OP unary_expression 	{ IncDecExpr(PRE_INC_EXPR); }
-	| DEC_OP unary_expression 	{ IncDecExpr(PRE_DEC_EXPR); }
-	| '&' cast_expression				{ AddressExpr(); }
-	| '*' cast_expression				{ DerefExpr(); }
-	| '+' cast_expression				{ UnaryExpr(UNARY_PLUS_EXPR); }
-	| '-' cast_expression				{ UnaryExpr(UNARY_MINUS_EXPR); }
-	| '~' cast_expression				{ BitNegExpr(); }
-	| '!' cast_expression				{ LogNegExpr(); }
-	| SIZEOF_ unary_expression	{ SizeofExpr(); }
+	| INC_OP unary_expression 	              { IncDecExpr(PRE_INC_EXPR); }
+	| DEC_OP unary_expression 	              { IncDecExpr(PRE_DEC_EXPR); }
+	| '&' cast_expression				              { AddressExpr(); }
+	| '*' cast_expression				              { DerefExpr(); }
+	| '+' cast_expression				              { UnaryExpr(UNARY_PLUS_EXPR); }
+	| '-' cast_expression				              { UnaryExpr(UNARY_MINUS_EXPR); }
+	| '~' cast_expression				              { BitNotExpr(); }
+	| '!' cast_expression				              { LogNotExpr(); }
+	| SIZEOF_ unary_expression	              { SizeofExpr(); }
 	| SIZEOF_ type_open type_name type_close	{ SizeofTypeExpr(); }
 	;
 
@@ -310,8 +311,8 @@ struct_declarator_list
 
 struct_declarator
 	: declarator
-	| ':' constant_expression
-	| declarator ':' constant_expression
+	/*| ':' constant_expression
+	| declarator ':' constant_expression*/
 	;
 
 enum_specifier
@@ -418,8 +419,8 @@ function_param_name
 	;
 
 type_name
-	: specifier_qualifier_list { AbstractDeclarator(); Declaration(); }
-	| specifier_qualifier_list abstract_declarator { Declaration(); }
+	: specifier_qualifier_list { AbstractDeclarator(); NotFunctionDefinition(); Declaration(); }
+	| specifier_qualifier_list abstract_declarator   { NotFunctionDefinition(); Declaration(); }
 	;
 
 abstract_declarator
@@ -466,9 +467,11 @@ initializer_list
 statement
 	: compound_statement
 	| expression_statement
+	| labeled_statement
 	| selection_statement
 	| iteration_statement
 	| jump_statement
+	| inline_assembly
 	;
 
 label
@@ -483,15 +486,15 @@ default_label
 	: DEFAULT_ { DefaultLabel(); }
 	;
 
-labelation
-	: label ':'
-	| case_label ':'
-	| default_label ':'
-	;
-
 compound_statement
 	: block_open block_close
 	| block_open block block_close
+	;
+
+labeled_statement
+	: label ':' statement
+	| case_label ':' statement
+	| default_label ':' statement
 	;
 
 block_open
@@ -510,7 +513,6 @@ block
 block_item
 	: statement
 	| declaration
-	| labelation
 	;
 
 func_body
@@ -574,8 +576,14 @@ for_declaration
 	: declaration { ForDeclaration(); }
 	;
 
+/* first pop declaration frame, then increase statement counter*/
+for_no_declaration
+	: expression ';' {  ForNoDeclaration(); ForExpression(); }
+	| ';' { VoidExpr(); ForNoDeclaration(); ForExpression(); }
+	;
+
 for_expression
-	: expression { ForExpression(); }
+	: expression {  ForExpression(); }
 	| { VoidExpr(); ForExpression(); }
 	;
 
@@ -583,7 +591,7 @@ for_expression
 iteration_statement
 	: while_open '(' control_expression ')' statement 																	{ WhileStmt(); }
 	| do_open statement WHILE_ '(' control_expression ')' ';'														{ DoWhileStmt(); }
-	| for_open '(' for_expression  ';' for_expression ';' for_expression')' statement		{ ForStmt(); }
+	| for_open '(' for_no_declaration  for_expression ';' for_expression')' statement		{ ForStmt(); }
 	| for_open '(' for_declaration     for_expression ';' for_expression')' statement   { ForStmt(); }
 	;
 
@@ -593,6 +601,14 @@ jump_statement
 	| BREAK_ ';'							{ BreakStmt(); }
 	| RETURN_ ';'							{ ReturnStmt(); }
 	| RETURN_ expression ';'	{ ReturnExprStmt(); }
+	;
+
+asm_string
+	: STRING_LITERAL { StringPrimary(); }
+	;
+
+inline_assembly
+	: ASM_ '(' asm_string ')' ';' { InlineAssembly(); }
 	;
 
 rec_translation_unit
@@ -624,6 +640,8 @@ extern int column;
 extern FILE* yyin;
 
 void yyerror(char* s) {
-	fflush(stdout);
-	printf("\n%*s\n%*s\n", column, "^", column, s);
+	extern int row, column;
+  printf("Unrecoverable syntax error: (%d,%d)\n", row, column);
+	// fflush(stdout);
+	// printf("\n%*s\n%*s\n", column, "^", column, s);
 }

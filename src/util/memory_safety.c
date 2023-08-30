@@ -69,8 +69,6 @@ int stack_alloc_alloc  = 0;
 int stack_alloc_free   = 0;
 int mem_alloc_alloc    = 0;
 int mem_alloc_free     = 0;
-int alloc_node_alloc   = 0;
-int alloc_node_free    = 0;
 int ir_instr_alloc     = 0;
 int ir_instr_free      = 0;
 
@@ -127,7 +125,6 @@ void memory_safety_report(){
   PRINT_REPORT(LogicNode,   logic_node_alloc,   logic_node_free);
   PRINT_REPORT(StackAlloc,  stack_alloc_alloc,  stack_alloc_free);
   PRINT_REPORT(MemAlloc,    mem_alloc_alloc,    mem_alloc_free);
-  PRINT_REPORT(AllocNode,   alloc_node_alloc,   alloc_node_free);
   PRINT_REPORT(IrInstr,     ir_instr_alloc,     ir_instr_free);
   printf("-]\n");
   printf("]\n");

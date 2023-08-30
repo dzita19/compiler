@@ -40,7 +40,7 @@ void  VectorReserve(Vector* vector, int reserve){
 }
 
 void  VectorPush(Vector* vector, void* data){
-  if(vector->size + 1 == vector->reserved){
+  if(vector->size == vector->reserved){ // vector->size + 1 == vector->reserved
     VectorReserve(vector, vector->size * 2);
   }
 

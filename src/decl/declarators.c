@@ -43,6 +43,7 @@ static Obj* define_object(int storage, int linkage){
   Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
   Obj* obj;
   int add_to_static_objs = 0;
+  int add_to_label_names = 0;
 
   if(declarator_type->type == TYPE_INCOMPLETE){
     ReportError("Cannot instantiate incomplete type.");
@@ -51,28 +52,38 @@ static Obj* define_object(int storage, int linkage){
 
   if(obj_found) {
     if(obj_found->kind != OBJ_VAR){
-      ReportError("Identifier declared as a different kind of symbol.");
+      ReportError("Identifier %s declared as a different kind of symbol.", obj_found->name);
       return 0;
     }
-    if((obj_found->specifier & DEFINITION_FETCH) == DEFINED){
-      ReportError("Identifier already defined.");
+    if(!StructIsCompatible(obj_found->type, declarator_type)){
+      ReportError("Identifier %s declared with incompatible type.", obj_found->name);
       return 0;
-    }
-    if((obj_found->specifier & LINKAGE_FETCH) != linkage){ // no error if object is declared as extern
-      if((obj_found->specifier & DEFINITION_FETCH) != DECLARED){
-        ReportError("Identifier declared with different linkage.");
-        return 0;
-      }
-      else{
-        obj_found->specifier &= LINKAGE_CLEAR;
-        obj_found->specifier |= linkage;
-        add_to_static_objs = (storage == STORAGE_STATIC);
-      }
     }
 
-    if(!StructIsCompatible(obj_found->type, declarator_type)){
-      ReportError("Identifier declared with incompatible type.");
+    if((obj_found->specifier & DEFINITION_FETCH) == DEFINED){
+      ReportError("Identifier %s already defined.", obj_found->name);
       return 0;
+    }
+    if((obj_found->specifier & DEFINITION_FETCH) == TENTATIVE){
+      if((obj_found->specifier & LINKAGE_FETCH) != linkage){
+        ReportError("Identifier %s declared with different linkage.", obj_found->name);
+        return 0; 
+      }
+
+      obj_found->specifier &= DEFINITION_CLEAR;
+      obj_found->specifier |= DEFINED;
+    }
+    if((obj_found->specifier & DEFINITION_FETCH) == DECLARED){
+      if((obj_found->specifier & LINKAGE_FETCH) != linkage){
+        obj_found->specifier &= LINKAGE_CLEAR;
+        obj_found->specifier |= linkage;
+      }
+
+      obj_found->specifier &= DEFINITION_CLEAR;
+      obj_found->specifier |= DEFINED;
+
+      add_to_static_objs = (storage == STORAGE_STATIC);
+      add_to_label_names = (linkage != LINKAGE_NONE);
     }
 
     obj = obj_found;
@@ -91,6 +102,7 @@ static Obj* define_object(int storage, int linkage){
     SymtabInsert(symtab, obj);
 
     add_to_static_objs = (storage == STORAGE_STATIC);
+    add_to_label_names = (linkage != LINKAGE_NONE);
   }
 
   if(storage == STORAGE_AUTO) obj->address = reserve_storage_stack(obj->type);
@@ -103,7 +115,34 @@ static Obj* define_object(int storage, int linkage){
     new_node->info = obj;
 
     LinkedListInsertLast(&static_obj_list, new_node);
+
+    // add to global names
+    if((obj->specifier & LINKAGE_FETCH) == LINKAGE_EXTERNAL){
+      Node* new_node = NodeCreateEmpty();
+      new_node->info = StringDuplicate(obj->name);
+
+      LinkedListInsertLast(&global_name_list, new_node);
+    }
   }
+
+  if(add_to_label_names){
+    // add to label names
+    Node* new_node = NodeCreateEmpty();
+    new_node->info = StringDuplicate(obj->name);
+
+    LinkedListInsertLast(&label_name_list, new_node);
+
+    // remove from extern names (if exists)
+    for(Node* node = extern_name_list.first; node; node = node->next){
+      char* extern_name = node->info;
+      if(strcmp(obj->name, extern_name) == 0) {
+        StringDrop(extern_name);
+        NodeDrop(LinkedListRemoveFrom(&extern_name_list, node));
+        break;
+      }
+    }
+  }
+
 
   declarator_type = 0;
 
@@ -117,6 +156,7 @@ static Obj* tentative_object(int linkage){
   Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
   Obj* obj;
   int add_to_static_objs = 0;
+  int add_to_label_names = 0;
 
   if(declarator_type->type == TYPE_INCOMPLETE){
     ReportError("Cannot instantiate incomplete type.");
@@ -125,23 +165,34 @@ static Obj* tentative_object(int linkage){
 
   if(obj_found) {
     if(obj_found->kind != OBJ_VAR){
-      ReportError("Identifier declared as a different kind of symbol.");
+      ReportError("Identifier %s declared as a different kind of symbol.", obj_found->name);
       return 0;
     }
     if(!StructIsCompatible(obj_found->type, declarator_type)){
-      ReportError("Identifier declared with different type.");
+      ReportError("Identifier %s declared with different type.", obj_found->name);
       return 0;
     }
-    if((obj_found->specifier & LINKAGE_FETCH) != linkage){ // no error if object is declared as extern
-      if((obj_found->specifier & DEFINITION_FETCH) != DECLARED){
-        ReportError("Identifier declared with different linkage.");
-        return 0;
+    if((obj_found->specifier & DEFINITION_FETCH) == DEFINED){
+      ReportError("Identifier %s already defined.", obj_found->name);
+      return 0;
+    }
+    if((obj_found->specifier & DEFINITION_FETCH) == TENTATIVE){
+      if((obj_found->specifier & LINKAGE_FETCH) != linkage){
+        ReportError("Identifier %s declared with different linkage.", obj_found->name);
+        return 0; 
       }
-      else{
+    }
+    if((obj_found->specifier & DEFINITION_FETCH) == DECLARED){
+      if((obj_found->specifier & LINKAGE_FETCH) != linkage){
         obj_found->specifier &= LINKAGE_CLEAR;
         obj_found->specifier |= linkage;
-        add_to_static_objs = 1;
       }
+
+      obj_found->specifier &= DEFINITION_CLEAR;
+      obj_found->specifier |= TENTATIVE;
+
+      add_to_static_objs = 1;
+      add_to_label_names = 1;
     }
 
     obj_found->type = StructComposite(obj_found->type, declarator_type);
@@ -159,6 +210,7 @@ static Obj* tentative_object(int linkage){
     SymtabInsert(symtab, obj);
 
     add_to_static_objs = 1;
+    add_to_label_names = 1;
   }
 
   if(add_to_static_objs){
@@ -168,7 +220,34 @@ static Obj* tentative_object(int linkage){
     new_node->info = obj;
 
     LinkedListInsertLast(&static_obj_list, new_node);
+
+    // add to global names
+    if((obj->specifier & LINKAGE_FETCH) == LINKAGE_EXTERNAL){
+      Node* new_node = NodeCreateEmpty();
+      new_node->info = StringDuplicate(obj->name);
+
+      LinkedListInsertLast(&global_name_list, new_node);
+    }
   }
+
+  if(add_to_label_names){
+    // add to label names
+    Node* new_node = NodeCreateEmpty();
+    new_node->info = StringDuplicate(obj->name);
+
+    LinkedListInsertLast(&label_name_list, new_node);
+
+    // remove from extern names (if exists)
+    for(Node* node = extern_name_list.first; node; node = node->next){
+      char* extern_name = node->info;
+      if(strcmp(obj->name, extern_name) == 0) {
+        StringDrop(extern_name);
+        NodeDrop(LinkedListRemoveFrom(&extern_name_list, node));
+        break;
+      }
+    }
+  }
+  
 
   return obj;
 }
@@ -181,7 +260,7 @@ static Obj* extern_object(){
 
   if(obj_found){
     if(!StructIsCompatible(obj_found->type, declarator_type)){
-      ReportError("Identifier declared with different type.");
+      ReportError("Identifier %s declared with different type.", obj_found->name);
       return 0;
     }
 
@@ -199,40 +278,60 @@ static Obj* extern_object(){
   name_frame->name = 0;
   SymtabInsert(symtab, obj);
 
+  int add_to_extern_objs = 1;
+
+  // only one extern declaration per name
+  for(Node* node = extern_name_list.first; node; node = node->next){
+    char* extern_name = node->info;
+    if(strcmp(extern_name, obj->name) == 0){
+      add_to_extern_objs = 0;
+      break;
+    }
+  }
+  
+  // no need for extern declaration if any static declaration generates the symbol
+  for(Node* node = label_name_list.first; node; node = node->next){
+    char* label_name = node->info;
+    if(strcmp(label_name, obj->name) == 0){
+      add_to_extern_objs = 0;
+      break;
+    }
+  }
+
+  if(add_to_extern_objs){
+    Node* new_node = NodeCreateEmpty();
+    new_node->info = StringDuplicate(obj->name);
+    LinkedListInsertLast(&extern_name_list, new_node);
+  }
+
   return obj;
 }
 
 static Obj* declare_function(int linkage){
   NameFrame* name_frame = StackPeek(&name_stack);
 
-  Scope* current_scope = symtab->current_scope;
-
-  // if this declaration is not nested, switch to outer scope to insert obj (current scope is func prototype scope)
-  if(param_declaration_depth == 0){
-    current_scope = current_scope->outer;
-  }
-
-  Obj* obj_found = ScopeFindNamespace(current_scope, name_frame->name, NAMESPACE_ORDINARY);
+  Obj* obj_found = SymtabFindNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
 
   if(obj_found){
     if(obj_found->kind != OBJ_VAR){
-      ReportError("Identifier declared as a different kind of symbol.");
+      ReportError("Identifier %s declared as a different kind of symbol.", obj_found->name);
       return 0;
     }
     if(!StructIsCompatible(obj_found->type, declarator_type)){
-      ReportError("Identifier declared with different type.");
+      ReportError("Identifier %s declared with different type.", obj_found->name);
       return 0;
     }
     if((obj_found->specifier & LINKAGE_FETCH) != linkage){
-      ReportError("Identifier declared with different linkage.");
+      ReportError("Identifier %s declared with different linkage.", obj_found->name);
       return 0;
     }
-    if(StructIsNonprototype(obj_found->type) && StructIsPrototype(declarator_type)){
-      ReportError("Function prototype redeclaration after non-prototype definition.");
+    if(StructIsNonprototype(obj_found->type) && StructIsPrototype(declarator_type)
+        && (obj_found->specifier & DEFINITION_FETCH) == DEFINED){
+      ReportError("Function prototype redeclaration after non-prototype definition (function %s).", obj_found->name);
       return 0;
     }
 
-    current_function_body = obj_found;
+    latest_function_decl = obj_found;
     obj_found->type = StructComposite(obj_found->type, declarator_type);
     return obj_found;
   }
@@ -245,8 +344,34 @@ static Obj* declare_function(int linkage){
 
   declarator_type = 0;
   name_frame->name = 0;
-  ScopeInsert(current_scope, obj);
-  current_function_body = obj;
+  SymtabInsert(symtab, obj);
+  latest_function_decl = obj;
+
+  int add_to_extern_objs = 1;
+
+  // only one extern declaration per name
+  for(Node* node = extern_name_list.first; node; node = node->next){
+    char* extern_name = node->info;
+    if(strcmp(extern_name, obj->name) == 0){
+      add_to_extern_objs = 0;
+      break;
+    }
+  }
+
+  // no need for extern declaration if any static declaration generates the symbol
+  for(Node* node = label_name_list.first; node; node = node->next){
+    char* label_name = node->info;
+    if(strcmp(label_name, obj->name) == 0){
+      add_to_extern_objs = 0;
+      break;
+    }
+  }
+
+  if(add_to_extern_objs){
+    Node* new_node = NodeCreateEmpty();
+    new_node->info = StringDuplicate(obj->name);
+    LinkedListInsertLast(&extern_name_list, new_node);
+  }
 
   return obj;
 }
@@ -484,10 +609,10 @@ static Obj* declarator_parameter(int abstract){
     return 0;
   }
 
-  if(param_declaration_width != 1 || param_declaration_depth != 1) return 0;
   if(name_frame->name == 0) return 0; // do not add unnamed function parameters
 
-  Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
+  Scope* param_scope = StackPeek(&param_scope_stack);
+  Obj* obj_found = ScopeFindNamespace(param_scope, name_frame->name, NAMESPACE_ORDINARY);
   if(obj_found){
     ReportError("Identifier already defined in this scope.");
     return 0;
@@ -503,7 +628,8 @@ static Obj* declarator_parameter(int abstract){
 
   declarator_type = 0;
   name_frame->name = 0;
-  SymtabInsert(symtab, obj);
+  ScopeInsert(param_scope, obj);
+  // SymtabInsert(symtab, obj);
 
   return obj;
 }
@@ -555,12 +681,12 @@ static Obj* redeclarator_parameter(void){
 
   Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
   if(obj_found == 0){
-    ReportError("Parameter identifier not declared in this scope.");
+    ReportError("Parameter %s not declared in this scope.", name_frame->name);
     return 0;
   }
 
   if(obj_found->type != 0){
-    ReportError("Parameter identifier already redeclared.");
+    ReportError("Parameter %s already redeclared.", name_frame->name);
     return 0;
   }
 
@@ -594,7 +720,7 @@ static Obj* declarator_member(){
   Obj* obj_found = SymtabFindMember(symtab, name_frame->name, typedef_obj);
 
   if(obj_found){
-    ReportError("Identifier already defined in this namespace.");
+    ReportError("Identifier %s already defined in this namespace.", obj_found->name);
     return 0;
   }
 
@@ -649,11 +775,11 @@ static Obj* declarator_typedef(){
 
   if(obj_found){
     if(obj_found->kind == OBJ_TYPE){
-      ReportError("Identifier already defined.");
+      ReportError("Identifier %s already defined.", obj_found->name);
       return 0;
     }
     else{
-      ReportError("Identifier already defined as object.");
+      ReportError("Identifier %s already defined as object.", obj_found->name);
       return 0;
     }
   }
@@ -743,7 +869,7 @@ void DeclaratorInitialized(){
   }
 
   if(type_frame->storage_specifier == TYPEDEF){
-    ReportError("typedef identifier cannot be initialized.");
+    ReportError("Typedef identifier cannot be initialized.");
   }
   else if(StackEmpty(&typedef_stack)){
     current_obj_definition = declarator_variable(1);
@@ -775,14 +901,15 @@ void AbstractDeclarator(){
 void NonprototypeParam(void){
   NameFrame* name_frame = StackPeek(&name_stack);
 
-  if(param_declaration_depth > 0) {
+  if(StackSize(&param_scope_stack) > 1) {
     ReportError("Identifier list can only be used in function definition.");
     return;
   }
 
-  Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
+  Scope* param_scope = StackPeek(&param_scope_stack);
+  Obj* obj_found = ScopeFindNamespace(param_scope, name_frame->name, NAMESPACE_ORDINARY);
   if(obj_found){
-    ReportError("Identifier already defined in this scope.");
+    ReportError("Identifier %s already defined in this scope.", obj_found->name);
     return;
   }
   
@@ -793,7 +920,8 @@ void NonprototypeParam(void){
   obj->name = name_frame->name;
 
   name_frame->name = 0;
-  SymtabInsert(symtab, obj);
+  ScopeInsert(param_scope, obj);
+  // SymtabInsert(symtab, obj);
 }
 
 void EnumeratorDefault(){
@@ -803,7 +931,7 @@ void EnumeratorDefault(){
   Obj* obj_found = SymtabFindCurrentScopeNamespace(symtab, name_frame->name, NAMESPACE_ORDINARY);
 
   if(obj_found) {
-    ReportError("Identifier already defined.");
+    ReportError("Identifier %s already defined.", obj_found->name);
     return;
   }
 
@@ -835,7 +963,7 @@ void EnumeratorCustom(){
   ConstExprDrop(const_expr);
 
   if(obj_found) {
-    ReportError("Identifier already defined.");
+    ReportError("Identifier %s already defined.", obj_found->name);
     return;
   }
 

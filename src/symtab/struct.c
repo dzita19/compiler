@@ -109,7 +109,7 @@ void StructTreeDump(Struct* str){
 
       Obj* member = node->info;
       StructDump(member->type);
-      printf(" %s (0x%04X)", member->name, member->address);
+      printf(" %s (%d)", member->name, member->address);
 
       if(node != str->obj->members.last) printf(", ");
     }
@@ -452,6 +452,7 @@ Struct* StructGetParentUnqualified(Struct* str){
 }
 
 Struct* StructStringLiteral(){
+  // return DerivePointer(DeriveQualified(predefined_types_struct + INT8_T, CONST));
   return DerivePointer(predefined_types_struct + INT8_T);
 }
 
@@ -477,16 +478,17 @@ Struct* StructQualify(Struct* str, int qualifiers){
   return DeriveQualified(str, qualifiers);
 }
 
-Struct* StructGetHigherRank(Struct* str1, Struct* str2){
-  str1 = StructGetUnqualified(str1);
-  str2 = StructGetUnqualified(str2);
+Struct* StructGetHigherRank(Struct* str){
+  str = StructGetUnqualified(str);
 
-  if(!StructIsArithmetic(str1) || !StructIsArithmetic(str2)) return 0;
+  if(!StructIsArithmetic(str)) return 0;
   
-  if(StructIsEnum(str1)) str1 = predefined_types_struct + INT32_T;
-  if(StructIsEnum(str2)) str2 = predefined_types_struct + INT32_T;
+  if(StructIsEnum(str)) str = predefined_types_struct + INT32_T;
+  int sign = (str - (predefined_types_struct + INT8_T - 1)) & 1;
 
-  return str1 > str2 ? str1 : str2;
+  return sign
+    ? predefined_types_struct + INT32_T
+    : predefined_types_struct + UINT32_T;
 }
 
 Struct* StructGetExprIntType(Struct* str1, Struct* str2){
