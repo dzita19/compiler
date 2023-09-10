@@ -64,13 +64,13 @@ void* memcpy(void *dest, const void *src, int n){
     }
   }
 
-  short*       word_dest = (short*)      long_dest;
-  const short* word_src  = (const short*)long_src;
-  if(words) *word_dest++ = *word_src++;
+  short*       word_dest   = (short*)      long_dest;
+  const short* word_src    = (const short*)long_src;
+  if(words)   *word_dest++ = *word_src++;
 
-  char*       byte_dest  = (char*)      word_dest;
-  const char* byte_src   = (const char*)word_src;
-  if(bytes) *byte_dest++ = *byte_src++;
+  char*        byte_dest   = (char*)      word_dest;
+  const char*  byte_src    = (const char*)word_src;
+  if(bytes)   *byte_dest++ = *byte_src++;
 
   return dest;
 }

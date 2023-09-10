@@ -139,9 +139,9 @@ void LoadToRegister(IrInstr* instr){
 }
 
 void AllocateToRegister(IrInstr* instr){
-    int reg_index = REGOF(instr);
-    SpillRegister(reg_index);
-    reg_bank[reg_index] = instr;
+  int reg_index = REGOF(instr);
+  SpillRegister(reg_index);
+  reg_bank[reg_index] = instr;
 }
 
 void FreeFromRegister(IrInstr* instr){

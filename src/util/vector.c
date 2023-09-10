@@ -57,6 +57,10 @@ void* VectorGet(Vector* vector, int index){
   else return 0;
 }
 
+void* VectorGetLast(Vector* vector){
+  return vector->content[vector->size - 1];
+}
+
 int VectorSize(Vector* vector){
   return vector->size;
 }

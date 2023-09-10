@@ -164,7 +164,7 @@ void FunctionCallExpr(){
   }
 }
 
-static void FieldRefPropagateOffset(TreeNode* node, Struct* type, int offset){
+/*static void FieldRefPropagateOffset(TreeNode* node, Struct* type, int offset){
   switch(node->production){
   case ADDRESS_PRIMARY:
   case CONSTANT_PRIMARY:
@@ -240,16 +240,16 @@ static void FieldRefPropagateOffset(TreeNode* node, Struct* type, int offset){
     break;
   default: break;
   }
-}
+}*/
 
 void FieldRefExpr(){
-  TreeNode* node = StackPeek(&tree->stack);
+  TreeNode* operand = StackPop(&tree->stack);
 
-  if(node->expr_node == 0) return;
+  if(operand->expr_node == 0) return;
 
   const char* member_name = QueueDelete(&identifier_queue);
 
-  Struct* type = StructGetUnqualified(node->expr_node->type);
+  Struct* type = StructGetUnqualified(operand->expr_node->type);
   if(!StructIsStructOrUnion(type)){
     ReportError("Field can be referenced only on struct or union objects.");
     return;
@@ -265,7 +265,37 @@ void FieldRefExpr(){
     return;
   }
 
-  FieldRefPropagateOffset(node, member->type, member->address);
+  if(operand->production == DEREF_EXPR){
+    TreeNode* deref   = operand;
+    TreeNode* address = operand->children[0];
+
+    StackPush(&tree->stack, address);
+    TreeNode* field_ref  = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
+    field_ref->expr_node = ExprNodeCreateEmpty();
+    field_ref->expr_node->address = member->address;
+    field_ref->expr_node->kind = LVALUE;
+    field_ref->expr_node->type = member->type;
+
+    field_ref->parent  = deref;
+    deref->children[0] = StackPop(&tree->stack);
+    deref->parent = 0;
+    deref->expr_node->type = member->type;
+
+    StackPush(&tree->stack, deref);
+  }
+  else{
+    StackPush(&tree->stack, operand);
+
+    TreeNode* node  = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
+    node->expr_node = ExprNodeCreateEmpty();
+    node->expr_node->address = member->address;
+    node->expr_node->kind = LVALUE;
+    node->expr_node->type = member->type;
+  }
+
+  TryFold();
+
+  // FieldRefPropagateOffset(node, member->type, member->address);
 }
 
 void PtrRefExpr(){

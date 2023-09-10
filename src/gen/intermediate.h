@@ -155,18 +155,18 @@ extern void IrCalculateDepth(void);
 extern int  InstrGetOperandDepth(int operation_index, int operand_position);
 extern int  InstrFindOperand(int operation_index, int operand_position);
 
-extern void InsertInstr(IrOpcode, IrAddr, IrOperand, Obj* obj_ref, int string_ref, int offset, int reg_ref);
-extern void InsertInstrNoOp(IrOpcode);
-extern void InsertInstrStackPop(IrOpcode);
-extern void InsertInstrStackRead(IrOpcode, IrAddr, int reg_ref, int offset);
-extern void InsertInstrArg(IrOpcode, IrAddr addr, int offset);
-extern void InsertInstrObj(IrOpcode, IrAddr, Obj* obj_ref, int offset);
-extern void InsertInstrString(IrOpcode, IrAddr, int string_ref, int offset);
-extern void InsertInstrArithm(IrOpcode, IrAddr, int offset);
-extern void InsertInstrLabel(IrOpcode, int label_index);
-extern void InsertInstrSwitchTab(IrOpcode, int tab_index);
-extern void InsertNewFunct(Obj* obj_ref);
-extern void InsertNewLabel(int label_index);
+extern IrInstr* InsertInstr(IrOpcode, IrAddr, IrOperand, Obj* obj_ref, int string_ref, int offset, int reg_ref);
+extern IrInstr* InsertInstrNoOp(IrOpcode);
+extern IrInstr* InsertInstrStackPop(IrOpcode);
+extern IrInstr* InsertInstrStackRead(IrOpcode, IrAddr, int reg_ref, int offset);
+extern IrInstr* InsertInstrArg(IrOpcode, IrAddr addr, int offset);
+extern IrInstr* InsertInstrObj(IrOpcode, IrAddr, Obj* obj_ref, int offset);
+extern IrInstr* InsertInstrString(IrOpcode, IrAddr, int string_ref, int offset);
+extern IrInstr* InsertInstrArithm(IrOpcode, IrAddr, int offset);
+extern IrInstr* InsertInstrLabel(IrOpcode, int label_index);
+extern IrInstr* InsertInstrSwitchTab(IrOpcode, int tab_index);
+extern IrInstr* InsertNewFunct(Obj* obj_ref);
+extern IrInstr* InsertNewLabel(int label_index);
 // extern void InsertNewSwitchTab(int tab_index);
 
 #endif

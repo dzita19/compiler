@@ -165,12 +165,35 @@ static int CastAddressFold(void){
 
   if(!StructIsPointer(node->expr_node->type)) return 0; // must cast into pointer
 
-  operand->expr_node->type = node->expr_node->type;; // change type for the operand
+  operand->expr_node->type = node->expr_node->type; // change type for the operand
 
   node->children[0] = 0;
   TreeNodeDrop(StackPop(&tree->stack));
   StackPush(&tree->stack, operand);
 
+  return 1;
+}
+
+static int FieldRefFold(void){
+  TreeNode* deref     = StackPeek(&tree->stack);
+  TreeNode* field_ref = deref->children[0];
+  TreeNode* address   = field_ref->children[0];
+
+  if(field_ref->production != FIELD_REF_EXPR) return 0;
+
+  if(address->production != ADDRESS_PRIMARY
+    && address->production != CONSTANT_PRIMARY
+    && address->production != STRING_PRIMARY) return 0;
+
+  address->expr_node->type = StructToPtr(deref->expr_node->type);
+  address->expr_node->address += field_ref->expr_node->address;
+
+  deref->children[0]     = address;
+  address->parent        = deref;
+  field_ref->children[0] = 0;
+  field_ref->parent      = 0;
+
+  TreeNodeDrop(field_ref);
   return 1;
 }
 
@@ -545,6 +568,10 @@ void TryFold(void){
     if(folded) break;
   }
   break;
+
+  case DEREF_EXPR:
+    FieldRefFold();
+    break;
 
   case UNARY_PLUS_EXPR:
   case UNARY_MINUS_EXPR:

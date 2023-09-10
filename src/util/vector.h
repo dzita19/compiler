@@ -19,6 +19,7 @@ void    VectorReserve(Vector*, int);
 void    VectorPush(Vector*, void*);
 void*   VectorPop(Vector*);
 void*   VectorGet(Vector*, int);
+void*   VectorGetLast(Vector*);
 int     VectorSize(Vector*);
 
 #endif

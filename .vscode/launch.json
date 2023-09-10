@@ -11,7 +11,7 @@
         "program": "${workspaceFolder}/build/compiler",
         "args": [ "-o", "test/testfile.s", "test/testfile.c", "-dbg", ">", "test/output.txt" ],
         // "program": "${workspaceFolder}/build/compiler",
-        // "args": [ "-o", "std/string.s", "std/string.c", "-dbg", ">", "test/output.txt" ],
+        // "args": [ "-o", "std/stdio.s", "std/stdio.c", "-dbg", ">", "test/output.txt" ],
         // "program": "${workspaceFolder}/build/cc",
         // "args": [ "-o", "test/testfile.s", "test/testfile.c", "-dbg", "-s", ">", "test/output.txt" ],
         // "program": "${workspaceFolder}/build/cc",

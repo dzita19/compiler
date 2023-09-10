@@ -1,60 +1,40 @@
-main: 
-     0  ENTER  32
-   + 1  PUSHL  &b2
-   + 2  DUP    
-   + 3  PUSHL  1
-     1  STORL  
+f: 
+     0  ENTER  12
+   + 1  PUSHL  &a
+   + 2  PUSHB  1
+     0  STORB  
+   + 1  PUSHL  &a+4
+   + 2  PUSHB  2
+     0  STORB  
+   + 1  PUSHL  &a+8
+   + 2  PUSHL  3
+     0  STORL  
+   + 1  PUSHL  &$return_addr
    + 1  DERFL  
-     0  POP    
-   + 1  PUSHL  &b2+4
-   + 2  DUP    
-   + 3  PUSHL  2
-     1  STORL  
-   + 1  DERFL  
-     0  POP    
-   + 1  PUSHL  &p
-   + 1  DERFL  
-   + 1  ADD    4
-   + 2  DUP    
-   + 3  PUSHL  &a1
-   + 4  PUSHL  [#3,+0]
-     3  STORL  [#2,+0]
-     2  POP    
+   + 2  PUSHL  &a
+   + 3  PUSHL  [#2,+0]
+     2  STORL  [#1,+0]
+   + 3  PUSHL  [#2,+4]
+     2  STORL  [#1,+4]
+   + 3  PUSHL  [#2,+8]
+     2  STORL  [#1,+8]
      1  POP    
      0  POP    
-   + 1  PUSHL  &q
-   + 1  DERFL  
-   + 1  DERFL  
-   + 1  ADD    4
-   + 2  DUP    
-   + 3  PUSHL  &a1
-   + 4  PUSHL  [#3,+0]
-     3  STORL  [#2,+0]
-     2  POP    
-     1  POP    
-     0  POP    
-     0  EXIT   32
+     0  EXIT   12
 
 main: 
-     0  ENTER  32
-   + 1  PUSHL  1
-     0  STORL  [&b2]
-   + 1  PUSHL  2
-     0  STORL  [&b2+4]
-   + 1  PUSHL  [&p]
+     0  ENTER  12
+   + 1  PUSHL  &$storage00
    + 1  ADD    4
    + 2  DUP    
-   + 3  PUSHL  [&a1]
-     2  STORL  [#2,+0]
-     1  POP    
-     0  POP    
-   + 1  PUSHL  [&q]
-   + 1  DERFL  
-   + 1  ADD    4
-   + 2  DUP    
-   + 3  PUSHL  [&a1]
-     2  STORL  [#2,+0]
-     1  POP    
-     0  POP    
-     0  EXIT   32
+     2  ALIGN  4
+   + 3  DUP    
+     2  STORL  [SP+0]
+   + 3  PUSHL  &f
+     2  CALL   
+     2  DEALGN 4
+     0  STORL  
+   + 0  DERFL  
+     -1 SETRET 
+     -1 EXIT   12
 

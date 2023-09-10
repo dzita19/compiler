@@ -212,10 +212,8 @@ static void GenerateStaticData(void){
 static void GenerateText(){
   IrInit();
   GenerateIntermediate(StackPeek(&tree->stack));
-  IrCalculateDepth();
-  PrintIntermediate();
-  IrOptimize();
-  PrintIntermediate();
+  IrCalculateDepth(); PrintIntermediate();
+  IrOptimize();       PrintIntermediate();
   GenerateAssembly();
 
   GenAsmEnd();

@@ -56,6 +56,7 @@
     "link_flow.h": "c",
     "intermediate.h": "c",
     "stdlib.h": "c",
-    "wait.h": "c"
+    "wait.h": "c",
+    "ir_opt.h": "c"
   }
 }

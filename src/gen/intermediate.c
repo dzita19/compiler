@@ -131,7 +131,6 @@ void IrInstrDump(IrInstr* ir_instr){
   case IR_OP_STACK_READ:{
     fprintf(irout, " ");
     if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "[");
-    // for(int i = 0; i < ir_instr->offset + 1; i++) fprintf(irout, "#");
     fprintf(irout, "#%u,", ir_instr->depth - ir_instr->reg_ref - InstrGetDepth(ir_instr));
     if(ir_instr->offset >= 0) fprintf(irout, "+%d", +ir_instr->offset);
     else                      fprintf(irout, "-%d", -ir_instr->offset);
@@ -493,7 +492,7 @@ int InstrFindOperand(int operation_index, int operand_position){
 }
 
 
-void InsertInstr(IrOpcode opcode, IrAddr addr, IrOperand operand, Obj* obj_ref, int string_ref, int offset, int reg_ref){
+IrInstr* InsertInstr(IrOpcode opcode, IrAddr addr, IrOperand operand, Obj* obj_ref, int string_ref, int offset, int reg_ref){
   IrInstr* ir_instr = IrInstrCreateEmpty();
   ir_instr->opcode     = opcode;
   ir_instr->addr       = addr;
@@ -504,49 +503,51 @@ void InsertInstr(IrOpcode opcode, IrAddr addr, IrOperand operand, Obj* obj_ref, 
   ir_instr->reg_ref    = reg_ref;
 
   VectorPush(ir_sequence, ir_instr);
+
+  return ir_instr;
 }
-void InsertInstrNoOp(IrOpcode opcode){
-  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, 0, 0);
+IrInstr* InsertInstrNoOp(IrOpcode opcode){
+  return InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, 0, 0);
 }
 
-void InsertInstrStackPop(IrOpcode opcode){
-  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_STACK_POP, 0, 0, 0, 0);
+IrInstr* InsertInstrStackPop(IrOpcode opcode){
+  return InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_STACK_POP, 0, 0, 0, 0);
 }
 
-void InsertInstrStackRead(IrOpcode opcode, IrAddr addr, int reg_ref, int offset){
-  InsertInstr(opcode, addr, IR_OP_STACK_READ, 0, 0, offset, reg_ref);
+IrInstr* InsertInstrStackRead(IrOpcode opcode, IrAddr addr, int reg_ref, int offset){
+  return InsertInstr(opcode, addr, IR_OP_STACK_READ, 0, 0, offset, reg_ref);
 }
 
-void InsertInstrArg(IrOpcode opcode, IrAddr addr, int offset){
-  InsertInstr(opcode, addr, IR_OP_ARG, 0, 0, offset, 0);
+IrInstr* InsertInstrArg(IrOpcode opcode, IrAddr addr, int offset){
+  return InsertInstr(opcode, addr, IR_OP_ARG, 0, 0, offset, 0);
 }
 
-void InsertInstrObj(IrOpcode opcode, IrAddr addr, Obj* obj_ref, int offset){
-  InsertInstr(opcode, addr, IR_OP_OBJ, obj_ref, 0, offset, 0);
+IrInstr* InsertInstrObj(IrOpcode opcode, IrAddr addr, Obj* obj_ref, int offset){
+  return InsertInstr(opcode, addr, IR_OP_OBJ, obj_ref, 0, offset, 0);
 }
 
-void InsertInstrString(IrOpcode opcode, IrAddr addr, int string_ref, int offset){
-  InsertInstr(opcode, addr, IR_OP_STRING, 0, string_ref, offset, 0);
+IrInstr* InsertInstrString(IrOpcode opcode, IrAddr addr, int string_ref, int offset){
+  return InsertInstr(opcode, addr, IR_OP_STRING, 0, string_ref, offset, 0);
 }
 
-void InsertInstrArithm(IrOpcode opcode, IrAddr addr, int offset){
-  InsertInstr(opcode, addr, IR_OP_ARITHM, 0, 0, offset, 0);
+IrInstr* InsertInstrArithm(IrOpcode opcode, IrAddr addr, int offset){
+  return InsertInstr(opcode, addr, IR_OP_ARITHM, 0, 0, offset, 0);
 }
 
-void InsertInstrLabel(IrOpcode opcode, int label_index){
-  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_LABEL, 0, 0, label_index, 0);
+IrInstr* InsertInstrLabel(IrOpcode opcode, int label_index){
+  return InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_LABEL, 0, 0, label_index, 0);
 }
 
-void InsertInstrSwitchTab(IrOpcode opcode, int tab_index){
-  InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_SWTAB, 0, 0, tab_index, 0);
+IrInstr* InsertInstrSwitchTab(IrOpcode opcode, int tab_index){
+  return InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_SWTAB, 0, 0, tab_index, 0);
 }
 
-void InsertNewFunct(Obj* obj_ref){
-  InsertInstr(IR_FUNCT, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, obj_ref, 0, 0, 0);
+IrInstr* InsertNewFunct(Obj* obj_ref){
+  return InsertInstr(IR_FUNCT, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, obj_ref, 0, 0, 0);
 }
 
-void InsertNewLabel(int label_index){
-  InsertInstr(IR_LABEL, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, label_index, 0);
+IrInstr* InsertNewLabel(int label_index){
+  return InsertInstr(IR_LABEL, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, label_index, 0);
 }
 
 // void InsertNewSwitchTab(int tab_index){
