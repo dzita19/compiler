@@ -5,22 +5,32 @@ extern void* malloc(int size);
 extern void  free(void* ptr);
 extern void  print_malloc_frames(void);
 
-struct str1 {
-  char x; int y;
-};
+extern int   strlen(const char* str);
+extern char* strcpy(char* dst, const char* src);
+extern int   strcmp(const char* str1, const char* str2);
+extern char* strdup(const char* str);
+extern char* strcat(char* dst, const char* src);
 
-struct str2 {
-  char a; struct str1 b;
-};
-
-struct str2 f(){
-  struct str2 a = { 1, { 2, 3 }};
-  return a;
-}
+extern void* memcpy(void *dest, const void *src, int n);
+extern void* memmove(void *dest, const void *src, int n);
+extern void* memset(void *str, int c, int n);
 
 int main(void){
-  return f().b.y;
+  int x = 15;
+  switch(x){
+    case 1:
+    case 10:  return 1;
+    case 9:  break;
+    case 3:
+    case 15: return 2;
+    case 2:
+    case 7:  break;
+  }
+
+  return 3;
 }
+
+
 
 /*struct str1 {
   int x;

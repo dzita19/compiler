@@ -33,32 +33,31 @@ static int ArithmeticExprUsed(TreeNode* tree_node){
   return 1;
 }
 
-/*static void ArithmeticExprToArg(TreeNode* tree_node){
-  if(tree_node->mem_alloc && tree_node->mem_alloc->kind == MEM_ALLOC_TO_ARGS){
-    int offset = tree_node->mem_alloc->offset;
-    int size_offset = 0;
-    if(tree_node->expr_node->type->size == 1) size_offset = IR_STORB - IR_STORB;
-    if(tree_node->expr_node->type->size == 2) size_offset = IR_STORW - IR_STORB;
-    if(tree_node->expr_node->type->size == 4) size_offset = IR_STORL - IR_STORB;
-    InsertInstrArg(IR_STORB + size_offset, IR_ADDR_INDIRECT, offset);
+static int IsAssignmentAddress(TreeNode* tree_node){
+  switch(tree_node->parent->production){
+  case ASSIGN_EXPR:
+  case MUL_ASSIGN_EXPR:
+  case DIV_ASSIGN_EXPR:
+  case MOD_ASSIGN_EXPR:
+  case ADD_ASSIGN_EXPR:
+  case SUB_ASSIGN_EXPR:
+  case BIT_LEFT_ASSIGN_EXPR:
+  case BIT_RIGHT_ASSIGN_EXPR:
+  case BIT_AND_ASSIGN_EXPR:
+  case BIT_XOR_ASSIGN_EXPR: 
+  case BIT_OR_ASSIGN_EXPR:
+
+  case PRE_INC_EXPR:
+  case PRE_DEC_EXPR:
+  case POST_INC_EXPR:
+  case POST_DEC_EXPR:
+    return tree_node->parent->children[0] == tree_node;
+  default:
+    return 0;
   }
 }
 
-static void ArithmeticExprCleanup(TreeNode* tree_node, int expr_size){
-  if(production_kind[tree_node->parent->production] == PRODUCTION_STMT
-    && tree_node->parent->production != SWITCH_STMT
-    && tree_node->parent->production != RETURN_EXPR_STMT) InsertInstrStackPop(IR_POP);
 
-  if(tree_node->parent->production == COND_EXPR) InsertInstrStackPop(IR_VPOP);
-  if(tree_node->mem_alloc && tree_node->mem_alloc->kind == MEM_ALLOC_TO_ARGS){
-    int offset = tree_node->mem_alloc->offset;
-    int size_offset = 0;
-    if(expr_size == 1) size_offset = IR_STORB - IR_STORB;
-    if(expr_size == 2) size_offset = IR_STORW - IR_STORB;
-    if(expr_size == 4) size_offset = IR_STORL - IR_STORB;
-    InsertInstrArg(IR_STORB + size_offset, IR_ADDR_INDIRECT, offset);
-  }
-}*/
 
 static void StructCopyToMem(TreeNode* tree_node){
   int size = tree_node->expr_node->type->size;
@@ -151,12 +150,14 @@ static void GeneratePrimary(TreeNode* tree_node){
 static void GenerateDeref(TreeNode* tree_node){
   GenerateIntermediate(tree_node->children[0]);
 
-  int size_opcode = 0;
-  if     (tree_node->expr_node->type->size == 1) size_opcode = IR_DERFB - IR_DERFB;
-  else if(tree_node->expr_node->type->size == 2) size_opcode = IR_DERFW - IR_DERFB;
-  else if(tree_node->expr_node->type->size == 4) size_opcode = IR_DERFL - IR_DERFB;
+  if(ArithmeticExprUsed(tree_node)) {
+    int size_opcode = 0;
+    if     (tree_node->expr_node->type->size == 1) size_opcode = IR_DERFB - IR_DERFB;
+    else if(tree_node->expr_node->type->size == 2) size_opcode = IR_DERFW - IR_DERFB;
+    else if(tree_node->expr_node->type->size == 4) size_opcode = IR_DERFL - IR_DERFB;
 
-  if(ArithmeticExprUsed(tree_node)) InsertInstrStackPop(IR_DERFB + size_opcode);
+    if(!IsAssignmentAddress(tree_node)) InsertInstrStackPop(IR_DERFB + size_opcode);
+  }
   else InsertInstrStackPop(IR_POP);
 }
 
@@ -166,12 +167,13 @@ static void GenerateFieldRef(TreeNode* tree_node){
 
   if(ArithmeticExprUsed(tree_node)) {
     InsertInstrArithm(IR_ADD, IR_ADDR_DIRECT, tree_node->expr_node->address);
-
+    
     int size_opcode = 0;
     if     (tree_node->expr_node->type->size == 1) size_opcode = IR_DERFB - IR_DERFB;
     else if(tree_node->expr_node->type->size == 2) size_opcode = IR_DERFW - IR_DERFB;
     else if(tree_node->expr_node->type->size == 4) size_opcode = IR_DERFL - IR_DERFB;
-    InsertInstrStackPop(IR_DERFB + size_opcode);
+    
+    if(!IsAssignmentAddress(tree_node)) InsertInstrStackPop(IR_DERFB + size_opcode);
   }
   else InsertInstrStackPop(IR_POP);
 }
@@ -198,7 +200,7 @@ static void GenerateUnary(TreeNode* tree_node){
 
   case POST_INC_EXPR:    
   case POST_DEC_EXPR:    {
-    GenerateIntermediate(tree_node->children[0]->children[0]); // +1
+    GenerateIntermediate(tree_node->children[0]);
 
     int size = 0;
     if     (tree_node->children[0]->expr_node->type->size == 1) size = IR_DERFB - IR_DERFB;
@@ -239,7 +241,7 @@ static void GenerateUnary(TreeNode* tree_node){
   } break;
   case PRE_INC_EXPR:     
   case PRE_DEC_EXPR:     {
-    GenerateIntermediate(tree_node->children[0]->children[0]); // +1
+    GenerateIntermediate(tree_node->children[0]);
 
     int size = 0;
     if     (tree_node->children[0]->expr_node->type->size == 1) size = IR_DERFB - IR_DERFB;
@@ -405,8 +407,6 @@ static void GenerateFunctionCall(TreeNode* tree_node){
   if(ArithmeticExprUsed(tree_node)) InsertInstrStackPop(IR_GETRET); // +1
   InsertInstrArithm(IR_DEALGN, IR_ADDR_DIRECT, arg_frame_size);
 
-  // ArithmeticExprToArg(tree_node);
-
   ArrayFree(&arg_allocs);
   CallFrameDrop(call_frame);
 }
@@ -482,8 +482,6 @@ static void GenerateCond(TreeNode* tree_node){
 
   InsertInstrNoOp(IR_LOGEXT);
   if(ArithmeticExprUsed(tree_node)) InsertInstrStackPop(IR_COND);
-  
-  // ArithmeticExprToArg(tree_node);
 }
 
 // assign doesn't generate value if it's first node in expression statement
@@ -493,14 +491,12 @@ static void GenerateAssign(TreeNode* tree_node){
   else if(tree_node->expr_node->type->size == 2) size_opcode = IR_STORW - IR_STORB;
   else if(tree_node->expr_node->type->size == 4) size_opcode = IR_STORL - IR_STORB;
 
-  GenerateIntermediate(tree_node->children[0]->children[0]);
+  GenerateIntermediate(tree_node->children[0]);
   if(ArithmeticExprUsed(tree_node)) InsertInstrStackPop(IR_DUP);
   GenerateIntermediate(tree_node->children[1]);
 
   InsertInstrStackPop(IR_STORB + size_opcode);
   if(ArithmeticExprUsed(tree_node)) InsertInstrStackPop(IR_DERFB + size_opcode);
-
-  // ArithmeticExprToArg(tree_node);  
 }
 
 static void GenerateArithmAssign(TreeNode* tree_node){
@@ -509,7 +505,7 @@ static void GenerateArithmAssign(TreeNode* tree_node){
   else if(tree_node->children[0]->expr_node->type->size == 2) size = IR_STORW - IR_STORB;
   else if(tree_node->children[0]->expr_node->type->size == 4) size = IR_STORL - IR_STORB;
 
-  GenerateIntermediate(tree_node->children[0]->children[0]);
+  GenerateIntermediate(tree_node->children[0]);
   if(ArithmeticExprUsed(tree_node)) InsertInstrStackPop(IR_DUP);
   InsertInstrStackPop(IR_DUP);
   InsertInstrStackPop(IR_DERFB + size);
@@ -574,8 +570,6 @@ static void GenerateArithmAssign(TreeNode* tree_node){
     else if(from_rank == 1 && from_sign == 0) InsertInstrStackPop(IR_ZXWL);
     else if(from_rank == 1 && from_sign == 1) InsertInstrStackPop(IR_SXWL);
   }
-  
-  // ArithmeticExprToArg(tree_node);
 }
 
 static void GenerateComma(TreeNode* tree_node){
@@ -588,8 +582,6 @@ static void GenerateComma(TreeNode* tree_node){
   GenerateIntermediate(tree_node->children[tree_node->num_of_children - 1]);
   if(ArithmeticExprUsed(tree_node));
   else InsertInstrStackPop(IR_POP);
-  
-  // ArithmeticExprToArg(tree_node);
 }
 
 // +1
@@ -673,13 +665,13 @@ static void GenerateCondStruct(TreeNode* tree_node){
 }
 
 static void GenerateAssignStruct(TreeNode* tree_node){
-  GenerateIntermediate(tree_node->children[0]->children[0]);  
+  GenerateIntermediate(tree_node->children[0]);
   if(ArithmeticExprUsed(tree_node)) InsertInstrStackPop(IR_DUP);
   
   GenerateIntermediate(tree_node->children[1]);
 
   if(tree_node->children[1]->production == FUNCTION_CALL_EXPR) InsertInstrStackPop(IR_POP); 
-  else StructCopyToMem(tree_node); //  removes children[0]->children[0]
+  else StructCopyToMem(tree_node); //  removes assignment address
 }
 
 static void GenerateCommaStruct(TreeNode* tree_node){

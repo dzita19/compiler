@@ -60,20 +60,7 @@ static int AddressAdditionFold(void){
     pointer_index = 1;
     value = node->children[0]->expr_node->address;
   }
-  else if(node->children[0]->production == FIELD_REF_EXPR
-      && node->children[1]->production == CONSTANT_PRIMARY) {
-
-    pointer = node->children[0];
-    pointer_index = 0;
-    value = node->children[1]->expr_node->address;
-  }
-  else if(node->children[1]->production == FIELD_REF_EXPR
-      && node->children[0]->production == CONSTANT_PRIMARY){
-
-    pointer = node->children[1];
-    pointer_index = 1;
-    value = node->children[0]->expr_node->address;
-  } else return 0;
+  else return 0;
 
   node->children[pointer_index]->parent = node->parent;
   // node->children[pointer_index]->parent = 0;
@@ -99,13 +86,6 @@ static int AddressSubtractionFold(void){
     value = node->children[1]->expr_node->address;
   }
   else if(node->children[0]->production == STRING_PRIMARY
-      && node->children[1]->production == CONSTANT_PRIMARY) {
-
-    pointer = node->children[0];
-    pointer_index = 0;
-    value = node->children[1]->expr_node->address;
-  }
-  else if(node->children[0]->production == FIELD_REF_EXPR
       && node->children[1]->production == CONSTANT_PRIMARY) {
 
     pointer = node->children[0];
@@ -176,22 +156,41 @@ static int CastAddressFold(void){
 
 static int FieldRefFold(void){
   TreeNode* field_ref = StackPeek(&tree->stack);
-  TreeNode* address   = field_ref->children[0];
+  TreeNode* lval      = field_ref->children[0];
 
-  if(address->production != ADDRESS_PRIMARY
-    && address->production != CONSTANT_PRIMARY
-    && address->production != STRING_PRIMARY) return 0;
+  if(lval->production == DEREF_EXPR){
+    TreeNode* address = lval->children[0];
 
-  address->expr_node->type = StructToPtr(field_ref->expr_node->type);
-  address->expr_node->address += field_ref->expr_node->address;
+    if(address->production != ADDRESS_PRIMARY
+      && address->production != CONSTANT_PRIMARY
+      && address->production != STRING_PRIMARY) return 0;
 
-  address->parent        = 0;
-  field_ref->children[0] = 0;
-  field_ref->parent      = 0;
+    address->expr_node->type = StructToPtr(field_ref->expr_node->type);
+    address->expr_node->address += field_ref->expr_node->address;
 
-  TreeNodeDrop(field_ref);
-  StackPush(&tree->stack, address);
-  return 1;
+    lval->expr_node->type = field_ref->expr_node->type;
+
+    lval->parent           = 0;
+    field_ref->children[0] = 0;
+    field_ref->parent      = 0;
+
+    TreeNodeDrop(StackPop(&tree->stack));
+    StackPush(&tree->stack, lval);
+    return 1;
+  }
+  else if(lval->production == FIELD_REF_EXPR){
+    lval->expr_node->type = field_ref->expr_node->type;
+    lval->expr_node->address += field_ref->expr_node->address;
+
+    lval->parent           = 0;
+    field_ref->children[0] = 0;
+    field_ref->parent      = 0;
+
+    TreeNodeDrop(StackPop(&tree->stack));
+    StackPush(&tree->stack, lval);
+    return 1;
+  }
+  else return 0;
 }
 
 // returns whether the fold happened or not

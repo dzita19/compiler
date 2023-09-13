@@ -5,20 +5,28 @@ Symtab: [
  void
   (*) to void
    function(int32) returning (*) to void
+   function((*) to void, (*) to const void, int32) returning (*) to void
+   function((*) to void, int32, int32) returning (*) to void
   function((*) to void) returning void
   function(void) returning void
+  const void
+   (*) to const void
  int8
   const int8
    (*) to const int8
   (*) to int8
+   function((*) to int8, (*) to const int8) returning (*) to int8
+   function((*) to const int8) returning (*) to int8
  uint8
  int16
  uint16
  int32
   function(int32) returning int32
   function((*) to const int8, ...) returning int32
-  (*) to int32
+  function((*) to const int8) returning int32
+  function((*) to const int8, (*) to const int8) returning int32
   function(void) returning int32
+  (*) to int32
  uint32
  int64
  uint64
@@ -44,50 +52,49 @@ Symtab: [
    Name: print_malloc_frames; Address: 0; Definition: declared; Storage: static; Linkage: external;
    Type: [function(void) returning void]
   ]
-  Obj: tag [
-   Name: str1; Tag type: struct; Definition: defined; Size: 8; Align: 4
-   Type: [
-    struct str1: int8 x (0), int32 y (4)
-     (*) to struct str1
-   ]
-  ]
-  Obj: tag [
-   Name: str2; Tag type: struct; Definition: defined; Size: 12; Align: 4
-   Type: [
-    struct str2: int8 a (0), struct str1 b (4)
-     function(<nonprototype>) returning struct str2
-      (*) to function(<nonprototype>) returning struct str2
-     (*) to struct str2
-      (*) to (*) to struct str2
-   ]
+  Obj: variable [
+   Name: strlen; Address: 0; Definition: declared; Storage: static; Linkage: external;
+   Type: [function((*) to const int8) returning int32]
   ]
   Obj: variable [
-   Name: f; Address: 12; Definition: defined; Storage: static; Linkage: external;
-   Type: [function(<nonprototype>) returning struct str2]
+   Name: strcpy; Address: 0; Definition: declared; Storage: static; Linkage: external;
+   Type: [function((*) to int8, (*) to const int8) returning (*) to int8]
   ]
   Obj: variable [
-   Name: main; Address: 12; Definition: defined; Storage: static; Linkage: external;
+   Name: strcmp; Address: 0; Definition: declared; Storage: static; Linkage: external;
+   Type: [function((*) to const int8, (*) to const int8) returning int32]
+  ]
+  Obj: variable [
+   Name: strdup; Address: 0; Definition: declared; Storage: static; Linkage: external;
+   Type: [function((*) to const int8) returning (*) to int8]
+  ]
+  Obj: variable [
+   Name: strcat; Address: 0; Definition: declared; Storage: static; Linkage: external;
+   Type: [function((*) to int8, (*) to const int8) returning (*) to int8]
+  ]
+  Obj: variable [
+   Name: memcpy; Address: 0; Definition: declared; Storage: static; Linkage: external;
+   Type: [function((*) to void, (*) to const void, int32) returning (*) to void]
+  ]
+  Obj: variable [
+   Name: memmove; Address: 0; Definition: declared; Storage: static; Linkage: external;
+   Type: [function((*) to void, (*) to const void, int32) returning (*) to void]
+  ]
+  Obj: variable [
+   Name: memset; Address: 0; Definition: declared; Storage: static; Linkage: external;
+   Type: [function((*) to void, int32, int32) returning (*) to void]
+  ]
+  Obj: variable [
+   Name: main; Address: 4; Definition: defined; Storage: static; Linkage: external;
    Type: [function(void) returning int32]
   ]
   Scope: function prototype [
-   Obj: variable [
-    Name: $return_addr; Address: -8; Definition: defined; Storage: auto; Linkage: none;
-    Type: [(*) to struct str2]
-   ]
    Scope: block [
     Obj: variable [
-     Name: a; Address: 12; Definition: defined; Storage: auto; Linkage: none;
-     Type: [struct str2]
+     Name: x; Address: 4; Definition: defined; Storage: auto; Linkage: none;
+     Type: [int32]
     ]
-   ]
-   Scope: function [
-   ]
-  ]
-  Scope: function prototype [
-   Scope: block [
-    Obj: variable [
-     Name: $storage00; Address: 12; Definition: defined; Storage: auto; Linkage: none;
-     Type: [struct str2]
+    Scope: block [
     ]
    ]
    Scope: function [
@@ -100,12 +107,10 @@ Static objects list: [
 ]
 
 Label names list: [
- Obj name: f
  Obj name: main
 ]
 
 Global names list: [
- Obj name: f
  Obj name: main
 ]
 
@@ -115,78 +120,82 @@ Extern names list: [
  Obj name: malloc
  Obj name: free
  Obj name: print_malloc_frames
+ Obj name: strlen
+ Obj name: strcpy
+ Obj name: strcmp
+ Obj name: strdup
+ Obj name: strcat
+ Obj name: memcpy
+ Obj name: memmove
+ Obj name: memset
 ]
 
 String table: [
 ]
 
 Translation unit ::
--Function body :: [FDEF] Name: f;
---Function prologue ::
---Initialization ::
----Assign :: [RVAL] Type: int8; Address: 0;
-----Deref pointer :: [LVAL] Address: 0; Type: int8;
------Address of :: [ADDR] Name: a; Address: 0; Type: (*) to int8;
-----Constant :: [NUMLIT] Type: int8; Value: 1;
----Assign :: [RVAL] Type: int8; Address: 0;
-----Deref pointer :: [LVAL] Address: 0; Type: int8;
------Address of :: [ADDR] Name: a; Address: 4; Type: (*) to int8;
-----Constant :: [NUMLIT] Type: int8; Value: 2;
----Assign :: [RVAL] Type: int32; Address: 0;
-----Deref pointer :: [LVAL] Address: 0; Type: int32;
------Address of :: [ADDR] Name: a; Address: 8; Type: (*) to int32;
-----Constant :: [NUMLIT] Type: int32; Value: 3;
---Return expr statement ::
----Deref pointer :: [LVAL] Address: 0; Type: struct str2;
-----Address of :: [ADDR] Name: a; Address: 0; Type: (*) to struct str2;
----Address of :: [ADDR] Name: $return_addr; Address: 0; Type: (*) to (*) to struct str2;
---Function epilogue ::
 -Function body :: [FDEF] Name: main;
 --Function prologue ::
---Return expr statement ::
+--Initialization ::
 ---Assign :: [RVAL] Type: int32; Address: 0;
-----Field ref :: [LVAL] Address: 4; Type: int32;
------Field ref :: [LVAL] Address: 4; Type: struct str1;
-------Deref pointer :: [LVAL] Address: 0; Type: struct str2;
--------Address of :: [ADDR] Name: $storage00; Address: 0; Type: (*) to struct str2;
-----Function call :: [RVAL] Type: struct str2; Address: 0;
------Address of :: [ADDR] Name: f; Address: 0; Type: (*) to function(<nonprototype>) returning struct str2;
---Function epilogue ::
+----Deref pointer :: [LVAL] Address: 0; Type: int32;
+-----Address of :: [ADDR] Name: x; Address: 0; Type: (*) to int32;
+----Constant :: [NUMLIT] Type: int32; Value: 15;
+--Switch statement :: [LogicNode] JumpId: 32; Jump CASE;
+---Deref pointer :: [LVAL] Address: 0; Type: int32;
+----Address of :: [ADDR] Name: x; Address: 0; Type: (*) to int32;
+---Compound statement ::
+----Case label :: [CASE] Value: 1; [LogicNode] JumpId: 14; Jump CASE;
+----Case label :: [CASE] Value: 10; [LogicNode] JumpId: 14; Jump CASE;
+----Return expr statement :: 14 [LogicNode] JumpId: 33; Jump ALWAYS;
+-----Constant :: [NUMLIT] Type: int32; Value: 1;
+----Case label :: [CASE] Value: 9; [LogicNode] JumpId: 17; Jump CASE;
+----Break statement :: 17 [LogicNode] JumpId: 32; Jump ALWAYS;
+----Case label :: [CASE] Value: 3; [LogicNode] JumpId: 23; Jump CASE;
+----Case label :: [CASE] Value: 15; [LogicNode] JumpId: 23; Jump CASE;
+----Return expr statement :: 23 [LogicNode] JumpId: 33; Jump ALWAYS;
+-----Constant :: [NUMLIT] Type: int32; Value: 2;
+----Case label :: [CASE] Value: 2; [LogicNode] JumpId: 28; Jump CASE;
+----Case label :: [CASE] Value: 7; [LogicNode] JumpId: 28; Jump CASE;
+----Break statement :: 28 [LogicNode] JumpId: 32; Jump ALWAYS;
+--Return expr statement :: 32
+---Constant :: [NUMLIT] Type: int32; Value: 3;
+--Function epilogue :: 33
 
 Memory safety report: [
 -Symtab: [
 --Symtab          allocated =    1, freed =    1;
---Scope           allocated =   12, freed =   12;
---Obj             allocated =   22, freed =   22;
---Struct          allocated =   21, freed =   21;
+--Scope           allocated =   18, freed =   18;
+--Obj             allocated =   35, freed =   35;
+--Struct          allocated =   19, freed =   19;
 --StaticVal       allocated =    0, freed =    0;
 -]
 -Utility: [
---LinkedList      allocated =   15, freed =   15;
---Node            allocated =   88, freed =   88;
---String          allocated =   36, freed =   37;
---Vector          allocated =    4, freed =    4;
---Array           allocated =    1, freed =    1;
+--LinkedList      allocated =   31, freed =   31;
+--Node            allocated =  200, freed =  200;
+--String          allocated =   52, freed =   52;
+--Vector          allocated =   11, freed =   11;
+--Array           allocated =    0, freed =    0;
 -]
 -Declarations: [
---TypeFrame       allocated =   10, freed =   10;
---NameFrame       allocated =    8, freed =    8;
---InitFrame       allocated =    2, freed =    2;
---ConstExpr       allocated =    0, freed =    0;
+--TypeFrame       allocated =   15, freed =   15;
+--NameFrame       allocated =   15, freed =   15;
+--InitFrame       allocated =    0, freed =    0;
+--ConstExpr       allocated =    7, freed =    7;
 -]
 -Statements: [
---TreeNode        allocated =   37, freed =   37;
+--TreeNode        allocated =   35, freed =   35;
 --Tree            allocated =    1, freed =    1;
---Numlit          allocated =    3, freed =    3;
---ExprNode        allocated =   29, freed =   29;
+--Numlit          allocated =   11, freed =   11;
+--ExprNode        allocated =   24, freed =   24;
 -]
 -Generating: [
---CallFrame       allocated =    1, freed =    1;
---ArgAlloc        allocated =    1, freed =    1;
---LogicNode       allocated =    0, freed =    0;
+--CallFrame       allocated =    0, freed =    0;
+--ArgAlloc        allocated =    0, freed =    0;
+--LogicNode       allocated =   12, freed =   12;
 --StackAlloc      allocated =    0, freed =    0;
 --MemAlloc        allocated =    0, freed =    0;
---IrInstr         allocated =   38, freed =   38;
+--IrInstr         allocated =   65, freed =   65;
 -]
 ]
 

@@ -44,14 +44,17 @@ malloc:
     movl    1, %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-4], %reg0
+    add     4, %reg0
     movl    [HEAP_END], %reg1
     sub     [HEAP_START], %reg1
     sub     16, %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-4], %reg0
+    add     8, %reg0
     movl    0, %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-4], %reg0
+    add     12, %reg0
     movl    0, %reg1
     movl    %reg1, [%reg0]
 .L1:
@@ -85,6 +88,7 @@ malloc:
     movl    1, %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-8], %reg0
+    add     4, %reg0
     movl    [%rbp-4], %reg1
     add     4, %reg1
     movl    [%reg1], %reg1
@@ -93,9 +97,11 @@ malloc:
     sub     %reg2, %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-8], %reg0
+    add     8, %reg0
     movl    [%rbp-4], %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-8], %reg0
+    add     12, %reg0
     movl    [%rbp-4], %reg1
     add     12, %reg1
     movl    [%reg1], %reg1
@@ -104,9 +110,11 @@ malloc:
     movl    0, %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-4], %reg0
+    add     4, %reg0
     movl    [%rbp+8], %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-4], %reg0
+    add     12, %reg0
     movl    [%rbp-8], %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-4], %reg0
@@ -158,20 +166,24 @@ free:
     movl    [%rbp-8], %reg0
     add     12, %reg0
     movl    [%reg0], %reg0
+    add     8, %reg0
     movl    [%rbp-4], %reg1
     movl    %reg1, [%reg0]
 .L7:
     movl    [%rbp-4], %reg0
+    add     12, %reg0
     movl    [%rbp-8], %reg1
     add     12, %reg1
     movl    [%reg1], %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-4], %reg0
-    movl    [%rbp-4], %reg1
+    add     4, %reg0
+    movl    %reg0, %reg1
     movl    [%reg1], %reg1
     movl    [%rbp-8], %reg2
-    add     20, %reg2
+    add     4, %reg2
     movl    [%reg2], %reg2
+    add     16, %reg2
     add     %reg2, %reg1
     movl    %reg1, [%reg0]
 .L6:
@@ -190,20 +202,24 @@ free:
     movl    [%rbp-4], %reg0
     add     12, %reg0
     movl    [%reg0], %reg0
+    add     8, %reg0
     movl    [%rbp-12], %reg1
     movl    %reg1, [%reg0]
 .L9:
     movl    [%rbp-12], %reg0
+    add     12, %reg0
     movl    [%rbp-4], %reg1
     add     12, %reg1
     movl    [%reg1], %reg1
     movl    %reg1, [%reg0]
     movl    [%rbp-12], %reg0
-    movl    [%rbp-12], %reg1
+    add     4, %reg0
+    movl    %reg0, %reg1
     movl    [%reg1], %reg1
     movl    [%rbp-4], %reg2
-    add     20, %reg2
+    add     4, %reg2
     movl    [%reg2], %reg2
+    add     16, %reg2
     add     %reg2, %reg1
     movl    %reg1, [%reg0]
 .L8:
@@ -230,8 +246,9 @@ print_malloc_frames:
     jeq     .L11
     movl    [%rbp-4], %reg0
     movl    [%rbp-8], %reg1
-    add     20, %reg1
+    add     4, %reg1
     movl    [%reg1], %reg1
+    add     16, %reg1
     add     %reg1, %reg0
     movl    %reg0, [%rbp-4]
     sub     32, %rsp

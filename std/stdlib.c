@@ -80,6 +80,7 @@ void print_malloc_frames(void){
   printf("MALLOC FRAMES:\n");
   int total_size = 0;
   for(struct malloc_frame* curr_frame = (struct malloc_frame*)HEAP_START; curr_frame; curr_frame = curr_frame->next){
+    curr_frame->size;
     total_size += curr_frame->size + sizeof(struct malloc_frame);
     printf("MALLOC FRAME: %p, %8s, size: %#010x, prev: %p, next: %p\n", 
       curr_frame, curr_frame->is_free ? "FREE" : "NOT_FREE", curr_frame->size, curr_frame->prev, curr_frame->next);
