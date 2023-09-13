@@ -175,25 +175,22 @@ static int CastAddressFold(void){
 }
 
 static int FieldRefFold(void){
-  TreeNode* deref     = StackPeek(&tree->stack);
-  TreeNode* field_ref = deref->children[0];
+  TreeNode* field_ref = StackPeek(&tree->stack);
   TreeNode* address   = field_ref->children[0];
-
-  if(field_ref->production != FIELD_REF_EXPR) return 0;
 
   if(address->production != ADDRESS_PRIMARY
     && address->production != CONSTANT_PRIMARY
     && address->production != STRING_PRIMARY) return 0;
 
-  address->expr_node->type = StructToPtr(deref->expr_node->type);
+  address->expr_node->type = StructToPtr(field_ref->expr_node->type);
   address->expr_node->address += field_ref->expr_node->address;
 
-  deref->children[0]     = address;
-  address->parent        = deref;
+  address->parent        = 0;
   field_ref->children[0] = 0;
   field_ref->parent      = 0;
 
   TreeNodeDrop(field_ref);
+  StackPush(&tree->stack, address);
   return 1;
 }
 
@@ -569,7 +566,7 @@ void TryFold(void){
   }
   break;
 
-  case DEREF_EXPR:
+  case FIELD_REF_EXPR:
     FieldRefFold();
     break;
 

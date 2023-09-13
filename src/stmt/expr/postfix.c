@@ -164,84 +164,6 @@ void FunctionCallExpr(){
   }
 }
 
-/*static void FieldRefPropagateOffset(TreeNode* node, Struct* type, int offset){
-  switch(node->production){
-  case ADDRESS_PRIMARY:
-  case CONSTANT_PRIMARY:
-  case STRING_PRIMARY:
-    node->expr_node->type = type;
-    node->expr_node->address += offset;
-    break;
-  case DEREF_EXPR:
-    if(node->children[0]->production == ADDRESS_PRIMARY
-        || node->children[0]->production == CONSTANT_PRIMARY
-        || node->children[0]->production == STRING_PRIMARY
-        || node->children[0]->production == COND_EXPR
-        || node->children[0]->production == COMMA_EXPR) {
-      node->expr_node->type = type;
-      FieldRefPropagateOffset(node->children[0], StructToPtr(type), offset);
-    }
-    else{ // deref should be parent of field ref
-      node->expr_node->type = type;
-      
-      StackPush(&tree->stack, node->children[0]);
-      node->children[0]->parent = 0;
-      node->children[0] = 0;
-
-      TreeNode* field_ref = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
-      field_ref->expr_node = ExprNodeCreateEmpty();
-      field_ref->expr_node->kind = RVALUE;
-      field_ref->expr_node->type = StructToPtr(type);
-      field_ref->expr_node->address = offset;
-      
-      node->children[0] = StackPop(&tree->stack);
-      node->children[0]->parent = node;
-    }
-    break;
-  case COND_EXPR:
-    node->expr_node->type = type;
-    FieldRefPropagateOffset(node->children[1], type, offset);
-    FieldRefPropagateOffset(node->children[2], type, offset);
-    break;
-  case ASSIGN_EXPR: { // assign should be son of field ref
-    TreeNode* old_parent = node->parent;
-    int index_in_parent = 0;
-    if(old_parent){
-      for(index_in_parent = 0; index_in_parent < old_parent->num_of_children; index_in_parent++){
-        if(old_parent->children[index_in_parent] == node) break;
-      }
-      node->parent = 0;
-      old_parent->children[index_in_parent] = 0;
-
-      StackPush(&tree->stack, node);
-    }
-
-    TreeNode* field_ref = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
-    field_ref->expr_node = ExprNodeCreateEmpty();
-    field_ref->expr_node->kind = RVALUE;
-    field_ref->expr_node->type = StructToPtr(type);
-    field_ref->expr_node->address = offset;
-
-    TreeNode* deref = TreeInsertNode(tree, DEREF_EXPR, 1);
-    deref->expr_node = ExprNodeCreateEmpty();
-    deref->expr_node->kind = RVALUE;
-    deref->expr_node->type = type;
-
-    if(old_parent){
-      StackPop(&tree->stack);
-
-      old_parent->children[index_in_parent] = field_ref;
-      field_ref->parent = old_parent;
-    }
-  } break;
-  case COMMA_EXPR:
-    node->expr_node->type = type;
-    FieldRefPropagateOffset(node->children[node->num_of_children - 1], type, offset);
-    break;
-  default: break;
-  }
-}*/
-
 void FieldRefExpr(){
   TreeNode* operand = StackPop(&tree->stack);
 
@@ -265,33 +187,13 @@ void FieldRefExpr(){
     return;
   }
 
-  if(operand->production == DEREF_EXPR){
-    TreeNode* deref   = operand;
-    TreeNode* address = operand->children[0];
+  StackPush(&tree->stack, operand);
 
-    StackPush(&tree->stack, address);
-    TreeNode* field_ref  = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
-    field_ref->expr_node = ExprNodeCreateEmpty();
-    field_ref->expr_node->address = member->address;
-    field_ref->expr_node->kind = LVALUE;
-    field_ref->expr_node->type = member->type;
-
-    field_ref->parent  = deref;
-    deref->children[0] = StackPop(&tree->stack);
-    deref->parent = 0;
-    deref->expr_node->type = member->type;
-
-    StackPush(&tree->stack, deref);
-  }
-  else{
-    StackPush(&tree->stack, operand);
-
-    TreeNode* node  = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
-    node->expr_node = ExprNodeCreateEmpty();
-    node->expr_node->address = member->address;
-    node->expr_node->kind = LVALUE;
-    node->expr_node->type = member->type;
-  }
+  TreeNode* node  = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
+  node->expr_node = ExprNodeCreateEmpty();
+  node->expr_node->address = member->address;
+  node->expr_node->kind = LVALUE;
+  node->expr_node->type = member->type;
 
   TryFold();
 

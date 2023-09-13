@@ -8,11 +8,15 @@ struct malloc_frame{
 static const void* HEAP_START = (void*)0x00040000;
 static const void* HEAP_END   = (void*)0x00080000;
 
+extern int printf(const char* format, ...);
+
 void* malloc(unsigned size){
+  // printf("ENTER MALLOC\n");
   static int initialized = 0;
 
   if(initialized == 0){
     initialized = 1;
+    // printf("ENTER MALLOC INIT\n");
 
     struct malloc_frame* initial = (struct malloc_frame*)HEAP_START;
     initial->is_free = 1;
@@ -24,8 +28,12 @@ void* malloc(unsigned size){
 
   for(struct malloc_frame* curr_frame = (struct malloc_frame*)HEAP_START; curr_frame; curr_frame = curr_frame->next){
 
+    // printf("CURRENT FRAME AT %p, is_free: %d, size: %d, prev: %p, next: %p\n", 
+    //   curr_frame, curr_frame->is_free, curr_frame->size, curr_frame->prev, curr_frame->next);
+
     // curr_frame is to be returned, new_frame is allocated as a free partition
     if(curr_frame->is_free && curr_frame->size >= size + sizeof(struct malloc_frame)){
+
       // cast to void* (size is in bytes)
       struct malloc_frame* new_frame = (void*)curr_frame + (sizeof(struct malloc_frame) + size);
       new_frame->is_free  = 1;

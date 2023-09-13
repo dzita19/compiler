@@ -167,11 +167,11 @@ static void GenerateFieldRef(TreeNode* tree_node){
   if(ArithmeticExprUsed(tree_node)) {
     InsertInstrArithm(IR_ADD, IR_ADDR_DIRECT, tree_node->expr_node->address);
 
-    // int size_opcode = 0;
-    // if     (tree_node->expr_node->type->size == 1) size_opcode = IR_DERFB - IR_DERFB;
-    // else if(tree_node->expr_node->type->size == 2) size_opcode = IR_DERFW - IR_DERFB;
-    // else if(tree_node->expr_node->type->size == 4) size_opcode = IR_DERFL - IR_DERFB;
-    // InsertInstrStackPop(IR_DERFB + size_opcode);
+    int size_opcode = 0;
+    if     (tree_node->expr_node->type->size == 1) size_opcode = IR_DERFB - IR_DERFB;
+    else if(tree_node->expr_node->type->size == 2) size_opcode = IR_DERFW - IR_DERFB;
+    else if(tree_node->expr_node->type->size == 4) size_opcode = IR_DERFL - IR_DERFB;
+    InsertInstrStackPop(IR_DERFB + size_opcode);
   }
   else InsertInstrStackPop(IR_POP);
 }

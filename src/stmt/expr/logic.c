@@ -169,7 +169,7 @@ void CondExpr(){
   }
   else if(StructIsStructOrUnion(if_true) && StructIsStructOrUnion(if_false) 
       && StructIsCompatible(if_true, if_false)){
-    expr_type = if_true;
+    expr_type = StructGetUnqualified(if_true);
   }
   else if(StructIsVoid(if_true) && StructIsVoid(if_false)){
     expr_type = predefined_types_struct + VOID_T;
