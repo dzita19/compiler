@@ -624,7 +624,9 @@ int StructIsModifiable(Struct* str){
     if(str->obj->kind == OBJ_TAG){
       for(Node* node = str->obj->members.first; node; node = node->next){
         Obj* member = node->info;
-        if(!StructIsModifiable(member->type) && member->type->kind != STRUCT_ARRAY) return 0;
+        // arrays in structs are modifiable if their base type is modifiable
+        if(member->type->kind == STRUCT_ARRAY && !StructIsModifiable(member->type->parent)) return 0; 
+        if(member->type->kind != STRUCT_ARRAY && !StructIsModifiable(member->type)) return 0;
       }
       return 1;
     }

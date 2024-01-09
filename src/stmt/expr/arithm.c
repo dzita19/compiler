@@ -46,7 +46,7 @@ void AddExpr(){
 
   for(int i = 0; i < 2; i++){
     if(StructIsPointer(node->children[i]->expr_node->type)){
-      StructGetUnqualified(arithm_or_ptr = node->children[i]->expr_node->type);
+      arithm_or_ptr = StructGetUnqualified(node->children[i]->expr_node->type);
     }
     else if(StructIsArithmetic(node->children[i]->expr_node->type)){
       if(arithmetic == 0) {
@@ -62,6 +62,11 @@ void AddExpr(){
     return;
   }
 
+  if(StructIsPointer(arithm_or_ptr) && arithm_or_ptr->parent->type != TYPE_OBJECT){
+    ReportError("Addition is allowed only on pointers-to-objects.");
+    return;
+  }
+
   expr_type = StructIsPointer(arithm_or_ptr) ? arithm_or_ptr : StructGetExprIntType(arithm_or_ptr, arithmetic);
 
   node->expr_node = ExprNodeCreateEmpty();
@@ -74,8 +79,9 @@ void AddExpr(){
   SubexprImplCast(node, 0, expr_type);
   SubexprImplCast(node, 1, expr_type);
 
-  if(StructIsPointer(arithm_or_ptr))
+  if(StructIsPointer(arithm_or_ptr)){
     SubexprMultiplyByConst(node, arithmetic_index, arithm_or_ptr->parent->size);
+  }
 
   TryFold();
 }
@@ -115,6 +121,11 @@ void SubExpr(){
     return;
   }
 
+  if(StructIsPointer(left_op) && left_op->parent->type != TYPE_OBJECT){
+    ReportError("Subtraction is allowed only on pointers-to-objects.");
+    return;
+  }
+
   node->expr_node = ExprNodeCreateEmpty();
   node->expr_node->kind = RVALUE;
   node->expr_node->type = expr_type;
@@ -125,11 +136,13 @@ void SubExpr(){
   SubexprImplCast(node, 0, expr_type);
   SubexprImplCast(node, 1, expr_type);
 
-  if(StructIsPointer(left_op) && StructIsPointer(right_op))
+  if(StructIsPointer(left_op) && StructIsPointer(right_op)){
     ExprDivideByConst(node, expr_type, left_op->parent->size);
+  }
 
-  if(StructIsPointer(left_op) && StructIsArithmetic(right_op))
+  if(StructIsPointer(left_op) && StructIsArithmetic(right_op)){
     SubexprMultiplyByConst(node, 1, left_op->parent->size);
+  }
 
   TryFold();
 }
@@ -269,6 +282,11 @@ void AddAssignExpr(){
     return;
   }
 
+  if(StructIsPointer(op1) && op1->parent->type != TYPE_OBJECT){
+    ReportError("Addition is allowed only on pointers-to-objects.");
+    return;
+  }
+
   // expr_type = op1;
   expr_type = StructGetExprIntType(op1, op1);
 
@@ -279,8 +297,9 @@ void AddAssignExpr(){
   ConvertChildToArithmetic(node, 1);
   SubexprImplCast(node, 1, expr_type);
 
-  if(StructIsPointer(op1))
+  if(StructIsPointer(op1)){
     SubexprMultiplyByConst(node, 1, StructGetParentUnqualified(op1)->size);
+  }
 }
 
 void SubAssignExpr(){
@@ -311,6 +330,11 @@ void SubAssignExpr(){
   }
   else{
     ReportError("Illegal operands for subtraction.");
+    return;
+  }
+  
+  if(StructIsPointer(op1) && op1->parent->type != TYPE_OBJECT){
+    ReportError("Subtraction is allowed only on pointers-to-objects.");
     return;
   }
 

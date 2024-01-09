@@ -10,6 +10,8 @@ static const void* HEAP_END   = (void*)0x00080000;
 
 extern int printf(const char* format, ...);
 
+typedef char* byte;
+
 void* malloc(unsigned size){
   // printf("ENTER MALLOC\n");
   static int initialized = 0;
@@ -20,7 +22,7 @@ void* malloc(unsigned size){
 
     struct malloc_frame* initial = (struct malloc_frame*)HEAP_START;
     initial->is_free = 1;
-    initial->size    = HEAP_END - HEAP_START - sizeof(struct malloc_frame);
+    initial->size    = (byte*)HEAP_END - (byte*)HEAP_START - sizeof(struct malloc_frame);
     initial->prev    = 0;
     initial->next    = 0;
   }
@@ -35,7 +37,7 @@ void* malloc(unsigned size){
     if(curr_frame->is_free && curr_frame->size >= size + sizeof(struct malloc_frame)){
 
       // cast to void* (size is in bytes)
-      struct malloc_frame* new_frame = (void*)curr_frame + (sizeof(struct malloc_frame) + size);
+      struct malloc_frame* new_frame = (void*)((byte*)curr_frame + (sizeof(struct malloc_frame) + size));
       new_frame->is_free  = 1;
       new_frame->size     = curr_frame->size - (sizeof(struct malloc_frame) + size);
       new_frame->prev     = curr_frame;
@@ -45,7 +47,7 @@ void* malloc(unsigned size){
       curr_frame->size    = size;
       curr_frame->next    = new_frame;
 
-      return (void*)curr_frame + sizeof(struct malloc_frame);
+      return (void*)((byte*)curr_frame + sizeof(struct malloc_frame));
     }
 
   }
@@ -54,7 +56,7 @@ void* malloc(unsigned size){
 }
 
 void free(void* ptr){
-  struct malloc_frame* frame = ptr - sizeof(struct malloc_frame);
+  struct malloc_frame* frame = (void*)((byte*)ptr - sizeof(struct malloc_frame));
   frame->is_free = 1;
   
   struct malloc_frame* next_frame = frame->next;
@@ -76,7 +78,6 @@ void free(void* ptr){
 } 
 
 void print_malloc_frames(void){
-  extern int printf(const char* format, ...);
   printf("MALLOC FRAMES:\n");
   int total_size = 0;
   for(struct malloc_frame* curr_frame = (struct malloc_frame*)HEAP_START; curr_frame; curr_frame = curr_frame->next){
@@ -86,5 +87,5 @@ void print_malloc_frames(void){
       curr_frame, curr_frame->is_free ? "FREE" : "NOT_FREE", curr_frame->size, curr_frame->prev, curr_frame->next);
   }
   printf("TOTAL SIZE:   %#010x\n\n", total_size);
-  if(total_size != HEAP_END - HEAP_START) printf("WARNING: TOTAL SIZE DOESN'T MATCH THE HEAP SIZE!\n");
+  if(total_size != (byte*)HEAP_END - (byte*)HEAP_START) printf("WARNING: TOTAL SIZE DOESN'T MATCH THE HEAP SIZE!\n");
 }

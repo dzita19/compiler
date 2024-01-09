@@ -167,7 +167,7 @@ Obj predefined_types_obj[PREDEFINED_TYPES_COUNT] = {
 };
 
 Struct predefined_types_struct[PREDEFINED_TYPES_COUNT] = {
-  [  VOID_T] = { predefined_types_obj +   VOID_T, STRUCT_DIRECT, TYPE_INCOMPLETE, 0, { 0, 0 }, { 0, 0 }, 0, 1, 1 },
+  [  VOID_T] = { predefined_types_obj +   VOID_T, STRUCT_DIRECT, TYPE_INCOMPLETE, 0, { 0, 0 }, { 0, 0 }, 0, 0, 0 },
   [  INT8_T] = { predefined_types_obj +   INT8_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 1, 1 },
   [ UINT8_T] = { predefined_types_obj +  UINT8_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 1, 1 },
   [ INT16_T] = { predefined_types_obj +  INT16_T, STRUCT_DIRECT, TYPE_OBJECT,     0, { 0, 0 }, { 0, 0 }, 0, 2, 2 },

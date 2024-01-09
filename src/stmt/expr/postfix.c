@@ -147,7 +147,7 @@ void FunctionCallExpr(){
 
     DerefExpr();
     StackPush(&tree->stack, fcall);
-    BasicAssignExpr(0);
+    BasicAssignExpr(1);
 
     // storage_node = TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
 
@@ -165,15 +165,20 @@ void FunctionCallExpr(){
 }
 
 void FieldRefExpr(){
-  TreeNode* operand = StackPop(&tree->stack);
+  TreeNode* operand = StackPeek(&tree->stack);
 
-  if(operand->expr_node == 0) return;
+  if(operand->expr_node == 0) {
+    StringDrop(QueueDelete(&identifier_queue));
+    return;
+  }
 
   const char* member_name = QueueDelete(&identifier_queue);
 
+  int aggregate_qualifiers = operand->expr_node->type->kind == STRUCT_QUALIFIED ? operand->expr_node->type->attributes : 0;
   Struct* type = StructGetUnqualified(operand->expr_node->type);
   if(!StructIsStructOrUnion(type)){
     ReportError("Field can be referenced only on struct or union objects.");
+    StringDrop(member_name);
     return;
   }
 
@@ -187,15 +192,51 @@ void FieldRefExpr(){
     return;
   }
 
-  StackPush(&tree->stack, operand);
+  // add fieldref between deref and address
+  if(operand->production == DEREF_EXPR){
+    TreeNode* address = operand->children[0];
+    address->parent      = 0;
+    operand->children[0] = 0;
 
-  TreeNode* node  = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
-  node->expr_node = ExprNodeCreateEmpty();
-  node->expr_node->address = member->address;
-  node->expr_node->kind = LVALUE;
-  node->expr_node->type = member->type;
+    StackPop(&tree->stack); // pop
+    StackPush(&tree->stack, address);
 
-  TryFold();
+    // take into consideration qualifier propagation
+    int member_qualifiers = member->type->kind == STRUCT_QUALIFIED ? member->type->attributes : 0;
+    Struct* member_type = StructQualify(StructGetUnqualified(member->type), aggregate_qualifiers | member_qualifiers);
+
+    TreeNode* node  = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
+    node->expr_node = ExprNodeCreateEmpty();
+    node->expr_node->address = member->address;
+    node->expr_node->kind = RVALUE;
+    node->expr_node->type = StructToPtr(member_type);
+
+    TryFold();
+    
+    TreeNode* deref = TreeInsertNode(tree, DEREF_EXPR, 1);
+    deref->expr_node = ExprNodeCreateEmpty();
+    deref->expr_node->kind = operand->expr_node->kind;
+    deref->expr_node->type = member_type;
+
+    TreeNodeDrop(operand);
+  }
+  // add fieldref, then add deref
+  else{
+    // take into consideration qualifier propagation
+    int member_qualifiers = member->type->kind == STRUCT_QUALIFIED ? member->type->attributes : 0;
+    Struct* member_type = StructQualify(StructGetUnqualified(member->type), aggregate_qualifiers | member_qualifiers);
+
+    TreeNode* node  = TreeInsertNode(tree, FIELD_REF_EXPR, 1);
+    node->expr_node = ExprNodeCreateEmpty();
+    node->expr_node->address = member->address;
+    node->expr_node->kind = RVALUE;
+    node->expr_node->type = StructToPtr(member_type);
+
+    TreeNode* deref = TreeInsertNode(tree, DEREF_EXPR, 1);
+    deref->expr_node = ExprNodeCreateEmpty();
+    deref->expr_node->kind = RVALUE;
+    deref->expr_node->type = member_type;
+  }
 
   // FieldRefPropagateOffset(node, member->type, member->address);
 }
@@ -226,6 +267,11 @@ void IncDecExpr(Production production){
 
   if(!StructIsScalar(type)){
     ReportError("Increment only scalar values.");
+    return;
+  }
+
+  if(StructIsPointer(type) && type->parent->type != TYPE_OBJECT){
+    ReportError("Increment is allowed only on pointers-to-objects.");
     return;
   }
 

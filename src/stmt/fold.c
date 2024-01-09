@@ -156,41 +156,50 @@ static int CastAddressFold(void){
 
 static int FieldRefFold(void){
   TreeNode* field_ref = StackPeek(&tree->stack);
-  TreeNode* lval      = field_ref->children[0];
+  TreeNode* address = field_ref->children[0];
 
-  if(lval->production == DEREF_EXPR){
-    TreeNode* address = lval->children[0];
+  if(address->production == ADDRESS_PRIMARY
+      || address->production == CONSTANT_PRIMARY
+      || address->production == STRING_PRIMARY) {
 
-    if(address->production != ADDRESS_PRIMARY
-      && address->production != CONSTANT_PRIMARY
-      && address->production != STRING_PRIMARY) return 0;
-
-    address->expr_node->type = StructToPtr(field_ref->expr_node->type);
+    address->expr_node->type = field_ref->expr_node->type;
     address->expr_node->address += field_ref->expr_node->address;
 
-    lval->expr_node->type = field_ref->expr_node->type;
-
-    lval->parent           = 0;
     field_ref->children[0] = 0;
     field_ref->parent      = 0;
 
     TreeNodeDrop(StackPop(&tree->stack));
-    StackPush(&tree->stack, lval);
+    StackPush(&tree->stack, address);
     return 1;
   }
-  else if(lval->production == FIELD_REF_EXPR){
-    lval->expr_node->type = field_ref->expr_node->type;
-    lval->expr_node->address += field_ref->expr_node->address;
+  else if(address->production == FIELD_REF_EXPR){
+    address->expr_node->type = field_ref->expr_node->type;
+    address->expr_node->address += field_ref->expr_node->address;
 
-    lval->parent           = 0;
+    address->parent        = 0;
     field_ref->children[0] = 0;
     field_ref->parent      = 0;
 
     TreeNodeDrop(StackPop(&tree->stack));
-    StackPush(&tree->stack, lval);
+    StackPush(&tree->stack, address);
     return 1;
   }
   else return 0;
+  
+    
+  // else if(lval->production == FIELD_REF_EXPR){
+  //   lval->expr_node->type = field_ref->expr_node->type;
+  //   lval->expr_node->address += field_ref->expr_node->address;
+
+  //   lval->parent           = 0;
+  //   field_ref->children[0] = 0;
+  //   field_ref->parent      = 0;
+
+  //   TreeNodeDrop(StackPop(&tree->stack));
+  //   StackPush(&tree->stack, lval);
+  //   return 1;
+  // }
+  // else return 0;
 }
 
 // returns whether the fold happened or not

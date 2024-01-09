@@ -41,12 +41,6 @@ void AddressExpr(){
     return;
   }
 
-  // if(node->production == VALUE_PRIMARY){
-  //   node->production = ADDRESS_PRIMARY;
-  //   node->expr_node->kind = ADDRESS_OF;
-  //   node->expr_node->type = StructToPtr(node->expr_node->type);
-  // }
-  // else 
   if(node->production == DEREF_EXPR){
     TreeNode* primary = node->children[0];
     primary->parent = node->parent; // primary->parent = 0;

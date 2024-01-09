@@ -198,16 +198,16 @@ static int PushAddOpt(int current_instr){
   if(operation->addr    != IR_ADDR_DIRECT) return 0;
 
   // add 0 is always optimized out
-  if(operation->offset == 0){
-    operation->opcode     = IR_NOP;
-    operation->addr       = IR_ADDR_DIRECT;
-    operation->operand    = IR_OP_NO_OPERAND;
-    operation->obj_ref    = 0;
-    operation->string_ref = 0;
-    operation->offset     = 0;
+  // if(operation->offset == 0){
+  //   operation->opcode     = IR_NOP;
+  //   operation->addr       = IR_ADDR_DIRECT;
+  //   operation->operand    = IR_OP_NO_OPERAND;
+  //   operation->obj_ref    = 0;
+  //   operation->string_ref = 0;
+  //   operation->offset     = 0;
 
-    return 1;
-  }
+  //   return 1;
+  // }
 
   int operand_index = InstrFindOperand(current_instr, 0); // push
   IrInstr* operand  = VectorGet(ir_sequence, operand_index);
@@ -244,16 +244,16 @@ static int PushSubOpt(int current_instr){
   if(operation->addr    != IR_ADDR_DIRECT) return 0;
 
   // sub 0 is always optimized out
-  if(operation->offset == 0){
-    operation->opcode     = IR_NOP;
-    operation->addr       = IR_ADDR_DIRECT;
-    operation->operand    = IR_OP_NO_OPERAND;
-    operation->obj_ref    = 0;
-    operation->string_ref = 0;
-    operation->offset     = 0;
+  // if(operation->offset == 0){
+  //   operation->opcode     = IR_NOP;
+  //   operation->addr       = IR_ADDR_DIRECT;
+  //   operation->operand    = IR_OP_NO_OPERAND;
+  //   operation->obj_ref    = 0;
+  //   operation->string_ref = 0;
+  //   operation->offset     = 0;
 
-    return 1;
-  }
+  //   return 1;
+  // }
 
   int operand_index = InstrFindOperand(current_instr, 0); // push
   IrInstr* operand  = VectorGet(ir_sequence, operand_index);
