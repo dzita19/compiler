@@ -47,8 +47,11 @@
 %token CHAR_ SHORT_ INT_ LONG_ SIGNED_ UNSIGNED_ FLOAT_ DOUBLE_ CONST_ VOLATILE_ VOID_
 %token STRUCT_ UNION_ ENUM_ ELLIPSIS
 
-%token CASE_ DEFAULT_ IF_ ELSE_ SWITCH_ WHILE_ DO_ FOR_ GOTO_ CONTINUE_ BREAK_ RETURN_
+%token CASE_ DEFAULT_ IF_ SWITCH_ WHILE_ DO_ FOR_ GOTO_ CONTINUE_ BREAK_ RETURN_
 %token ASM_
+
+%precedence THEN_
+%precedence ELSE_
 
 %start translation_unit
 %%
@@ -551,7 +554,7 @@ switch_open
 	;
 
 selection_statement
-	: if_open 		'(' control_expression ')' statement 											{ IfStmt(); }
+	: if_open 		'(' control_expression ')' statement %prec THEN_					{ IfStmt();     }
 	| if_open 		'(' control_expression ')' statement else_open statement 	{ IfElseStmt(); }
 	| switch_open '(' control_expression ')' statement 											{ SwitchStmt(); }
 	;

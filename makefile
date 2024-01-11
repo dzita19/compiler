@@ -10,9 +10,10 @@ BISON_SPEC = parser_spec.y
 
 FLEX_OUTFILE  = lex.yy.c
 BISON_OUTFILE = y.tab.c
+BISON_SYMBOLS = y.tab.h
 
-C_SOURCE_LIST = src/yy/$(FLEX_OUTFILE) \
-	src/yy/$(BISON_OUTFILE) \
+C_SOURCE_LIST = src/yy/$(BISON_OUTFILE) \
+	src/yy/$(FLEX_OUTFILE) \
 	src/compiler_main.c \
 	src/util/array.c \
 	src/util/linked_list.c \
@@ -79,13 +80,12 @@ ifeq ($(DEBUG_ENABLED), 1)
 FLAGS += $(FLAGS_DEBUG)
 endif
 
-all: parser_gen lexer_gen $(BUILD_DIR)/$(PROGRAM) $(BUILD_DIR)/$(WRAPPER)
-	$(info BUILT WITHOUT ERRORS)
+all: src/yy/$(BISON_OUTFILE) src/yy/$(FLEX_OUTFILE) $(BUILD_DIR)/$(PROGRAM) $(BUILD_DIR)/$(WRAPPER)
 
-parser_gen: $(SPEC_DIR)/$(BISON_SPEC) makefile
-	$(BISON_PATH) -Wconflicts-sr -d -o src/yy/$(BISON_OUTFILE) $(SPEC_DIR)/$(BISON_SPEC)
+src/yy/$(BISON_OUTFILE): $(SPEC_DIR)/$(BISON_SPEC) makefile
+	$(BISON_PATH) -d -o src/yy/$(BISON_OUTFILE) $(SPEC_DIR)/$(BISON_SPEC)
 
-lexer_gen: $(SPEC_DIR)/$(FLEX_SPEC) makefile
+src/yy/$(FLEX_OUTFILE): $(SPEC_DIR)/$(FLEX_SPEC) src/yy/$(BISON_SYMBOLS) makefile
 	$(FLEX_PATH) --outfile=src/yy/$(FLEX_OUTFILE) $(SPEC_DIR)/$(FLEX_SPEC)
 
 clean:

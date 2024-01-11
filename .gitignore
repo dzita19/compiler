@@ -1,1 +1,11 @@
-build/
+build/**
+src/yy/y.tab.c
+src/yy/y.tab.h
+src/yy/lex.yy.c
+std/*.o
+temp/**
+test/*.ir
+test/*.txt
+test/*.s
+test/*.o
+test/*.hex
