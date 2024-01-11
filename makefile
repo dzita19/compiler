@@ -83,7 +83,7 @@ all: parser_gen lexer_gen $(BUILD_DIR)/$(PROGRAM) $(BUILD_DIR)/$(WRAPPER)
 	$(info BUILT WITHOUT ERRORS)
 
 parser_gen: $(SPEC_DIR)/$(BISON_SPEC) makefile
-	$(BISON_PATH) -d -o src/yy/$(BISON_OUTFILE) $(SPEC_DIR)/$(BISON_SPEC)
+	$(BISON_PATH) -Wconflicts-sr -d -o src/yy/$(BISON_OUTFILE) $(SPEC_DIR)/$(BISON_SPEC)
 
 lexer_gen: $(SPEC_DIR)/$(FLEX_SPEC) makefile
 	$(FLEX_PATH) --outfile=src/yy/$(FLEX_OUTFILE) $(SPEC_DIR)/$(FLEX_SPEC)

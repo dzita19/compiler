@@ -41,6 +41,7 @@ void IdentifierPrimary(void){
     node->expr_node->address = obj_ref->address;
   }
   else {
+    TreeInsertNode(tree, CONSTANT_PRIMARY, 0);
     ReportError("Illegal symbol kind.");
     return;
   }

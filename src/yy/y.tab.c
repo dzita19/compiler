@@ -2380,7 +2380,7 @@ yyreduce:
 
   case 114:
 #line 271 "spec/parser_spec.y"
-                        { TagTypeRef(TAG_STRUCT); }
+                          { TagTypeRef(TAG_STRUCT); }
 #line 2385 "src/yy/y.tab.c"
     break;
 

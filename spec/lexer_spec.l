@@ -11,6 +11,7 @@ IS			(u|U|l|L)*
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "y.tab.h"
 #include "decl/declarations.h"
@@ -137,7 +138,7 @@ int yywrap();
 "?"						{ count(); return('?'); }
 
 [ \t\v\n\f]		{ count(); }
-.			{ /* ignore bad characters */ }
+.							{ count(); printf("Illegal token\n"); return(-1); }
 
 %%
 
@@ -207,14 +208,17 @@ int check_identifier_type(){
 
 	TypeFrame* type_frame = StackPeek(&type_stack);
 
-	if(type_frame->type_specifiers != 0 || type_frame->current_type != 0) {
-		//printf("identifier1\n");
+	// if((type_frame->type_specifiers != 0 || type_frame->current_type != 0) && initializer_expression == 0) {
+	if(type_frame->identifier_expected){
+		// printf("forced identifier %s\n", yytext);
+		// fflush(stdout);
 		return IDENTIFIER;
 	}
-
-	Obj* obj_ref = SymtabFindNamespace(symtab, yytext, NAMESPACE_ORDINARY);
-	if(obj_ref == 0 || obj_ref->kind != OBJ_TYPE) return IDENTIFIER;
-	else return TYPE_NAME;
+	else{
+		Obj* obj_ref = SymtabFindNamespace(symtab, yytext, NAMESPACE_ORDINARY);
+		if(obj_ref == 0 || obj_ref->kind != OBJ_TYPE) return IDENTIFIER;
+		else return TYPE_NAME;
+	}
 }
 
 void count()

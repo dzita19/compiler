@@ -879,6 +879,7 @@ void DeclaratorInitialized(){
     StringDrop(name_frame->name);
   }
   name_frame->name = 0;
+  initializer_expression = 1;
 }
 
 void AbstractDeclarator(){

@@ -25,7 +25,7 @@ static Obj* TagDeclaration(int defined){
   return tag_obj;
 }
 
-void Declaration(){
+void Declaration(void){
   TypeFrameClear(StackPeek(&type_stack));
 }
 
@@ -129,7 +129,7 @@ void DeclarationSpecifiers(int try_redeclare){
   }
 }
 
-void FullDeclarationSpecifiers(){
+void FullDeclarationSpecifiers(void){
   TypeFrame* type_frame = StackPeek(&type_stack);
   type_frame->full_decl_specifiers = 1;
 
@@ -137,7 +137,7 @@ void FullDeclarationSpecifiers(){
   DeclarationSpecifiers(try_redeclare);
 }
 
-void RedeclarationSpecifiers(){
+void RedeclarationSpecifiers(void){
   TypeFrame* type_frame = StackPeek(&type_stack);
  
   int try_redeclare = type_frame->storage_specifier == NO_STORAGE_CLASS && (type_frame->type_qualifiers == 0);
@@ -165,6 +165,7 @@ void TypeSpecifierRef(TypeSpecifier specifier){
     return;
   }
   type_frame->type_specifiers |= specifier;
+  type_frame->identifier_expected = 1;
 }
 
 void TypeQualifierRef(TypeQualifier qualifier){
@@ -188,11 +189,14 @@ void TypedefName(){
     return;
   }
   type_frame->current_type = obj_ref;
+  type_frame->identifier_expected  = 1;
 }
 
 void TagTypeRef(int tag_type){
   NameFrame* name_frame = StackPeek(&name_stack);
+  TypeFrame* type_frame = StackPeek(&type_stack);
   name_frame->tag_type = tag_type;
+  type_frame->identifier_expected = 1;
 
   TypeSpecifierRef(CUSTOM_TYPE); // test
 }

@@ -26,6 +26,7 @@ uint8_t ellipsis                = 0;
 uint8_t current_qualifiers      = 0;
 uint8_t current_function_level  = 0;
 int32_t current_enum_constant   = 0;
+int32_t initializer_expression  = 0;
 
 uint8_t block_level             = 0;
 Obj*    latest_function_decl    = 0;
@@ -46,6 +47,7 @@ TypeFrame* TypeFrameCreateEmpty(void){
   type_frame->type_specifiers      = 0;
   type_frame->type_qualifiers      = 0;
   type_frame->full_decl_specifiers = 0;
+  type_frame->identifier_expected  = 0;
 
   type_frame_alloc++;
 
@@ -64,6 +66,7 @@ void TypeFrameClear(TypeFrame* type_frame){
   type_frame->type_specifiers      = 0;
   type_frame->type_qualifiers      = 0;
   type_frame->full_decl_specifiers = 0;
+  type_frame->identifier_expected  = 0;
 }
 
 NameFrame* NameFrameCreateEmpty(){

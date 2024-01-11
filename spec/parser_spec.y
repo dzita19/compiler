@@ -268,7 +268,7 @@ struct_or_union_specifier
 	;
 
 struct_or_union
-	: STRUCT_	{ TagTypeRef(TAG_STRUCT); }
+	: STRUCT_	  { TagTypeRef(TAG_STRUCT); }
 	| UNION_		{ TagTypeRef(TAG_UNION); }
 	;
 

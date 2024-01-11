@@ -13,13 +13,14 @@ static int32_t initializer_count = 0; // used for finalizing arrays of unspec le
 
 static int32_t total_init_count  = 0; // used for initializer list node
 
-void FullInitialization(){
+void FullInitialization(void){
   if(current_obj_definition && (current_obj_definition->specifier & STORAGE_FETCH) == STORAGE_AUTO){
     TreeInsertNode(tree, INITIALIZATION, total_init_count);
     total_init_count = 0;
 
     Statement();
   }
+  initializer_expression = 0; // end of initializer expression
 
   if(initializer_error != 0) {
     initializer_error = 0;
