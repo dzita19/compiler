@@ -40,8 +40,6 @@ extern uint8_t ellipsis;
 extern uint8_t current_qualifiers;
 extern uint8_t current_function_level;
 extern int32_t current_enum_constant;
-extern int32_t initializer_expression; // designates whether the initializer expression is being currently parsed
-  // this can affect whether a symbol will be considered an object or a typedef
 
 extern uint8_t block_level;
 extern Obj*    current_function_body;
@@ -67,7 +65,8 @@ typedef struct TypeFrame{
   int full_decl_specifiers;
   int identifier_expected; // tells compiler to force identifier lexing instead of checking symtab
     // this is necessary after using typedef inside declaration specifier (since we are declaring a variable of a custom type)
-    //  and is necessary after using struct-union-enum keywords for declaring new tag (it's in its own namespace)
+    // and  is necessary after using struct-union-enum keywords for declaring new tag (it's in its own namespace)
+    // reset after declarator: it has to be 0 for initialization expression to work, and then set it to 1 for next declarator
 } TypeFrame;
 
 TypeFrame*  TypeFrameCreateEmpty(void);

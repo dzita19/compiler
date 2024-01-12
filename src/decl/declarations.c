@@ -26,7 +26,6 @@ uint8_t ellipsis                = 0;
 uint8_t current_qualifiers      = 0;
 uint8_t current_function_level  = 0;
 int32_t current_enum_constant   = 0;
-int32_t initializer_expression  = 0;
 
 uint8_t block_level             = 0;
 Obj*    latest_function_decl    = 0;

@@ -1,9 +1,9 @@
-// extern int putchar(int);
-// extern int printf(const char* format, ...);
+extern int putchar(int);
+extern int printf(const char* format, ...);
 
-// extern void* malloc(int size);
-// extern void  free(void* ptr);
-// extern void  print_malloc_frames(void);
+extern void* malloc(int size);
+extern void  free(void* ptr);
+extern void  print_malloc_frames(void);
 
 // struct str1 {
 //   int x;
@@ -86,7 +86,11 @@
 //   x + byte;
 // }
 
-int main(void){
-  int x, y;
-  if(x) if(y); else;
+int main(int argc, char** argv){
+  for(int i = 0; i < argc; i++){
+    printf("%s ", argv[i]);
+  }
+  putchar('\n');
+
+  struct a { int x, y; } b = { 1, 2, 3 };
 }

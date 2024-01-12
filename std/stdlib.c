@@ -10,7 +10,7 @@ static const void* HEAP_END   = (void*)0x00080000;
 
 extern int printf(const char* format, ...);
 
-typedef char* byte;
+typedef char byte;
 
 void* malloc(unsigned size){
   // printf("ENTER MALLOC\n");

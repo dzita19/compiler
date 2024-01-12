@@ -20,7 +20,8 @@ void FullInitialization(void){
 
     Statement();
   }
-  initializer_expression = 0; // end of initializer expression
+  TypeFrame* type_frame = StackPeek(&type_stack);
+  type_frame->identifier_expected = 1;
 
   if(initializer_error != 0) {
     initializer_error = 0;

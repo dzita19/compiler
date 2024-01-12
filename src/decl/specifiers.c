@@ -132,6 +132,7 @@ void DeclarationSpecifiers(int try_redeclare){
 void FullDeclarationSpecifiers(void){
   TypeFrame* type_frame = StackPeek(&type_stack);
   type_frame->full_decl_specifiers = 1;
+  type_frame->identifier_expected  = 0;
 
   int try_redeclare = 0;
   DeclarationSpecifiers(try_redeclare);
