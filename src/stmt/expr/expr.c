@@ -68,7 +68,7 @@ void ExprNodeDump(ExprNode* node){
     break;
 
   case STR_LITERAL:
-    printf("Value: %s", (const char*)string_table->content[node->string_ref]);
+    printf("Value: \"%s\"", (const char*)string_table->content[node->string_ref]);
     printf("; Type: ");
     StructDump(node->type);
     break;
@@ -170,6 +170,43 @@ void ConvertChildToPointer(TreeNode* node, int index){
   TreeNodeDrop(child);
 }
 
+TreeNode* ConvertTreeNodeToArithmetic(TreeNode* node){
+  if(SubexprIsArithmetic(node)) return node;
+
+  StackPush(&tree->stack, node);
+  InsertConstant(1);
+  InsertConstant(0);
+
+  CondExpr();
+  
+  return StackPop(&tree->stack);
+}
+
+TreeNode* ConvertTreeNodeToLogic(TreeNode* node){
+  if(SubexprIsLogic(node)) return node;
+
+  StackPush(&tree->stack, node);
+  InsertConstant(0);
+  
+  EqualityExpr(RELA_NQ_EXPR);
+  
+  return StackPop(&tree->stack);
+}
+
+TreeNode* ConvertTreeNodeToPointer(TreeNode* node){
+  TreeNode* ptr_node = node->children[0];
+  ptr_node->expr_node->type = StructIsArray(node->expr_node->type) 
+    ? StructArrayToPtr(node->expr_node->type)
+    : StructFunctionToPtr(node->expr_node->type);
+
+  ptr_node->parent = NULL;
+  node->children[0] = NULL;
+
+  TreeNodeDrop(node);
+
+  return ptr_node;
+}
+
 void ExprDivideByConst (TreeNode* node, Struct* type, int value){
   if(value == 0 || value == 1) return;
 
@@ -208,6 +245,23 @@ void SubexprImplCast(TreeNode* node, int index, Struct* type){
 
   node->children[index] = StackPop(&tree->stack);
   node->children[index]->parent = node;
+}
+
+TreeNode* ExprImplCast(TreeNode* node, Struct* type){
+  if(!StructIsScalar(type) || !StructIsScalar(node->expr_node->type)) return node;
+
+  if(StructIsPointer(type)) type = predefined_types_struct + UINT32_T; // important - pointers are treated as unsigned int
+
+  Struct* expr_type = node->expr_node->type;
+  if(StructIsPointer(expr_type)) expr_type = predefined_types_struct + UINT32_T;
+
+  if(type == expr_type) return node;
+
+  StackPush(&typename_stack, type);
+  StackPush(&tree->stack, node);
+  CastExpr();
+
+  return StackPop(&tree->stack);
 }
 
 void VoidExpr(void){

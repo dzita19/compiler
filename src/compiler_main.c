@@ -18,8 +18,8 @@ extern Symtab* symtab;
 #define CMD_PARSE_INPUT   0
 #define CMD_PARSE_OUTPUT  1
 
-static const char* input_path    = 0;
-static const char* output_path   = 0;
+static const char* input_path    = NULL;
+static const char* output_path   = NULL;
 static int         parse_state   = CMD_PARSE_INPUT;
 static int         debug_enabled = 0;
 
@@ -60,7 +60,7 @@ int main(int argc, char** argv){
 
   ParseCmdArgs(argc, argv);
 
-  if(input_path == 0 || output_path == 0){
+  if(input_path == NULL || output_path == NULL){
     parse_state = CMD_PARSE_ERROR;
   }
   
@@ -74,7 +74,7 @@ int main(int argc, char** argv){
   input_path_name = input_path;
 	yyin = fopen(input_path, "r");
 
-  if(yyin == 0) {
+  if(yyin == NULL) {
     printf("Input file not found.\n");
     return 1;
   }
@@ -86,7 +86,7 @@ int main(int argc, char** argv){
     if(debug_enabled) printf("Parsing finished successfully.\n");
     if(semantic_errors == 0) {
       ccout = fopen(output_path, "w");
-      if(ccout == 0){
+      if(ccout == NULL){
         printf("Output file cannot be generated.\n");
         return 1;
       }

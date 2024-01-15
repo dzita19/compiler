@@ -3,9 +3,16 @@
 
 #include "declarations.h"
 
-void FullInitialization(void);
+// current active member to be initialized is designated by:
+// field (if it's != NULL) or index (if it's >=0) value inside InitFrame object
+// the active member's type (if above conditions are not met)
 
-void InitializerOpen(void);   // handles errors of openning scalar fields
+// current_obj_definition is considered only when linking initialization with and Obj*
+
+void FullInitialization(void);
+void NotCompoundLiteral(void);
+
+void InitializerOpen(void);   // handles errors of opening scalar fields
 void InitializerClose(void);
 void Initializer(void);       // handles errors of invalid assignments
 

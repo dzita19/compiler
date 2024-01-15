@@ -27,4 +27,6 @@ void hex_char_lit(const char* str);
 
 void string_lit(const char*);
 
+int check_identifier_type(void);
+
 #endif

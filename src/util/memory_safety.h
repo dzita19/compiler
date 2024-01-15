@@ -24,16 +24,20 @@ extern int vector_alloc;
 extern int vector_free;
 extern int array_alloc;
 extern int array_free;
+extern int stack_alloc;
+extern int stack_free;
 
 // declarations
 extern int type_frame_alloc;
 extern int type_frame_free;
 extern int name_frame_alloc;
 extern int name_frame_free;
-extern int init_frame_alloc;
-extern int init_frame_free;
 extern int const_expr_alloc;
 extern int const_expr_free;
+extern int init_frame_alloc;
+extern int init_frame_free;
+extern int init_val_alloc;
+extern int init_val_free;
 
 // statements
 extern int tree_node_alloc;

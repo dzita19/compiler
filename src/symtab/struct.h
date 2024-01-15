@@ -56,6 +56,13 @@ typedef enum StructType{
   TYPE_INCOMPLETE,
 } StructType;
 
+typedef enum AssignStatus{
+  ASSIGN_OK,
+  ASSIGN_ERROR_POINTER_INCOMPATIBLE,
+  ASSIGN_ERROR_POINTER_QUALIFICATION,
+  ASSIGN_ERROR_INCOMPATIBLE_TYPES,
+} AssignStatus;
+
 struct Obj;
 
 typedef struct Struct {
@@ -99,43 +106,48 @@ extern Struct* StructProcessIndirections(
   Stack* parameters
 ); // returns 0 if error
 
-extern void       StructCompleted(Struct*);
-extern Struct*    StructGetUnqualified(Struct*);
-extern Struct*    StructGetParentUnqualified(Struct*);
+extern void          StructCompleted(Struct*);
+extern Struct*       StructGetUnqualified(Struct*);
+extern Struct*       StructGetParentUnqualified(Struct*);
 
-extern Struct*    StructStringLiteral();
-extern Struct*    StructVoidPtr();
+extern Struct*       StructStringLiteral();
+extern Struct*       StructVoidPtr();
 
-extern Struct*    StructToPtr(Struct* str);
-extern Struct*    StructArrayToPtr(Struct* array);
-extern Struct*    StructFunctionToPtr(Struct* function);
-extern Struct*    StructQualify(Struct* str, int qualifiers);
-extern Struct*    StructGetHigherRank(Struct* str);
-extern Struct*    StructGetExprIntType(Struct* str1, Struct* str2);
-extern Struct*    StructArrayLengthSpecification(Struct* str, uint32_t length);
+extern Struct*       StructToPtr(Struct* str);
+extern Struct*       StructArrayToPtr(Struct* array);
+extern Struct*       StructFunctionToPtr(Struct* function);
+extern Struct*       StructQualify(Struct* str, int qualifiers);
+extern Struct*       StructGetHigherRank(Struct* str);
+extern Struct*       StructGetExprIntType(Struct* str1, Struct* str2);
+extern Struct*       StructArrayLengthSpecification(Struct* str, uint32_t length);
 
-extern int        StructIsVoid(Struct* str);
-extern int        StructIsVoidPtr(Struct* str);
-extern int        StructIsInteger(Struct* str);
-extern int        StructIsArithmetic(Struct* str);
-extern int        StructIsChar(Struct* str);
-extern int        StructIsScalar(Struct* str);
-extern int        StructIsPointer(Struct* str);
-extern int        StructIsPointerToObject(Struct* str);
-extern int        StructIsFunctionPtr(Struct* str);
-extern int        StructIsArray(Struct* str);
-extern int        StructIsFunction(Struct* str);
-extern int        StructIsPrototype(Struct* str);
-extern int        StructIsNonprototype(Struct* str);
-extern int        StructIsAggregate(Struct* str);
-extern int        StructIsStructOrUnion(Struct* str);
-extern int        StructIsEnum(Struct* str);
-extern int        StructIsModifiable(Struct* str);
-extern int        StructIsCastable(Struct* from, Struct* into);
+extern int           StructIsVoid(Struct* str);
+extern int           StructIsVoidPtr(Struct* str);
+extern int           StructIsInteger(Struct* str);
+extern int           StructIsArithmetic(Struct* str);
+extern int           StructIsChar(Struct* str);
+extern int           StructIsScalar(Struct* str);
+extern int           StructIsPointer(Struct* str);
+extern int           StructIsPointerToObject(Struct* str);
+extern int           StructIsFunctionPtr(Struct* str);
+extern int           StructIsArray(Struct* str);
+extern int           StructIsFunction(Struct* str);
+extern int           StructIsPrototype(Struct* str);
+extern int           StructIsNonprototype(Struct* str);
+extern int           StructIsAggregate(Struct* str);
+extern int           StructIsStruct(Struct* str);
+extern int           StructIsUnion(Struct* str);
+extern int           StructIsStructOrUnion(Struct* str);
+extern int           StructIsEnum(Struct* str);
+extern int           StructIsModifiable(Struct* str);
+extern int           StructIsCastable(Struct* from, Struct* into);
 
-extern int        StructIsCompatible(Struct* str1, Struct* str2);
-extern int        StructIsCompatibleUnqualified(Struct* str1, Struct* str2);
+extern int           StructIsCompatible(Struct* str1, Struct* str2);
+extern int           StructIsCompatibleUnqualified(Struct* str1, Struct* str2);
 
-extern Struct*    StructComposite(Struct* str1, Struct* str2); // return 0 if error
+extern Struct*       StructComposite(Struct* str1, Struct* str2); // return 0 if error
+
+extern AssignStatus  StructIsAssignable(Struct* dst, Struct* src, int src_is_null_ptr);
+extern AssignStatus  StructIsPassable(Struct* param, Struct* arg, int arg_is_null_ptr);
 
 #endif

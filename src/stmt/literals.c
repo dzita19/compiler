@@ -182,3 +182,27 @@ void string_lit(const char* str){
   
   QueueInsert(&strlit_queue, lit);
 }
+
+#include "symtab/symtab.h"
+#include "decl/declarations.h"
+#include "yy/y.tab.h"
+
+int check_identifier_type(){
+	extern Symtab* symtab;
+	extern Stack   type_stack;
+  extern char*   yytext;
+
+	TypeFrame* type_frame = StackPeek(&type_stack);
+
+	// if((type_frame->type_specifiers != 0 || type_frame->current_type != 0) && initializer_expression == 0) {
+	if(type_frame->identifier_expected){
+		// printf("forced identifier %s\n", yytext);
+		// fflush(stdout);
+		return IDENTIFIER;
+	}
+	else{
+		Obj* obj_ref = SymtabFindNamespace(symtab, yytext, NAMESPACE_ORDINARY);
+		if(obj_ref == 0 || obj_ref->kind != OBJ_TYPE) return IDENTIFIER;
+		else return TYPE_NAME;
+	}
+}

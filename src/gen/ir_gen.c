@@ -919,6 +919,9 @@ void GenerateIntermediate(TreeNode* tree_node){
   case PRE_INC_EXPR:
   case PRE_DEC_EXPR:
 
+  case COMPOUND_LITERAL:
+    break;
+
   case CAST_EXPR:
     GenerateUnary(tree_node);
     break;

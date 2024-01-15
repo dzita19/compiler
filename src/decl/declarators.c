@@ -826,6 +826,29 @@ void IdentifierName(){
   name_frame->name = QueueDelete(&identifier_queue);
 }
 
+// hehe
+// prepare all necessary data so initialization can be processed
+void InitializeInitialization(Obj* current_obj_definition){
+   
+  StackPush(&obj_definiton_stack, current_obj_definition); // #1
+
+  StackPush(&initializer_stack, LinkedListCreateEmpty()); // #2
+
+  InitFrame* first_init_frame = InitFrameCreateEmpty();
+  InitFrameInitializeWithType(first_init_frame, current_obj_definition ? current_obj_definition->type : NULL, 1);
+  Stack* current_init_frames  = StackCreateEmpty();
+  StackPush(current_init_frames, first_init_frame);
+
+  StackPush(&init_frame_stack, current_init_frames); // #3
+
+  StackPush(&init_attrib_stack,
+    (void*)(long)(current_obj_definition 
+    ? ((current_obj_definition->specifier & STORAGE_FETCH) == STORAGE_STATIC)
+    : 0)); // #4
+
+  StackPush(&init_error_stack, 0); // #5
+}
+
 void Declarator(){
   TypeFrame* type_frame = StackPeek(&type_stack);
   NameFrame* name_frame = StackPeek(&name_stack);
@@ -872,14 +895,16 @@ void DeclaratorInitialized(){
     ReportError("Typedef identifier cannot be initialized.");
   }
   else if(StackEmpty(&typedef_stack)){
-    current_obj_definition = declarator_variable(1);
+    // close inside full initialization
+    Obj* current_obj_definition = declarator_variable(1);
+    InitializeInitialization(current_obj_definition);
   }
 
   if(name_frame->name){
     StringDrop(name_frame->name);
   }
-  name_frame->name = 0;
-  type_frame->identifier_expected = 0;
+  name_frame->name = NULL;
+  type_frame->identifier_expected = 0; // initializator expression is expected
 }
 
 void AbstractDeclarator(){

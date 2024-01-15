@@ -11,7 +11,6 @@
 const char* production_names[] = {
   [VOID_EXPR]             = "Void expression",
 
-  // [VALUE_PRIMARY]         = "Value of",
   [ADDRESS_PRIMARY]       = "Address of",
   [CONSTANT_PRIMARY]      = "Constant",
   [STRING_PRIMARY]        = "String",
@@ -20,6 +19,7 @@ const char* production_names[] = {
   [FUNCTION_CALL_EXPR]    = "Function call",
   [POST_INC_EXPR]         = "Postfix inc",
   [POST_DEC_EXPR]         = "Postfix dec",
+  [COMPOUND_LITERAL]      = "Compound literal",
 
   [PRE_INC_EXPR]          = "Prefix inc",
   [PRE_DEC_EXPR]          = "Prefix dec",

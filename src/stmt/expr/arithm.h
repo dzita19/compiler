@@ -7,7 +7,7 @@ void MulExpr(Production);
 void AddExpr();
 void SubExpr();
 
-void BasicAssignExpr(int initializer);
+void SimpleAssignExpr(int initializer);
 void MulAssignExpr(Production);
 void AddAssignExpr();
 void SubAssignExpr();

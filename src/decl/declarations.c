@@ -11,9 +11,13 @@ Stack   type_stack              = (Stack){ 0 };
 Stack   indirection_stack       = (Stack){ 0 };
 Stack   parameter_stack         = (Stack){ 0 };
 Stack   name_stack              = (Stack){ 0 };
+Stack   const_expr_stack        = (Stack){ 0 };
 
 Stack   initializer_stack       = (Stack){ 0 };
-Stack   const_expr_stack        = (Stack){ 0 };
+Stack   init_attrib_stack       = (Stack){ 0 };
+Stack   init_frame_stack        = (Stack){ 0 };
+Stack   init_error_stack        = (Stack){ 0 };
+Stack   obj_definiton_stack     = (Stack){ 0 };
 
 LinkedList static_obj_list      = (LinkedList){ 0, 0 };
 LinkedList label_name_list      = (LinkedList){ 0, 0 };
@@ -34,7 +38,6 @@ Stack   param_scope_stack       = (Stack){ 0 };
 Scope*  func_prototype_scope    = 0;
 uint8_t nonprototype_redecl     = 0;
 
-Obj*    current_obj_definition  = 0;
 int32_t current_static_counter  = 0;
 Stack   stack_frame_stack       = (Stack){ 0 };
 
@@ -97,10 +100,10 @@ void NameFrameClear(NameFrame* name_frame){
 
 InitFrame* InitFrameCreateEmpty(void){
   InitFrame* init_frame = malloc(sizeof(InitFrame));
-  init_frame->kind   = INIT_ERROR;
   init_frame->type   = 0;
   init_frame->field  = 0;
   init_frame->index  = 0;
+  init_frame->xopen  = 0;
   // init_frame->offset = 0;
   // init_frame->parent_offset = 0;
 
@@ -113,6 +116,35 @@ void InitFrameDrop(InitFrame* init_frame){
   free(init_frame);
 
   init_frame_free++;
+}
+
+void InitFrameInitializeWithType(InitFrame* init_frame, Struct* type, int first){
+  if(type == 0) return;
+
+  type = StructGetUnqualified(type);
+
+  if(type->type == TYPE_INCOMPLETE) return;
+  if(StructIsFunction(type)) return;
+
+  if(StructIsArray(type)){
+    init_frame->type  = type;
+    init_frame->index = 0;
+    init_frame->xopen = first ? INIT_FRAME_FIRST_ACTIVE : INIT_FRAME_ACTIVE;
+  }
+  else if(StructIsStruct(type)){
+    init_frame->type  = type;
+    init_frame->field = type->obj->members.first;
+    init_frame->xopen = first ? INIT_FRAME_FIRST_ACTIVE : INIT_FRAME_ACTIVE;
+  }
+  else if(StructIsUnion(type)){
+    init_frame->type  = type;
+    init_frame->field = type->obj->members.first;
+    init_frame->xopen = first ? INIT_FRAME_FIRST_ACTIVE : INIT_FRAME_ACTIVE;
+  }
+  else if(StructIsScalar(type)){
+    init_frame->type  = type;
+    init_frame->xopen = first ? INIT_FRAME_FIRST_ACTIVE : INIT_FRAME_ACTIVE;
+  }
 }
 
 ConstExpr* ConstExprCreateEmpty(void){
@@ -132,6 +164,57 @@ void ConstExprDrop(ConstExpr* const_expr){
   free(const_expr);
 
   const_expr_free++;
+}
+
+#include "stmt/tree.h"
+
+InitVal* InitValCreateEmpty(){
+  InitVal* val = malloc(sizeof(InitVal));
+  val->size       = 0;
+  val->offset     = 0;
+  val->expression = NULL;
+
+  init_val_alloc++;
+
+  return val;
+}
+
+void InitValDrop(InitVal* val){
+  if(val->expression) TreeNodeDrop(val->expression);
+  free(val);
+
+  init_val_free++;
+}
+
+extern int dump_indent;
+
+extern void print_indent();
+
+#include "util/vector.h"
+
+#include "stmt/expr/expr.h"
+
+void InitValDump(InitVal* val){
+  extern Vector* string_table;
+
+  printf("Offset: %d; Size: %d; ", val->offset, val->size);
+  if(val->expression->production == ADDRESS_PRIMARY
+      || val->expression->production == COMPOUND_LITERAL){
+    Obj* obj_ref = val->expression->expr_node->obj_ref; 
+    if((obj_ref->specifier & LINKAGE_FETCH) == LINKAGE_NONE)
+      printf("Address of: $unnamed + %d; ", obj_ref->address);
+    else
+      printf("Address of: %s; ", obj_ref->name);
+  }
+  else if(val->expression->production == CONSTANT_PRIMARY){
+    int value = val->expression->expr_node->address;
+    if(value >= 0) printf("Value: %d; ",  +value);
+    else           printf("Value: -%d; ", -value);
+  }
+  else if(val->expression->production == STRING_PRIMARY){
+    printf("String: \"%s\"; ", (char*)VectorGet(string_table, val->expression->expr_node->string_ref));
+  }
+  else printf("Non-constant");
 }
 
 #include <stdio.h>

@@ -8,7 +8,11 @@ typedef struct StackNode {
 
 typedef struct{
   StackNode* top;
-} Stack; 
+} Stack;
+
+extern Stack* StackCreateEmpty(void);
+extern void   StackDelete(Stack*);
+extern void   StackDrop(Stack*);
 
 extern void   StackPush (Stack* stack, void* info);
 extern void*  StackPop  (Stack* stack);

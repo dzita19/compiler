@@ -18,13 +18,11 @@ void FunctionCallExpr(){
 
   if(!CheckSubexprValidity(node, 1 + args_count)) return;
 
-  // if(node->children[0]->expr_node->type->type == TYPE_FUNCTION){
-  //   ConvertChildToPointer(node, 0);
-  // }
-
+  // convert function to be called
   if(StructIsArray(node->children[0]->expr_node->type)
     || StructIsFunction(node->children[0]->expr_node->type)) ConvertChildToPointer(node, 0);
 
+  // convert args
   for(int i = 1; i < node->num_of_children; i++){
     if(StructIsArray(node->children[i]->expr_node->type)
       || StructIsFunction(node->children[i]->expr_node->type)) ConvertChildToPointer(node, i);
@@ -48,50 +46,22 @@ void FunctionCallExpr(){
         return;
       }
       
-      Struct* current_arg   = StructGetUnqualified(node->children[arg_cntr]->expr_node->type);
       Struct* current_param = StructGetUnqualified(param_node->info);
+      Struct* current_arg   = StructGetUnqualified(node->children[arg_cntr]->expr_node->type);
 
-      if(StructIsArithmetic(current_param) && StructIsArithmetic(current_arg)){
-        // all good
-      }
-      else if(StructIsStructOrUnion(current_param) && StructIsStructOrUnion(current_arg)
-          && StructIsCompatible(current_param, current_arg)){
-        // all good
-      }
-      else if(StructIsPointer(current_param) && StructIsPointer(current_arg)){
-        Struct* pointed_param = StructGetParentUnqualified(current_param);
-        Struct* pointed_arg   = StructGetParentUnqualified(current_arg);
-        
-        if(StructIsCompatible(pointed_param, pointed_arg)){
-          // all good
-        }
-        else if(StructIsVoid(pointed_arg)) {
-          // all good
-        }
-        else if(StructIsVoid(pointed_param)){
-          // all good
-        }
-        else {
-          ReportError("Incompatible argument type for function call.");
-          return;
-        }
-
-        int qualifiers1 = current_param->parent->kind == STRUCT_QUALIFIED ? current_param->parent->attributes : 0;
-        int qualifiers2 = current_arg->parent->kind   == STRUCT_QUALIFIED ? current_arg->parent->attributes   : 0;
-
-        if(qualifiers1 != (qualifiers1 | qualifiers2)){
-          ReportError("Pointed objects qualifications are not compatible for function call.");
-          return;
-        }
-      }
-      else if(StructIsPointer(current_param) && IsNullPointer(node->children[arg_cntr]->expr_node)){
-        // all good
-      }
-      else {
+      switch(StructIsPassable(current_param, current_arg, IsNullPointer(node->children[arg_cntr]->expr_node))){
+      case ASSIGN_OK:
+        break;
+      case ASSIGN_ERROR_INCOMPATIBLE_TYPES:
         ReportError("Incompatible argument type for function call.");
         return;
+      case ASSIGN_ERROR_POINTER_INCOMPATIBLE:
+        ReportError("Incompatible argument pointer type for function call.");
+        return;
+      case ASSIGN_ERROR_POINTER_QUALIFICATION:
+        ReportError("Pointed objects qualifications are not compatible for function call.");
+        return;
       }
-      
 
       // params are aligned to 4byte address
       ConvertChildToArithmetic(node, arg_cntr);
@@ -136,7 +106,7 @@ void FunctionCallExpr(){
 
     // push storage_obj to tree stack
     extern void DerefExpr(void);
-    extern void BasicAssignExpr(int);
+    extern void SimpleAssignExpr(int);
 
     TreeNode* storage_node = TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
 
@@ -147,7 +117,7 @@ void FunctionCallExpr(){
 
     DerefExpr();
     StackPush(&tree->stack, fcall);
-    BasicAssignExpr(1);
+    SimpleAssignExpr(1);
 
     // storage_node = TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
 

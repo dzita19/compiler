@@ -45,10 +45,14 @@ void InsertConstant          (int value);
 void ConvertChildToArithmetic(TreeNode*, int index);
 void ConvertChildToLogic     (TreeNode*, int index);
 void ConvertChildToPointer   (TreeNode*, int index);
+TreeNode* ConvertTreeNodeToArithmetic(TreeNode* node);
+TreeNode* ConvertTreeNodeToLogic     (TreeNode* node);
+TreeNode* ConvertTreeNodeToPointer   (TreeNode* node);
 
 void ExprDivideByConst       (TreeNode*, Struct* type, int value);
 void SubexprMultiplyByConst  (TreeNode*, int index, int value);
 void SubexprImplCast         (TreeNode*, int index, Struct* type);
+TreeNode* ExprImplCast       (TreeNode*, Struct* type);
 
 void VoidExpr(void);
 void CommaExprOpen(void);

@@ -604,6 +604,16 @@ int StructIsAggregate(Struct* str){
     (str->kind == STRUCT_DIRECT && str->obj->kind == OBJ_TAG && (str->obj->specifier & TAG_FETCH) == TAG_STRUCT);
 }
 
+int StructIsStruct(Struct* str){
+  if(str->kind == STRUCT_QUALIFIED) str = str->parent;
+  return (str->kind == STRUCT_DIRECT && str->obj->kind == OBJ_TAG && (str->obj->specifier & TAG_FETCH) == TAG_STRUCT);
+}
+
+int StructIsUnion(Struct* str){
+  if(str->kind == STRUCT_QUALIFIED) str = str->parent;
+  return (str->kind == STRUCT_DIRECT && str->obj->kind == OBJ_TAG && (str->obj->specifier & TAG_FETCH) == TAG_UNION);
+}
+
 int StructIsStructOrUnion(Struct* str){
   if(str->kind == STRUCT_QUALIFIED) str = str->parent;
   return (str->kind == STRUCT_DIRECT && str->obj->kind == OBJ_TAG && (str->obj->specifier & TAG_FETCH) == TAG_STRUCT)
@@ -725,4 +735,90 @@ Struct* StructComposite(Struct* str1, Struct* str2){
   }
 
   return 0;
+}
+
+AssignStatus  StructIsAssignable(Struct* dst, Struct* src, int src_is_null_ptr){
+  dst = StructGetUnqualified(dst);
+  src = StructGetUnqualified(src);
+
+  if(StructIsArithmetic(dst) && StructIsArithmetic(src)){
+    return ASSIGN_OK;
+  }
+  else if(StructIsStructOrUnion(dst) && StructIsStructOrUnion(src)
+      && StructIsCompatible(dst, src)){
+    return ASSIGN_OK;
+  }
+  else if(StructIsPointer(dst) && StructIsPointer(src)){
+    Struct* pointed_src = StructGetParentUnqualified(dst);
+    Struct* pointed_dst = StructGetParentUnqualified(src);
+
+    if(StructIsCompatible(pointed_src, pointed_dst)){
+      return ASSIGN_OK;
+    }
+    else if(StructIsVoid(pointed_src)){ // maybe shouldn't
+      return ASSIGN_OK;
+    }
+    else if(StructIsVoid(pointed_dst)) {
+      return ASSIGN_OK;
+    }
+    else {
+      return ASSIGN_ERROR_POINTER_INCOMPATIBLE;
+    }
+
+    int qualifiers_dst = dst->parent->kind == STRUCT_QUALIFIED ? dst->parent->attributes : 0;
+    int qualifiers_src = src->parent->kind == STRUCT_QUALIFIED ? src->parent->attributes : 0;
+
+    if(qualifiers_dst != (qualifiers_dst | qualifiers_src)){
+      return ASSIGN_ERROR_POINTER_QUALIFICATION;
+    }
+  }
+  else if(StructIsPointer(dst) && src_is_null_ptr){
+    return ASSIGN_OK;
+  }
+  else {
+    return ASSIGN_ERROR_INCOMPATIBLE_TYPES;
+  }
+}
+
+AssignStatus StructIsPassable(Struct* param, Struct* arg, int arg_is_null_ptr){
+  param = StructGetUnqualified(param);
+  arg   = StructGetUnqualified(arg);
+
+  if(StructIsArithmetic(param) && StructIsArithmetic(arg)){
+    return ASSIGN_OK;
+  }
+  else if(StructIsStructOrUnion(param) && StructIsStructOrUnion(arg)
+      && StructIsCompatible(param, arg)){
+    return ASSIGN_OK;
+  }
+  else if(StructIsPointer(param) && StructIsPointer(arg)){
+    Struct* pointed_param = StructGetParentUnqualified(param);
+    Struct* pointed_arg   = StructGetParentUnqualified(arg);
+    
+    if(StructIsCompatible(pointed_param, pointed_arg)){
+      return ASSIGN_OK;
+    }
+    else if(StructIsVoid(pointed_arg)) {
+      return ASSIGN_OK;
+    }
+    else if(StructIsVoid(pointed_param)){
+      return ASSIGN_OK;
+    }
+    else {
+      return ASSIGN_ERROR_POINTER_INCOMPATIBLE;
+    }
+
+    int qualifiers_param = param->parent->kind == STRUCT_QUALIFIED ? param->parent->attributes : 0;
+    int qualifiers_arg   = arg->parent->kind   == STRUCT_QUALIFIED ? arg->parent->attributes   : 0;
+
+    if(qualifiers_param != (qualifiers_param | qualifiers_arg)){
+      return ASSIGN_ERROR_POINTER_QUALIFICATION;
+    }
+  }
+  else if(StructIsPointer(param) && arg_is_null_ptr){
+    return ASSIGN_OK;
+  }
+  else {
+    return ASSIGN_ERROR_INCOMPATIBLE_TYPES;
+  }
 }

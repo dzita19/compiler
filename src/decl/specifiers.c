@@ -26,6 +26,8 @@ static Obj* TagDeclaration(int defined){
 }
 
 void Declaration(void){
+  TypeFrame* type_frame = StackPeek(&type_stack);
+  type_frame->identifier_expected  = 0;
   TypeFrameClear(StackPeek(&type_stack));
 }
 
@@ -132,7 +134,6 @@ void DeclarationSpecifiers(int try_redeclare){
 void FullDeclarationSpecifiers(void){
   TypeFrame* type_frame = StackPeek(&type_stack);
   type_frame->full_decl_specifiers = 1;
-  type_frame->identifier_expected  = 0;
 
   int try_redeclare = 0;
   DeclarationSpecifiers(try_redeclare);
@@ -267,6 +268,9 @@ void IsFunctionDefinition(void){
 }
 
 void NotFunctionDefinition(void){
+  TypeFrame* type_frame = StackPeek(&type_stack);
+  type_frame->identifier_expected = 1;
+
   if(func_prototype_scope){
     ScopeDrop(func_prototype_scope);
     func_prototype_scope = 0;

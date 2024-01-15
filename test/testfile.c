@@ -68,29 +68,16 @@ extern void  print_malloc_frames(void);
   
 // }
 
-// typedef int byte;
+struct str1 {
+  const int x, y[3], z;
+};
 
-// struct byte {
-//   byte x;
-// };
+struct str2 {
+  int x;
+};
 
-// int main(void){
-
-//   // int byte;
-//   int byte;
-//   int x;
-//   int f(int a, char byte);
-
-//   struct byte y;
-
-//   x + byte;
-// }
-
-int main(int argc, char** argv){
-  for(int i = 0; i < argc; i++){
-    printf("%s ", argv[i]);
-  }
-  putchar('\n');
-
-  struct a { int x, y; } b = { 1, 2, 3 };
+int main(){
+  int a = { 1 };
+  // struct str1 b = { 1, { 3, }, 5, };
+  // int c[3] = { 1, 2, 3 };
 }

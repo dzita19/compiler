@@ -147,7 +147,7 @@ void SubExpr(){
   TryFold();
 }
 
-void BasicAssignExpr(int initializer){
+void SimpleAssignExpr(int initializer){
   TreeNode* node = TreeInsertNode(tree, ASSIGN_EXPR, 2);
 
   if(!CheckSubexprValidity(node, 2)) return;
@@ -163,52 +163,25 @@ void BasicAssignExpr(int initializer){
     return;
   }
 
-  Struct* op1 = StructGetUnqualified(node->children[0]->expr_node->type);
-  Struct* op2 = StructGetUnqualified(node->children[1]->expr_node->type);
+  Struct* dst = StructGetUnqualified(node->children[0]->expr_node->type);
+  Struct* src = StructGetUnqualified(node->children[1]->expr_node->type);
   Struct* expr_type = 0;
 
-  if(StructIsArithmetic(op1) && StructIsArithmetic(op2)){
-    // all good
-  }
-  else if(StructIsStructOrUnion(op1) && StructIsStructOrUnion(op2)
-      && StructIsCompatible(op1, op2)){
-    // all good
-  }
-  else if(StructIsPointer(op1) && StructIsPointer(op2)){
-    Struct* pointed1 = StructGetParentUnqualified(op1);
-    Struct* pointed2 = StructGetParentUnqualified(op2);
-
-    if(StructIsCompatible(pointed1, pointed2)){
-      // all good
-    }
-    else if(StructIsVoid(pointed1)){ // maybe shouldn't
-      // all good
-    }
-    else if(StructIsVoid(pointed2)) {
-      // all good
-    }
-    else {
-      ReportError("Incompatible types for assignment.");
-      return;
-    }
-
-    int qualifiers1 = op1->parent->kind == STRUCT_QUALIFIED ? op1->parent->attributes : 0;
-    int qualifiers2 = op2->parent->kind == STRUCT_QUALIFIED ? op2->parent->attributes : 0;
-
-    if(qualifiers1 != (qualifiers1 | qualifiers2)){
-      ReportError("Pointed objects qualifications are not compatible for assignment.");
-      return;
-    }
-  }
-  else if(StructIsPointer(op1) && IsNullPointer(node->children[1]->expr_node)){
-    // all good
-  }
-  else {
+  switch(StructIsAssignable(dst, src, IsNullPointer(node->children[1]->expr_node))){
+  case ASSIGN_OK:
+    break;
+  case ASSIGN_ERROR_INCOMPATIBLE_TYPES:
     ReportError("Incompatible types for assignment.");
+    return;
+  case ASSIGN_ERROR_POINTER_INCOMPATIBLE:
+    ReportError("Incompatible pointer types for assignment.");
+    return;
+  case ASSIGN_ERROR_POINTER_QUALIFICATION:
+    ReportError("Pointed objects qualifications are not compatible for assignment.");
     return;
   }
 
-  expr_type = op1;
+  expr_type = dst;
 
   node->expr_node = ExprNodeCreateEmpty();
   node->expr_node->kind = RVALUE;

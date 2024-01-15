@@ -23,9 +23,14 @@ extern Stack type_stack;
 extern Stack indirection_stack;
 extern Stack parameter_stack;
 extern Stack name_stack;
+extern Stack const_expr_stack;    // Stack(ConstExpr*)
 
-extern Stack initializer_stack; // Stack(InitFrame*)
-extern Stack const_expr_stack; // Stack(ConstExpr*)
+extern Stack initializer_stack;   // Stack(LinkedList(InitVal*))
+extern Stack init_attrib_stack;   // Stack(int) - designates whether initializer is static or not
+extern Stack init_frame_stack;    // Stack(Stack(InitFrame*))
+extern Stack init_error_stack;     // error in current initializer
+extern Stack obj_definiton_stack; // Stack(Obj*);
+// extern Obj*    current_obj_definition;
 
 extern LinkedList static_obj_list;  // LinkedList(Obj*)
 extern LinkedList label_name_list;  // LinkedList(char*) - list of symbols that generate a label (also functions)
@@ -53,7 +58,6 @@ extern uint8_t nonprototype_redecl;
   // fdef is decremented every time fparam closed is reduced
   // nonprototype redecl is 1 after completing function declarator and before function body entry
 
-extern Obj*    current_obj_definition;
 extern int32_t current_static_counter;
 extern Stack   stack_frame_stack; // nested stack counter per block
 
@@ -97,20 +101,44 @@ typedef enum InitKind{
   INIT_ERROR,
   INIT_SCALAR,
   INIT_ARRAY,
-  INIT_FIELDS, // denotes struct and union initializer
+  INIT_STRUCT,
+  INIT_UNION,
 } InitKind;
 
+typedef enum InitFrameStatus{
+  INIT_FRAME_FIRST_ACTIVE,
+  INIT_FRAME_ACTIVE,
+  INIT_FRAME_FIRST_OPEN,
+  INIT_FRAME_IMPLICIT_OPEN,
+  INIT_FRAME_EXPLICIT_OPEN,
+} InitFrameStatus;
+
 typedef struct InitFrame{
-  InitKind kind;
   Struct* type;
   Node* field;       // Node(Obj*)
-  int index;
+  unsigned int index;
+  InitFrameStatus xopen;
   // int offset;
   // int parent_offset;
 } InitFrame;
 
 InitFrame* InitFrameCreateEmpty(void);
 void       InitFrameDrop(InitFrame*);
+void       InitFrameInitializeWithType(InitFrame*, Struct* type, int first);
+
+typedef struct TreeNode TreeNode;
+
+typedef struct InitVal{
+  int size;
+  int offset; // offset of the field from the beginning of the object
+  TreeNode* expression;
+} InitVal;
+
+InitVal* InitValCreateEmpty();
+void     InitValDrop(InitVal*);
+void     InitValDump(InitVal*);
+
+void InitValAddToList(InitVal*, LinkedList*);
 
 void StaticObjListDump(void);
 void LabelNameListDump(void);

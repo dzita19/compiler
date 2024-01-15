@@ -37,6 +37,8 @@ int vector_alloc       = 0;
 int vector_free        = 0;
 int array_alloc        = 0;
 int array_free         = 0;
+int stack_alloc        = 0;
+int stack_free         = 0;
 
 // declarations
 int type_frame_alloc   = 0;
@@ -47,6 +49,8 @@ int const_expr_alloc   = 0;
 int const_expr_free    = 0;
 int init_frame_alloc   = 0;
 int init_frame_free    = 0;
+int init_val_alloc     = 0;
+int init_val_free      = 0;
 
 // statements
 int tree_node_alloc    = 0;
@@ -106,12 +110,14 @@ void memory_safety_report(){
   PRINT_REPORT(String,      string_alloc,       string_free);
   PRINT_REPORT(Vector,      vector_alloc,       vector_free);
   PRINT_REPORT(Array,       array_alloc,        array_free);
+  PRINT_REPORT(Stack,       stack_alloc,        stack_free);
   printf("-]\n");
   printf("-Declarations: [\n");
   PRINT_REPORT(TypeFrame,   type_frame_alloc,   type_frame_free);
   PRINT_REPORT(NameFrame,   name_frame_alloc,   name_frame_free);
-  PRINT_REPORT(InitFrame,   init_frame_alloc,   init_frame_free);
   PRINT_REPORT(ConstExpr,   const_expr_alloc,   const_expr_free);
+  PRINT_REPORT(InitFrame,   init_frame_alloc,   init_frame_free);
+  PRINT_REPORT(InitVal,     init_val_alloc,     init_val_free);
   printf("-]\n");
   printf("-Statements: [\n");
   PRINT_REPORT(TreeNode,    tree_node_alloc,    tree_node_free);
