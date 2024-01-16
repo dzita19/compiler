@@ -951,6 +951,41 @@ void NonprototypeParam(void){
   // SymtabInsert(symtab, obj);
 }
 
+void CompoundLiteralType(int is_static){
+  extern Stack typename_stack;
+
+  Obj* anonymous_obj = ObjCreateEmpty();
+  Struct* type = StackPop(&typename_stack);
+
+  // static
+  if(is_static || current_function_body == NULL){
+    anonymous_obj->kind      = OBJ_VAR; 
+    anonymous_obj->type      = type;
+    anonymous_obj->name      = StringDuplicate("$anonymous");
+    anonymous_obj->address   = reserve_unnamed_static(type);
+    anonymous_obj->specifier = STORAGE_STATIC | LINKAGE_NONE | DEFINED;
+    anonymous_obj->init_vals = LinkedListCreateEmpty();
+
+    Node* new_node = NodeCreateEmpty();
+    new_node->info = anonymous_obj;
+
+    LinkedListInsertLast(&static_obj_list, new_node);
+  }
+  // auto
+  else{
+    anonymous_obj->kind      = OBJ_VAR; 
+    anonymous_obj->type      = type;
+    anonymous_obj->name      = StringDuplicate("$anonymous");
+    anonymous_obj->address   = reserve_storage_stack(type);
+    anonymous_obj->specifier = STORAGE_AUTO | LINKAGE_NONE | DEFINED;
+    anonymous_obj->init_vals = NULL;
+  }
+
+  SymtabInsert(symtab, anonymous_obj);
+  
+  InitializeInitialization(anonymous_obj);
+}
+
 void EnumeratorDefault(){
   TypeFrame* type_frame = StackPeek(&type_stack);
   NameFrame* name_frame = StackPeek(&name_stack);

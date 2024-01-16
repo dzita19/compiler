@@ -3,7 +3,7 @@
 #include <string.h>
 
 // semantics of a[b] is the same as of *(a + b) - no need to add a new rule for that
-void ArrayRefExpr(){
+void ArrayRefExpr(void){
   extern void AddExpr(void);
   extern void DerefExpr(void);
 
@@ -11,7 +11,7 @@ void ArrayRefExpr(){
   DerefExpr();
 }
 
-void FunctionCallExpr(){
+void FunctionCallExpr(void){
   int args_count = (int)(long)StackPop(&function_call_stack);
 
   TreeNode* node = TreeInsertNode(tree, FUNCTION_CALL_EXPR, 1 + args_count);
@@ -134,7 +134,7 @@ void FunctionCallExpr(){
   }
 }
 
-void FieldRefExpr(){
+void FieldRefExpr(void){
   TreeNode* operand = StackPeek(&tree->stack);
 
   if(operand->expr_node == 0) {
@@ -211,7 +211,7 @@ void FieldRefExpr(){
   // FieldRefPropagateOffset(node, member->type, member->address);
 }
 
-void PtrRefExpr(){
+void PtrRefExpr(void){
   extern void DerefExpr(void);
   extern void FieldRefExpr(void);
 
@@ -260,14 +260,40 @@ void IncDecExpr(Production production){
   }
 }
 
-void FunctionArgsOpen(){
+void FunctionArgsOpen(void){
   StackPush(&function_call_stack, 0);
 }
 
-void FunctionArgsClose(){
+void FunctionArgsClose(void){
 
 }
 
-void FunctionArg(){
+void FunctionArg(void){
   function_call_stack.top->info++;
+}
+
+void CompoundLiteral(void){
+  Obj* current_obj_definiton = StackPeek(&obj_definiton_stack);
+
+  TreeNode* address = TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
+  address->expr_node = ExprNodeCreateEmpty();
+  address->expr_node->kind    = ADDRESS_OF;
+  address->expr_node->obj_ref = current_obj_definiton;
+  address->expr_node->type    = StructToPtr(current_obj_definiton->type);
+
+  extern void DerefExpr(void);
+  TreeNode* compound_literal = TreeInsertNode(tree, COMPOUND_LITERAL, 2);
+  compound_literal->expr_node = ExprNodeCreateEmpty();
+  compound_literal->expr_node->kind    = ADDRESS_OF;
+  compound_literal->expr_node->obj_ref = current_obj_definiton;
+  compound_literal->expr_node->type    = StructToPtr(current_obj_definiton->type);
+
+  DerefExpr();
+
+  StackPop(&obj_definiton_stack); // #1
+  LinkedListDrop(StackPop(&initializer_stack)); // #2
+  StackDrop(StackPop(&init_frame_stack)); // #3
+  StackPop(&init_attrib_stack); // #4
+  StackPop(&init_error_stack); // #5
+  StackPop(&init_size_stack); // #6
 }

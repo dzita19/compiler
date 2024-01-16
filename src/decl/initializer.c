@@ -15,9 +15,45 @@
 //   this is only a case for expl openned ones - don't check incoming expressions
 //   because impl openned ones are implicitely closed
 
+
+
+static void ZeroInitializeAllMembers(LinkedList* list, Struct* type, int offset){
+  type = StructGetUnqualified(type);
+
+  if(StructIsArray(type)){
+    for(int i = 0; i < type->attributes; i++){
+      ZeroInitializeAllMembers(list, type->parent, offset + type->parent->size * i);
+    }
+  }
+  else if(StructIsStruct(type)){
+    for(Node* node = type->obj->members.first; node; node = node->next){
+      Obj* member = node->info;
+      ZeroInitializeAllMembers(list, member->type, offset + member->address);
+    }
+  }
+  else if(StructIsUnion(type)){
+    ZeroInitializeAllMembers(list, type->obj->members.first->info, offset);
+  }
+  else if(StructIsScalar(type)){
+    InitVal* init_val = InitValCreateEmpty();
+
+    TreeNode* node = TreeInsertNode(tree, CONSTANT_PRIMARY, 0);
+    node->expr_node = ExprNodeCreateEmpty();
+    node->expr_node->address = 0;
+    node->expr_node->type    = type;
+    node->expr_node->kind    = NUM_LITERAL;
+
+    init_val->expression = StackPop(&tree->stack);
+    init_val->offset = offset;
+    init_val->size   = type->size;
+    InitValAddToList(init_val, list);
+  }
+}
+
 // types are always unqualified
 
 // drop all InitFrames if error
+// always insert one initialization node (even if empty)
 void FullInitialization(void){
   
   if(init_error_stack.top->info){
@@ -49,7 +85,20 @@ void FullInitialization(void){
         current_obj_definition->type = StructArrayLengthSpecification(current_obj_definition->type, size_specification);
       }
 
-      for(Node* node = initializer_list->first; node; node = node->next){
+      // initialize all members at least with zero
+      LinkedList* resovled_initializers = LinkedListCreateEmpty();
+      ZeroInitializeAllMembers(resovled_initializers, current_obj_definition->type, 0);
+
+      Node* current_node = initializer_list->first;
+      while(current_node){
+        InitValAddToList(current_node->info, resovled_initializers);
+        Node* old_node = current_node;
+        current_node = old_node->next;
+
+        NodeDrop(LinkedListRemoveFirst(initializer_list));
+      }
+
+      for(Node* node = resovled_initializers->first; node; node = node->next){
         InitVal* init_val = node->info;
 
         // push address of initialized object
@@ -74,6 +123,8 @@ void FullInitialization(void){
         init_val->expression = NULL;
         InitValDrop(init_val);
       }
+
+      LinkedListDrop(resovled_initializers);
 
       TreeInsertNode(tree, INITIALIZATION, initializer_counter);
     }
@@ -110,12 +161,27 @@ void FullInitialization(void){
           int size_specification = (int)(long)init_size_stack.top->info;
           current_obj_definition->type = StructArrayLengthSpecification(current_obj_definition->type, size_specification);
         }
+
+        // set all members at least to zero
+        LinkedList* resovled_initializers = LinkedListCreateEmpty();
+        ZeroInitializeAllMembers(resovled_initializers, current_obj_definition->type, 0);
+
+        Node* current_node = initializer_list->first;
+        while(current_node){
+          InitValAddToList(current_node->info, resovled_initializers);
+          Node* old_node = current_node;
+          current_node = old_node->next;
+
+          NodeDrop(LinkedListRemoveFirst(initializer_list));
+        }
         
-        for(Node* node = initializer_list->first; node; node = node->next){
+        for(Node* node = resovled_initializers->first; node; node = node->next){
           Node* new_node = NodeCreateEmpty();
           new_node->info = node->info;
           LinkedListInsertLast(current_obj_definition->init_vals, new_node);
         }
+
+        LinkedListDrop(resovled_initializers);
       }
       else{
         for(Node* node = initializer_list->first; node; node = node->next){
@@ -429,7 +495,7 @@ void Initializer(void){
       init_val->offset = CalculateInitializerOffset();
       init_val->size   = current_init_frame->type->size;
       init_val->expression = initializer_expression;
-
+      
       Node* new_node = NodeCreateEmpty();
       new_node->info = init_val;
 

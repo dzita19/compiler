@@ -9,6 +9,8 @@ void DeclaratorInitialized(void);
 void AbstractDeclarator(void);
 void NonprototypeParam(void);
 
+void CompoundLiteralType(int);
+
 void EnumeratorDefault(void); // empty
 void EnumeratorCustom(void);  // empty
 

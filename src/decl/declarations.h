@@ -24,7 +24,7 @@ extern Stack parameter_stack;
 extern Stack name_stack;
 extern Stack const_expr_stack;    // Stack(ConstExpr*)
 
-extern Stack initializer_stack;   // Stack(LinkedList(InitVal*))
+extern Stack initializer_stack;   // Stack(LinkedList(InitVal*)) - no need to maintain the correct order until full initializer
 extern Stack init_attrib_stack;   // Stack(int) - designates whether initializer is static or not
 extern Stack init_frame_stack;    // Stack(Stack(InitFrame*))
 extern Stack init_error_stack;    // Stack(int) - error in current initializer

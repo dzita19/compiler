@@ -72,15 +72,17 @@ postfix_expression
   | postfix_expression PTR_OP field_name 															{ PtrRefExpr(); }
   | postfix_expression INC_OP																					{ IncDecExpr(POST_INC_EXPR); }
   | postfix_expression DEC_OP 																				{ IncDecExpr(POST_DEC_EXPR); }
+  | compound_literal_type initializer_open initializer_close     
+    { FullInitialization(); CompoundLiteral(); }
   | compound_literal_type initializer_open initializer_list initializer_close     
-    { FullInitialization(); /*CompoundLiteral();*/ }
+    { FullInitialization(); CompoundLiteral(); }
   | compound_literal_type initializer_open initializer_list ',' initializer_close 
-    { FullInitialization(); /*CompoundLiteral();*/ }
+    { FullInitialization(); CompoundLiteral(); }
   ;
 
 compound_literal_type
-  : type_open type_name type_close																		{ /*CompoundLiteralType(0);*/ }
-  | type_open STATIC_ type_name type_close														{ /*CompoundLiteralType(1);*/ }
+  : type_open type_name type_close																		{ CompoundLiteralType(0); }
+  | type_open STATIC_ type_name type_close														{ CompoundLiteralType(1); }
   ;
 
 field_name
@@ -459,6 +461,7 @@ direct_abstract_declarator
 
 initializer
   : assignment_expression { Initializer(); }
+  | initializer_open initializer_close
   | initializer_open initializer_list initializer_close
   | initializer_open initializer_list ',' initializer_close
   ;

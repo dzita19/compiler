@@ -68,11 +68,8 @@ extern void  print_malloc_frames(void);
   
 // }
 
-struct str1 {
-  int x, y;
-};
-
 int main(){
-  static struct str1 a[] = { 1, 2, 3, 4, { 1, 2 } };
-  int b[][3] = { 1, 2, 3, 4, 5, 6, 7 };
+  int x[10] = { };
+
+  printf("%d\n", x);
 }

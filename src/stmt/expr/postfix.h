@@ -3,14 +3,16 @@
 
 #include "expr.h"
 
-void ArrayRefExpr();
-void FunctionCallExpr(); // WARNING!!!!!!!!
-void FieldRefExpr();
-void PtrRefExpr();
+void ArrayRefExpr(void);
+void FunctionCallExpr(void); // WARNING!!!!!!!!
+void FieldRefExpr(void);
+void PtrRefExpr(void);
 void IncDecExpr(Production production);
 
-void FunctionArgsOpen();
-void FunctionArgsClose();
-void FunctionArg();
+void FunctionArgsOpen(void);
+void FunctionArgsClose(void);
+void FunctionArg(void);
+
+void CompoundLiteral(void);
 
 #endif

@@ -146,6 +146,11 @@ static void GeneratePrimary(TreeNode* tree_node){
   else InsertInstrStackPop(IR_POP);
 }
 
+static void GenerateCompoundLiteral(TreeNode* tree_node){
+  GenerateIntermediate(tree_node->children[0]); // initialization
+  GenerateIntermediate(tree_node->children[1]); // address of anonymous object
+}
+
 // +0
 static void GenerateDeref(TreeNode* tree_node){
   GenerateIntermediate(tree_node->children[0]);
@@ -920,6 +925,7 @@ void GenerateIntermediate(TreeNode* tree_node){
   case PRE_DEC_EXPR:
 
   case COMPOUND_LITERAL:
+    GenerateCompoundLiteral(tree_node);
     break;
 
   case CAST_EXPR:
