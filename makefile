@@ -24,7 +24,6 @@ C_SOURCE_LIST = src/yy/$(BISON_OUTFILE) \
 	src/util/vector.c \
 	src/symtab/obj.c \
 	src/symtab/scope.c \
-	src/symtab/static_val.c \
 	src/symtab/struct.c \
 	src/symtab/symtab.c \
 	src/decl/declarations.c \

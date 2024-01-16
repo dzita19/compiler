@@ -26,13 +26,33 @@ static void TranslateStaticVal(Obj* obj){
     data_location_counter += obj->type->align - data_location_counter % obj->type->align;
   }
 
-  if((obj->specifier & LINKAGE_FETCH) != LINKAGE_NONE) 
+  if((obj->specifier & LINKAGE_FETCH) != LINKAGE_NONE) {
     GenAsmSymbolLabel(obj->name);
+  }
   LinkedList* init_vals = obj->init_vals;
   
   int offset = 0;
   for(Node* node = init_vals->first; node; node = node->next){
-    StaticVal* static_val = node->info;
+    InitVal* init_val = node->info;
+
+    if(init_val->offset - offset > 0){
+      GenAsmSkip(init_val->offset - offset);
+    }
+
+    if(init_val->expression->production == ADDRESS_PRIMARY
+        || init_val->expression->production == COMPOUND_LITERAL){
+      GenAsmDataObj(init_val->size, init_val->expression->expr_node->obj_ref, init_val->expression->expr_node->address);
+    }
+    else if(init_val->expression->production == CONSTANT_PRIMARY){
+      GenAsmData(init_val->size, init_val->expression->expr_node->address);
+    }
+    else if(init_val->expression->production == STRING_PRIMARY){
+      GenAsmDataString(init_val->size, init_val->expression->expr_node->string_ref, init_val->expression->expr_node->address);
+    }
+
+    offset = init_val->offset + init_val->size;
+
+    /*StaticVal* static_val = node->info;
 
     // internal padding
     if(static_val->offset - offset > 0){
@@ -48,7 +68,7 @@ static void TranslateStaticVal(Obj* obj){
     else if(static_val->kind == VAL_STRING){
       GenAsmDataString(static_val->size, static_val->string_ref, static_val->value);
     }
-    offset = static_val->offset + static_val->size;
+    offset = static_val->offset + static_val->size;*/
   }
 
   if(obj->type->size > offset) GenAsmSkip(obj->type->size - offset);

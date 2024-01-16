@@ -1,7 +1,6 @@
 #include "assembler.h"
 
 #include "generator.h"
-#include "symtab/static_val.h"
 
 #define TAB_WIDTH 4
 #define PRIMARY_WIDTH 12

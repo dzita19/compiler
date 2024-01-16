@@ -4,7 +4,6 @@
 #include "symtab/symtab.h"
 #include "symtab/scope.h"
 #include "symtab/obj.h"
-#include "symtab/static_val.h"
 #include "symtab/struct.h"
 
 #include "util/memory_safety.h"
@@ -28,7 +27,8 @@ extern Stack const_expr_stack;    // Stack(ConstExpr*)
 extern Stack initializer_stack;   // Stack(LinkedList(InitVal*))
 extern Stack init_attrib_stack;   // Stack(int) - designates whether initializer is static or not
 extern Stack init_frame_stack;    // Stack(Stack(InitFrame*))
-extern Stack init_error_stack;     // error in current initializer
+extern Stack init_error_stack;    // Stack(int) - error in current initializer
+extern Stack init_size_stack;     // Stack(int) - counts number of main initializers for unspecified length array
 extern Stack obj_definiton_stack; // Stack(Obj*);
 // extern Obj*    current_obj_definition;
 
@@ -85,6 +85,13 @@ typedef struct NameFrame{
 NameFrame*  NameFrameCreateEmpty(void);
 void        NameFrameDrop (NameFrame*);
 void        NameFrameClear(NameFrame*);
+
+typedef enum StaticValKind{
+  VAL_ERROR,
+  VAL_ARITHM,
+  VAL_ADDRESS,
+  VAL_STRING,
+} StaticValKind;
 
 typedef struct ConstExpr{
   Obj* obj_ref;    // if targets address of an obj

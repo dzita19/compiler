@@ -17,8 +17,6 @@
 
 // types are always unqualified
 
-// static Stack initializer_count_stack       = { 0 }; // counts total number of initializer expressions
-
 // drop all InitFrames if error
 void FullInitialization(void){
   
@@ -32,8 +30,9 @@ void FullInitialization(void){
     for(Node* node = initializer_list->first; node; node = node->next){
       InitValDrop(node->info);
     }
-  }
 
+    TreeInsertNode(tree, INITIALIZATION, 0);
+  }
   // transform linked list into initialization expression
   // or store it inside a static object
   else{
@@ -43,10 +42,15 @@ void FullInitialization(void){
       LinkedList* initializer_list = StackPeek(&initializer_stack);
       int initializer_counter = 0;
 
+      Obj* current_obj_definition = StackPeek(&obj_definiton_stack);
+
+      if(current_obj_definition->type->type == TYPE_ARRAY_UNSPEC){
+        int size_specification = (int)(long)init_size_stack.top->info;
+        current_obj_definition->type = StructArrayLengthSpecification(current_obj_definition->type, size_specification);
+      }
+
       for(Node* node = initializer_list->first; node; node = node->next){
         InitVal* init_val = node->info;
-
-        Obj* current_obj_definition = StackPeek(&obj_definiton_stack);
 
         // push address of initialized object
         TreeNode* primary = TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
@@ -72,7 +76,54 @@ void FullInitialization(void){
       }
 
       TreeInsertNode(tree, INITIALIZATION, initializer_counter);
-      Statement();
+    }
+    else{
+      LinkedList* initializer_list = StackPeek(&initializer_stack);
+      int correct = 1;
+
+      for(Node* node = initializer_list->first; node; node = node->next){
+        InitVal* init_val = node->info;
+
+        if(init_val->expression->production == CONSTANT_PRIMARY
+            || init_val->expression->production == STRING_PRIMARY){
+          // all good
+        }
+        else if(init_val->expression->production == ADDRESS_PRIMARY
+            || init_val->expression->production == COMPOUND_LITERAL){
+          if((init_val->expression->expr_node->obj_ref->specifier & STORAGE_FETCH) != STORAGE_STATIC){
+            ReportError("Static object cannot be initialized by non-const expression.");
+            correct = 0;
+            break;
+          }
+        }
+        else {
+          ReportError("Static object cannot be initialized by non-const expression.");
+          correct = 0;
+          break;
+        }
+      }
+
+      if(correct){
+        Obj* current_obj_definition = StackPeek(&obj_definiton_stack);
+
+        if(current_obj_definition->type->type == TYPE_ARRAY_UNSPEC){
+          int size_specification = (int)(long)init_size_stack.top->info;
+          current_obj_definition->type = StructArrayLengthSpecification(current_obj_definition->type, size_specification);
+        }
+        
+        for(Node* node = initializer_list->first; node; node = node->next){
+          Node* new_node = NodeCreateEmpty();
+          new_node->info = node->info;
+          LinkedListInsertLast(current_obj_definition->init_vals, new_node);
+        }
+      }
+      else{
+        for(Node* node = initializer_list->first; node; node = node->next){
+          InitValDrop(node->info);
+        }
+      }
+
+      TreeInsertNode(tree, INITIALIZATION, 0);
     }
   }
   
@@ -84,6 +135,10 @@ void NotCompoundLiteral(void){
   StackDrop(StackPop(&init_frame_stack)); // #3
   StackPop(&init_attrib_stack); // #4
   StackPop(&init_error_stack); // #5
+  StackPop(&init_size_stack); // #6
+
+  // can't be added in full initializer because it's unknown whether it's regular initializer or compound literal
+  Statement();
 }
 
 
@@ -102,9 +157,17 @@ void InitializerOpen(void){
     return; // ERROR
   }
 
-  /*printf("Before opening: ");
-  StructDump(current_init_frame->type);
-  printf("\n"); fflush(stdout);*/
+  InitFrame* temp_init_frame = StackPop(init_frames);
+  if(!StackEmpty(init_frames)){
+    InitFrame* one_before_init_frame = StackPeek(init_frames);
+    if(one_before_init_frame->type->type == TYPE_ARRAY_UNSPEC){
+      int initializer_size = one_before_init_frame->index + 1;
+      if(initializer_size > (int)(long)init_size_stack.top->info){
+        init_size_stack.top->info = (void*)(long)initializer_size;
+      }
+    }
+  }
+  StackPush(init_frames, temp_init_frame);
 
   Struct* type = StructGetUnqualified(current_init_frame->type);
 
@@ -173,11 +236,6 @@ void InitializerOpen(void){
       return; // ERROR
     }
   }
-
-  /*printf("After opening: ");
-  current_init_frame = StackPeek(init_frames);
-  StructDump(current_init_frame->type);
-  printf("\n"); fflush(stdout);*/
 }
 
 static int ShouldBeClosed(InitFrame* init_frame){
@@ -270,14 +328,10 @@ void InitializerClose(void){
 
   Stack* init_frames = StackPeek(&init_frame_stack);
 
-  /*printf("Before closing: ");
-  InitFrame* current_init_frame = StackPeek(init_frames);
-  StructDump(current_init_frame->type);
-  printf("\n"); fflush(stdout);*/
-
   // close until we hit explicit frame
   while(1){
     InitFrame* current_init_frame = StackPeek(init_frames);
+
     if(current_init_frame->xopen == INIT_FRAME_IMPLICIT_OPEN
         || current_init_frame->xopen == INIT_FRAME_ACTIVE){
       InitFrameDrop(StackPop(init_frames));
@@ -292,12 +346,6 @@ void InitializerClose(void){
 
   // advance
   Advance();
-
-  /*printf("After closing: ");
-  current_init_frame = !StackEmpty(init_frames) ? StackPeek(init_frames) : NULL;
-  if(current_init_frame) StructDump(current_init_frame->type);
-  else printf("Finished");
-  printf("\n"); fflush(stdout);*/
 }
 
 static int CalculateInitializerOffset(void){
@@ -332,12 +380,6 @@ void Initializer(void){
   }
 
   Stack* init_frames = StackPeek(&init_frame_stack);
-  // InitFrame* current_init_frame = StackPeek(init_frames);
-
-  /*printf("Before initializer: ");
-  InitFrame* current_init_frame = StackPeek(init_frames);
-  StructDump(current_init_frame->type);
-  printf("\n"); fflush(stdout);*/
 
   // CHECK IF ASSIGNMENT IS CORRECT
 
@@ -349,6 +391,18 @@ void Initializer(void){
     init_error_stack.top->info = (void*)(long)1;
     return;
   }
+
+  InitFrame* temp_init_frame = StackPop(init_frames);
+  if(!StackEmpty(init_frames)){
+    InitFrame* one_before_init_frame = StackPeek(init_frames);
+    if(one_before_init_frame->type->type == TYPE_ARRAY_UNSPEC){
+      int initializer_size = one_before_init_frame->index + 1;
+      if(initializer_size > (int)(long)init_size_stack.top->info){
+        init_size_stack.top->info = (void*)(long)initializer_size;
+      }
+    }
+  }
+  StackPush(init_frames, temp_init_frame);
 
   TreeNode* initializer_expression = StackPop(&tree->stack);
   // after this point, initializer_expression is owned by this function
@@ -430,12 +484,4 @@ void Initializer(void){
   // ADVANCE
   InitFrameDrop(StackPop(init_frames));
   Advance();
-
-  // current_init_frame = StackPeek(init_frames);
-
-  /*printf("After initializer: ");
-  current_init_frame = !StackEmpty(init_frames) ? StackPeek(init_frames) : NULL;
-  if(current_init_frame) StructDump(current_init_frame->type);
-  else printf("Finished");
-  printf("\n"); fflush(stdout);*/
 }

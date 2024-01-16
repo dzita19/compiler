@@ -69,15 +69,10 @@ extern void  print_malloc_frames(void);
 // }
 
 struct str1 {
-  const int x, y[3], z;
-};
-
-struct str2 {
-  int x;
+  int x, y;
 };
 
 int main(){
-  int a = { 1 };
-  // struct str1 b = { 1, { 3, }, 5, };
-  // int c[3] = { 1, 2, 3 };
+  static struct str1 a[] = { 1, 2, 3, 4, { 1, 2 } };
+  int b[][3] = { 1, 2, 3, 4, 5, 6, 7 };
 }

@@ -847,6 +847,7 @@ void InitializeInitialization(Obj* current_obj_definition){
     : 0)); // #4
 
   StackPush(&init_error_stack, 0); // #5
+  StackPush(&init_size_stack, 0); // #6
 }
 
 void Declarator(){

@@ -5,7 +5,7 @@
 #include <string.h>
 #include "util/memory_safety.h"
 
-#include "static_val.h"
+#include "decl/declarations.h"
 
 ObjNamespace namespaces[OBJ_KIND_COUNT] = {
   [OBJ_VAR]   = NAMESPACE_ORDINARY,
@@ -46,7 +46,7 @@ void ObjDrop(Obj* obj){
 
   if(obj->init_vals){
     for(Node* node = obj->init_vals->first; node; node = node->next){
-      StaticValDrop(node->info);
+      InitValDrop(node->info);
     }
     LinkedListDrop(obj->init_vals);
   }
@@ -158,7 +158,7 @@ void ObjDump(Obj* obj){
     dump_indent++;
     for(Node* node = obj->init_vals->first; node; node = node->next){
       print_indent();
-      StaticValDump(node->info);
+      InitValDump(node->info);
       printf("\n");
     }
     dump_indent--;

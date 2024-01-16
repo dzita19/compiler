@@ -17,6 +17,7 @@ Stack   initializer_stack       = (Stack){ 0 };
 Stack   init_attrib_stack       = (Stack){ 0 };
 Stack   init_frame_stack        = (Stack){ 0 };
 Stack   init_error_stack        = (Stack){ 0 };
+Stack   init_size_stack         = (Stack){ 0 };
 Stack   obj_definiton_stack     = (Stack){ 0 };
 
 LinkedList static_obj_list      = (LinkedList){ 0, 0 };
@@ -217,8 +218,35 @@ void InitValDump(InitVal* val){
   else printf("Non-constant");
 }
 
+void InitValAddToList(InitVal* init_val, LinkedList* list){
+  Node* node = list->first;
+  while(node){
+    InitVal* current_val = node->info;
+
+    int a0 = init_val->offset;
+    int a1 = init_val->offset + init_val->size;
+
+    int b0 = current_val->offset;
+    int b1 = current_val->offset + current_val->size;
+
+    if((a0 <= b0 && a1 > b0) || (a1 >= b1 && a0 < b0)){
+      Node* old = node;
+      node = node->next;
+      InitValDrop(current_val);
+      NodeDrop(LinkedListRemoveFrom(list, old));
+    }
+    else if(a0 >= b1) node = node->next;
+    else if(a1 <= b0) break; 
+  }
+
+  Node* new_node = NodeCreateEmpty();
+  new_node->info = init_val;
+
+  if(node) LinkedListInsertBefore(list, node, new_node);
+  else     LinkedListInsertLast(list, new_node);
+}
+
 #include <stdio.h>
-#include "../symtab/static_val.h"
 
 void StaticObjListDump(void){
   printf("Static objects list: [\n");
@@ -234,7 +262,7 @@ void StaticObjListDump(void){
     }
     for(Node* val = obj->init_vals->first; val; val = val->next){
       printf(" -");
-      StaticValDump(val->info);
+      InitValDump(val->info);
       printf("\n");
     }
     printf(" ]\n");

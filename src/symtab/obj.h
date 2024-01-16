@@ -69,7 +69,7 @@ typedef struct Obj{
   int         specifier;  // for vars - defined, storage, linkage; for tags - defined, tag type
   Struct*     type;
   LinkedList  members;   // LinkedList(Obj*)
-  LinkedList* init_vals; // LinkedList(StaticVal*)
+  LinkedList* init_vals; // LinkedList(InitVal*)
 } Obj;
 
 extern Obj* ObjCreateEmpty();
