@@ -466,6 +466,20 @@ initializer
   | initializer_open initializer_list ',' initializer_close
   ;
 
+designation
+  : designator_list
+  ;
+
+designator_list
+  : designator
+  | designator_list designator
+  ;
+
+designator
+  : '.' IDENTIFIER              { FieldDesignator(); }
+  | '[' constant_expression ']' { ArrayDesignator(); }
+  ;
+
 initializer_open
   : '{' { InitializerOpen(); }
   ;
@@ -476,7 +490,9 @@ initializer_close
 
 initializer_list
   : initializer
+  | designation '=' initializer
   | initializer_list ',' initializer
+  | initializer_list ',' designation '=' initializer
   ;
 
 statement

@@ -89,6 +89,9 @@ src/yy/$(FLEX_OUTFILE): $(SPEC_DIR)/$(FLEX_SPEC) src/yy/$(BISON_SYMBOLS) makefil
 
 clean:
 	rm -rf build
+	rm src/yy/$(BISON_OUTFILE)
+	rm src/yy/$(BISON_SYMBOLS)
+	rm src/yy/$(FLEX_OUTFILE)
 
 $(BUILD_DIR)/$(PROGRAM) : $(C_OBJECT_LIST) makefile | $(BUILD_DIR)
 	$(CC_PATH) -o $(@) $(C_OBJECT_LIST)

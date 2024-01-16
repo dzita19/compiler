@@ -148,7 +148,17 @@ static void GeneratePrimary(TreeNode* tree_node){
 
 static void GenerateCompoundLiteral(TreeNode* tree_node){
   GenerateIntermediate(tree_node->children[0]); // initialization
-  GenerateIntermediate(tree_node->children[1]); // address of anonymous object
+
+  int size_opcode = 0;
+  if     (tree_node->expr_node->type->size == 1) size_opcode = IR_DERFB - IR_DERFB;
+  else if(tree_node->expr_node->type->size == 2) size_opcode = IR_DERFW - IR_DERFB;
+  else if(tree_node->expr_node->type->size == 4) size_opcode = IR_DERFL - IR_DERFB;
+  
+  // generate address
+  InsertInstrArithm(IR_PUSHB + size_opcode, IR_ADDR_DIRECT, tree_node->expr_node->address);
+
+  if(ArithmeticExprUsed(tree_node));
+  else InsertInstrStackPop(IR_POP);
 }
 
 // +0
@@ -924,12 +934,12 @@ void GenerateIntermediate(TreeNode* tree_node){
   case PRE_INC_EXPR:
   case PRE_DEC_EXPR:
 
-  case COMPOUND_LITERAL:
-    GenerateCompoundLiteral(tree_node);
-    break;
-
   case CAST_EXPR:
     GenerateUnary(tree_node);
+    break;
+
+  case COMPOUND_LITERAL:
+    GenerateCompoundLiteral(tree_node);
     break;
 
   case MUL_EXPR:

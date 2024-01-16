@@ -54,22 +54,27 @@ extern void  print_malloc_frames(void);
 //   return p2->c->x; // 4
 // }
 
-// struct str1 {
-//   int x;
-//   int y[1];
-// };
+struct str1 {
+  int x;
+  struct str2{
+    int a, b[2];
+  } y;
+  struct str2 z[2];
+};
 
-// struct str2 {
-//   int x;
-//   int y;
-// };
-
-// struct str1 f(){
-  
-// }
+static int x = { 0 };
 
 int main(){
-  int x[10] = { };
+  static struct str1* p = &(static struct str1){
+    .y = 1, 2, 
+    .z = { 
+      [0] = 3, 
+      [1] = { .b[0] = 4}, 
+    }
+  };
 
-  printf("%d\n", x);
+  for(int* q = (int*)p; q != (int*)(p + 1); q++){
+    printf("%d ", *q);
+  }
+  printf("\n");
 }

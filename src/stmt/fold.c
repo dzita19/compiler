@@ -46,6 +46,20 @@ static int AddressAdditionFold(void){
     pointer_index = 1;
     value = node->children[0]->expr_node->address;
   }
+  else if(node->children[0]->production == COMPOUND_LITERAL
+      && node->children[1]->production == CONSTANT_PRIMARY) {
+
+    pointer = node->children[0];
+    pointer_index = 0;
+    value = node->children[1]->expr_node->address;
+  }
+  else if(node->children[1]->production == COMPOUND_LITERAL
+      && node->children[0]->production == CONSTANT_PRIMARY){
+
+    pointer = node->children[1];
+    pointer_index = 1;
+    value = node->children[0]->expr_node->address;
+  }
   else if(node->children[0]->production == STRING_PRIMARY
       && node->children[1]->production == CONSTANT_PRIMARY) {
 
@@ -141,7 +155,8 @@ static int CastAddressFold(void){
   TreeNode* operand = node->children[0];
 
   if(operand->production != ADDRESS_PRIMARY
-    && operand->production != STRING_PRIMARY) return 0;
+    && operand->production != STRING_PRIMARY
+    && operand->production != COMPOUND_LITERAL) return 0;
 
   if(!StructIsPointer(node->expr_node->type)) return 0; // must cast into pointer
 
@@ -160,7 +175,8 @@ static int FieldRefFold(void){
 
   if(address->production == ADDRESS_PRIMARY
       || address->production == CONSTANT_PRIMARY
-      || address->production == STRING_PRIMARY) {
+      || address->production == STRING_PRIMARY
+      || address->production == COMPOUND_LITERAL) {
 
     address->expr_node->type = field_ref->expr_node->type;
     address->expr_node->address += field_ref->expr_node->address;

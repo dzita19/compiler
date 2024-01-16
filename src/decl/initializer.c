@@ -5,6 +5,8 @@
 #include "stmt/expr/expr.h"
 #include "stmt/fold.h"
 
+#include <string.h>
+
 // error - only in case there is an error inside initializer logic
 // if there is an error regarding expected type of initializer expression, it's NOT CONSIDER AN ERROR OF THIS KIND
 // in that case, initializer will be analyzed as if nothing is wrong with it
@@ -399,7 +401,8 @@ void InitializerClose(void){
     InitFrame* current_init_frame = StackPeek(init_frames);
 
     if(current_init_frame->xopen == INIT_FRAME_IMPLICIT_OPEN
-        || current_init_frame->xopen == INIT_FRAME_ACTIVE){
+        || current_init_frame->xopen == INIT_FRAME_ACTIVE
+        || current_init_frame->xopen == INIT_FRAME_ACTIVE_DESIGNATED){
       InitFrameDrop(StackPop(init_frames));
     }
     else{ // for explicit open
@@ -550,4 +553,124 @@ void Initializer(void){
   // ADVANCE
   InitFrameDrop(StackPop(init_frames));
   Advance();
+}
+
+void FieldDesignator(void){
+  if(init_error_stack.top->info){
+    StringDrop(QueueDelete(&identifier_queue));
+    return;
+  }
+
+  Stack* init_frames = StackPeek(&init_frame_stack);
+
+  while(1){
+    InitFrame* current_init_frame = StackPeek(init_frames);
+
+    if(current_init_frame->xopen == INIT_FRAME_IMPLICIT_OPEN
+        || current_init_frame->xopen == INIT_FRAME_ACTIVE){
+      InitFrameDrop(StackPop(init_frames));
+    }
+    else if(current_init_frame->xopen == INIT_FRAME_ACTIVE_DESIGNATED){
+      current_init_frame->xopen = INIT_FRAME_IMPLICIT_OPEN;
+      break;
+    }
+    else{ // for explicit open
+      break;
+    }
+  }
+
+  InitFrame* current_init_frame = StackPeek(init_frames);
+  
+  const char* symbol_name = QueueDelete(&identifier_queue);
+
+  if(StructIsStruct(current_init_frame->type)){
+    Node* member_node = NULL;
+    for(Node* node = current_init_frame->type->obj->members.first; node; node = node->next){
+      Obj* member = node->info;
+      if(strcmp(member->name, symbol_name) == 0){
+        member_node = node;
+        break;
+      }
+    }
+
+    current_init_frame->field = member_node;
+
+    if(member_node){
+      InitFrame* new_init_frame = InitFrameCreateEmpty();
+      Obj* field_obj = current_init_frame->field->info;
+      InitFrameInitializeWithType(new_init_frame, field_obj->type, 0);
+      new_init_frame->xopen = INIT_FRAME_ACTIVE_DESIGNATED;
+      StackPush(init_frames, new_init_frame);
+
+      StringDrop(symbol_name);
+    }
+    else{
+      ReportError("Designated member doesn't exist.");
+      init_error_stack.top->info = (void*)(long)1;
+      StringDrop(symbol_name);
+    }
+  }
+  else{
+    ReportError("Cannot use field designator on type that is not struct-or-union.");
+    init_error_stack.top->info = (void*)(long)1;
+    StringDrop(symbol_name);
+  }
+}
+
+void ArrayDesignator(void){
+  if(init_error_stack.top->info){
+    ConstExprDrop(StackPop(&const_expr_stack));
+    return;
+  }
+
+  Stack* init_frames = StackPeek(&init_frame_stack);
+
+  while(1){
+    InitFrame* current_init_frame = StackPeek(init_frames);
+
+    if(current_init_frame->xopen == INIT_FRAME_IMPLICIT_OPEN
+        || current_init_frame->xopen == INIT_FRAME_ACTIVE){
+      InitFrameDrop(StackPop(init_frames));
+    }
+    else if(current_init_frame->xopen == INIT_FRAME_ACTIVE_DESIGNATED){
+      current_init_frame->xopen = INIT_FRAME_IMPLICIT_OPEN;
+      break;
+    }
+    else{ // for explicit open
+      break;
+    }
+  }
+
+  InitFrame* current_init_frame = StackPeek(init_frames);
+
+  ConstExpr* const_expr = StackPop(&const_expr_stack);
+
+  if(StructIsArray(current_init_frame->type)){
+    if(const_expr->kind != VAL_ARITHM || !StructIsArithmetic(const_expr->type)) {
+      ReportError("Array designator must be a constant arithmetic value.");
+      ConstExprDrop(const_expr);
+      return;
+    }
+
+    current_init_frame->index = const_expr->value;
+    if(current_init_frame->type->type != TYPE_ARRAY_UNSPEC
+        && current_init_frame->index >= current_init_frame->type->attributes){
+      ReportError("Designated array index exceeds array size.");
+      init_error_stack.top->info = (void*)(long)1;
+      ConstExprDrop(const_expr);
+    }
+    else{
+      InitFrame* new_init_frame = InitFrameCreateEmpty();
+      InitFrameInitializeWithType(new_init_frame, current_init_frame->type->parent, 0);
+      new_init_frame->xopen = INIT_FRAME_ACTIVE_DESIGNATED;
+        
+      StackPush(init_frames, new_init_frame);
+      ConstExprDrop(const_expr);
+    }
+  }
+  else{
+    ReportError("Cannot use array designator on type that is not array.");
+    init_error_stack.top->info = (void*)(long)1;
+    ConstExprDrop(const_expr);
+  }
 }

@@ -22,6 +22,7 @@ static const char* input_path    = NULL;
 static const char* output_path   = NULL;
 static int         parse_state   = CMD_PARSE_INPUT;
 static int         debug_enabled = 0;
+static int         omit_output   = 0;
 
 static void ParseCmdArgs(int argc, char** argv){
   for(int i = 1; i < argc; i++){
@@ -35,6 +36,9 @@ static void ParseCmdArgs(int argc, char** argv){
       else if(strcmp(argv[i], "-dbg") == 0){
         debug_enabled = 1;
       }
+      else if(strcmp(argv[i], "-omit-output") == 0) {
+        omit_output = 1;
+      }
       else{
         if(input_path == 0) input_path = argv[i];
         else parse_state = CMD_PARSE_ERROR;
@@ -44,6 +48,7 @@ static void ParseCmdArgs(int argc, char** argv){
     case CMD_PARSE_OUTPUT:{
       if     (strcmp(argv[i], "-o")   == 0) parse_state = CMD_PARSE_ERROR;
       else if(strcmp(argv[i], "-dbg") == 0) parse_state = CMD_PARSE_ERROR;
+      else if(strcmp(argv[i], "-omit-output") == 0) parse_state = CMD_PARSE_ERROR;
       else{
         if(output_path == 0) {
           output_path = argv[i];
@@ -90,7 +95,7 @@ int main(int argc, char** argv){
         printf("Output file cannot be generated.\n");
         return 1;
       }
-      GenerateOutputFile();
+      if(!omit_output) GenerateOutputFile();
     }
   }
   else {

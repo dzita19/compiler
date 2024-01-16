@@ -275,14 +275,8 @@ void FunctionArg(void){
 void CompoundLiteral(void){
   Obj* current_obj_definiton = StackPeek(&obj_definiton_stack);
 
-  TreeNode* address = TreeInsertNode(tree, ADDRESS_PRIMARY, 0);
-  address->expr_node = ExprNodeCreateEmpty();
-  address->expr_node->kind    = ADDRESS_OF;
-  address->expr_node->obj_ref = current_obj_definiton;
-  address->expr_node->type    = StructToPtr(current_obj_definiton->type);
-
   extern void DerefExpr(void);
-  TreeNode* compound_literal = TreeInsertNode(tree, COMPOUND_LITERAL, 2);
+  TreeNode* compound_literal = TreeInsertNode(tree, COMPOUND_LITERAL, 1);
   compound_literal->expr_node = ExprNodeCreateEmpty();
   compound_literal->expr_node->kind    = ADDRESS_OF;
   compound_literal->expr_node->obj_ref = current_obj_definiton;
