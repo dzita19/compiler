@@ -476,8 +476,12 @@ designator_list
   ;
 
 designator
-  : '.' IDENTIFIER              { FieldDesignator(); }
-  | '[' constant_expression ']' { ArrayDesignator(); }
+  : field_designator_open IDENTIFIER { FieldDesignator(); }
+  | '[' constant_expression ']'      { ArrayDesignator(); }
+  ;
+
+field_designator_open
+  : '.' { FieldDesignatorOpen(); }
   ;
 
 initializer_open

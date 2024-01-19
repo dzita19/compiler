@@ -555,7 +555,15 @@ void Initializer(void){
   Advance();
 }
 
+void FieldDesignatorOpen(void){
+  TypeFrame* type_frame = StackPeek(&type_stack);
+  type_frame->identifier_expected = 1;
+}
+
 void FieldDesignator(void){
+  TypeFrame* type_frame = StackPeek(&type_stack);
+  type_frame->identifier_expected = 0;
+
   if(init_error_stack.top->info){
     StringDrop(QueueDelete(&identifier_queue));
     return;

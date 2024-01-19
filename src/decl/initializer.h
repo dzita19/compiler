@@ -16,6 +16,7 @@ void InitializerOpen(void);   // handles errors of opening scalar fields
 void InitializerClose(void);
 void Initializer(void);       // handles errors of invalid assignments
 
+void FieldDesignatorOpen(void);
 void FieldDesignator(void);
 void ArrayDesignator(void);
 
