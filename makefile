@@ -102,6 +102,9 @@ $(BUILD_DIR)/$(WRAPPER) : src/compiler_wrapper.c makefile | $(BUILD_DIR)
 $(BUILD_DIR)/%.o : %.c makefile | $(BUILD_DIR)
 	$(CC_PATH) -c -o $(@) $(<) $(FLAGS)
 
+line_count:
+	wc -l $(C_SOURCE_LIST) $(SPEC_DIR)/$(FLEX_SPEC) $(SPEC_DIR)/$(BISON_SPEC)
+
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
 
