@@ -6,8 +6,8 @@
 #include <sched.h>
 
 #define CC_PATH "../compiler/build/compiler"
-#define AS_PATH "../sys software/build/assembler"
-#define LD_PATH "../sys software/build/linker"
+#define AS_PATH "../sys-software/build/assembler"
+#define LD_PATH "../sys-software/build/linker"
 
 #define CMD_PARSE_ERROR (-1)
 #define CMD_PARSE_INPUT   0

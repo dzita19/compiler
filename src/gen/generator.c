@@ -16,6 +16,7 @@ const char* default_base_text     = ".L";
 const char* default_base_objs     = ".LP0";
 const char* default_base_strings  = ".LP";
 const char* default_base_switch   = ".LT";
+const char* default_base_initloop = ".LI";
 
 static int  data_location_counter = 0;
 

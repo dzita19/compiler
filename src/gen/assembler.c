@@ -300,6 +300,20 @@ static void GenAsmOperandSwtab(int addressing, int swtab_index, int offset){
   if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
 }
 
+static void GenAsmOperandInitLoop(int addressing, int initloop_index, int offset){
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "[");
+
+  fprintf(ccout, "%s%d", default_base_initloop, initloop_index);
+  if(offset > 0){
+    fprintf(ccout, "+%d", +offset);
+  }
+  else if(offset < 0){
+    fprintf(ccout, "-%d", -offset);
+  }
+
+  if(addressing == ASM_INDIRECT) fprintf(ccout, "]");
+}
+
 static void GenAsmComma(void){
   fprintf(ccout, ", ");
 }
@@ -513,5 +527,14 @@ void GenAsmInstrBranchLabel(AsmInstr instr, int addressing, int dst_label_index,
   GenAsmTab(TAB_WIDTH);
   GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
   GenAsmOperandLabel(addressing, dst_label_index, dst_offset);
+  fprintf(ccout, "\n");
+}
+
+void GenAsmInstrBranchInitLoop(AsmInstr instr, int addressing, int dst_initloop_index, int dst_offset){
+  if(instr_types[instr] != ASM_BRANCH) return;
+  
+  GenAsmTab(TAB_WIDTH);
+  GenAsmTxt(instr_names[instr], SECONDARY_WIDTH);
+  GenAsmOperandInitLoop(addressing, dst_initloop_index, dst_offset);
   fprintf(ccout, "\n");
 }

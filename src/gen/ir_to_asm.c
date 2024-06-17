@@ -567,6 +567,14 @@ static void TranslateJump(int instr_index){
 
     GenAsmInstrBranchLabel(instr, ASM_DIRECT, operation->offset, 0);
   }
+  else if(operation->operand == IR_OP_INITLOOP){
+    if(operation->addr != IR_ADDR_DIRECT){
+      TRANSLATION_ERROR;
+      return;
+    }
+
+    GenAsmInstrBranchInitLoop(instr, ASM_DIRECT, operation->offset, 0);
+  }
   else TRANSLATION_ERROR;
 }
 
@@ -694,6 +702,9 @@ void TranslateToAssembler(int instr_index){
     break;
   case IR_LABEL:
     GenAsmTextLabel(default_base_text, instr->offset);
+    break;
+  case IR_INITLOOP:
+    GenAsmTextLabel(default_base_initloop, instr->offset);
     break;
 
   case IR_VPUSHB:

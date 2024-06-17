@@ -73,9 +73,11 @@ const char* production_names[] = {
 
   [COMMA_EXPR]            = "Comma list",
 
+  [FOR_DECL]              = "For declarators",
   [INITIALIZATION]        = "Initialization",
-
   [COMPOUND_STMT]         = "Compound statement",
+
+  [INITIALIZER_LOOP]      = "Initializer loop",
 
   [LABEL_STMT]            = "Label",
   [CASE_STMT]             = "Case label",
@@ -91,7 +93,6 @@ const char* production_names[] = {
   [WHILE_STMT]            = "While statement",
   [DO_WHILE_STMT]         = "Do-while statement",
   [FOR_STMT]              = "For statement",
-  [FOR_DECL]              = "For declarators",
 
   [GOTO_STMT]             = "Goto statement",
   [CONTINUE_STMT]         = "Continue statement",

@@ -147,6 +147,7 @@ void     InitValDrop(InitVal*);
 void     InitValDump(InitVal*);
 
 void InitValAddToList(InitVal*, LinkedList*);
+int  InitValAddToListNoReplace(InitVal*, LinkedList*); // 1 for successful add
 
 void StaticObjListDump(void);
 void LabelNameListDump(void);

@@ -80,7 +80,7 @@ int main(int argc, char** argv){
 	yyin = fopen(input_path, "r");
 
   if(yyin == NULL) {
-    printf("Input file not found.\n");
+    printf("Input file %s not found.\n", input_path);
     return 1;
   }
 

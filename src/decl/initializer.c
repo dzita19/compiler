@@ -18,7 +18,34 @@
 //   because impl openned ones are implicitely closed
 
 
+static int GetNumberOfScalars(Struct* type){
+  type = StructGetUnqualified(type);
 
+  if(StructIsArray(type)){
+    return type->attributes * GetNumberOfScalars(type->parent);
+  }
+  else if(StructIsStruct(type)){
+    int fields = 0;
+    for(Node* node = type->obj->members.first; node; node = node->next){
+      Obj* curr_field = node->info;
+      fields += GetNumberOfScalars(curr_field->type);
+    }
+
+    return fields;
+  }
+  else if(StructIsUnion(type)){
+    Obj* first_member = type->obj->members.first->info;
+    return GetNumberOfScalars(first_member->type);
+  }
+  else if(StructIsScalar(type)){
+    return 1;
+  }
+
+  return 0;
+}
+
+
+// adds zero initialization if the member is not specified 
 static void ZeroInitializeAllMembers(LinkedList* list, Struct* type, int offset){
   type = StructGetUnqualified(type);
 
@@ -48,7 +75,33 @@ static void ZeroInitializeAllMembers(LinkedList* list, Struct* type, int offset)
     init_val->expression = StackPop(&tree->stack);
     init_val->offset = offset;
     init_val->size   = type->size;
-    InitValAddToList(init_val, list);
+    if(!InitValAddToListNoReplace(init_val, list)) InitValDrop(init_val);
+  }
+}
+
+#define LARGE_INITIALIZER_THRESHOLD 4
+
+static int ShouldGenerateInitLoop(LinkedList* init_vals, Struct* type){
+  type = StructGetUnqualified(type);
+
+  int total_members_count = GetNumberOfScalars(type);
+  int initialized_members_count = 0;
+
+  for(Node* node = init_vals->first; node; node = node->next){
+    InitVal* init_val = node->info;
+
+    initialized_members_count += GetNumberOfScalars(init_val->expression->expr_node->type);
+  }
+
+  // no need for the loop
+  if(initialized_members_count >= total_members_count / 2
+      || total_members_count <= LARGE_INITIALIZER_THRESHOLD){
+        
+    return 0;
+  }
+  // yes loop (add it in the caller function)
+  else {
+    return 1;
   }
 }
 
@@ -87,20 +140,35 @@ void FullInitialization(void){
         current_obj_definition->type = StructArrayLengthSpecification(current_obj_definition->type, size_specification);
       }
 
-      // initialize all members at least with zero
-      LinkedList* resovled_initializers = LinkedListCreateEmpty();
-      ZeroInitializeAllMembers(resovled_initializers, current_obj_definition->type, 0);
+      // fill in the list with init_vals if order of offsets!!!
+      // IMPORTANT!!!
+
+      LinkedList* resolved_initializers = LinkedListCreateEmpty();
 
       Node* current_node = initializer_list->first;
       while(current_node){
-        InitValAddToList(current_node->info, resovled_initializers);
+        InitValAddToList(current_node->info, resolved_initializers);
         Node* old_node = current_node;
         current_node = old_node->next;
 
         NodeDrop(LinkedListRemoveFirst(initializer_list));
       }
 
-      for(Node* node = resovled_initializers->first; node; node = node->next){
+      if(ShouldGenerateInitLoop(resolved_initializers, current_obj_definition->type)){
+        TreeNode* init_loop = TreeInsertNode(tree, INITIALIZER_LOOP, 0);
+        init_loop->expr_node = ExprNodeCreateEmpty();
+        init_loop->expr_node->type = StructToPtr(current_obj_definition->type);
+        init_loop->expr_node->kind = ADDRESS_OF;
+        init_loop->expr_node->obj_ref = current_obj_definition;
+        init_loop->expr_node->address = 0;
+
+        Statement();
+      }
+      else{
+        ZeroInitializeAllMembers(resolved_initializers, current_obj_definition->type, 0);
+      }
+
+      for(Node* node = resolved_initializers->first; node; node = node->next){
         InitVal* init_val = node->info;
 
         // push address of initialized object
@@ -126,10 +194,11 @@ void FullInitialization(void){
         InitValDrop(init_val);
       }
 
-      LinkedListDrop(resovled_initializers);
+      LinkedListDrop(resolved_initializers);
 
       TreeInsertNode(tree, INITIALIZATION, initializer_counter);
     }
+    // static initializer
     else{
       LinkedList* initializer_list = StackPeek(&initializer_stack);
       int correct = 1;
@@ -165,25 +234,26 @@ void FullInitialization(void){
         }
 
         // set all members at least to zero
-        LinkedList* resovled_initializers = LinkedListCreateEmpty();
-        ZeroInitializeAllMembers(resovled_initializers, current_obj_definition->type, 0);
+        LinkedList* resolved_initializers = LinkedListCreateEmpty();
 
         Node* current_node = initializer_list->first;
         while(current_node){
-          InitValAddToList(current_node->info, resovled_initializers);
+          InitValAddToList(current_node->info, resolved_initializers);
           Node* old_node = current_node;
           current_node = old_node->next;
 
           NodeDrop(LinkedListRemoveFirst(initializer_list));
         }
+
+        ZeroInitializeAllMembers(resolved_initializers, current_obj_definition->type, 0);
         
-        for(Node* node = resovled_initializers->first; node; node = node->next){
+        for(Node* node = resolved_initializers->first; node; node = node->next){
           Node* new_node = NodeCreateEmpty();
           new_node->info = node->info;
           LinkedListInsertLast(current_obj_definition->init_vals, new_node);
         }
 
-        LinkedListDrop(resovled_initializers);
+        LinkedListDrop(resolved_initializers);
       }
       else{
         for(Node* node = initializer_list->first; node; node = node->next){

@@ -13,6 +13,7 @@ typedef enum IrOpcode{
   IR_NOP,   // NOOP
   IR_FUNCT, // uses Obj*
   IR_LABEL, // uses offset
+  IR_INITLOOP, // uses offset
 
   IR_PUSHB,
   IR_PUSHW,
@@ -118,6 +119,7 @@ typedef enum IrOperand{
   IR_OP_STRING,
   IR_OP_LABEL,
   IR_OP_SWTAB,
+  IR_OP_INITLOOP,
 } IrOperand;
 
 typedef struct StackAlloc StackAlloc;
@@ -165,8 +167,11 @@ extern IrInstr* InsertInstrString(IrOpcode, IrAddr, int string_ref, int offset);
 extern IrInstr* InsertInstrArithm(IrOpcode, IrAddr, int offset);
 extern IrInstr* InsertInstrLabel(IrOpcode, int label_index);
 extern IrInstr* InsertInstrSwitchTab(IrOpcode, int tab_index);
+extern IrInstr* InsertInstrInitLoop(IrOpcode opcode, int label_index);
+
 extern IrInstr* InsertNewFunct(Obj* obj_ref);
 extern IrInstr* InsertNewLabel(int label_index);
+extern IrInstr* InsertNewInitLoop(int label_index);
 // extern void InsertNewSwitchTab(int tab_index);
 
 #endif

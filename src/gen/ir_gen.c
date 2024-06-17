@@ -5,6 +5,8 @@
 
 static Obj* current_function = 0;
 
+static int initializer_loop_counter = 0;
+
 static void AllocateNodeLabel(TreeNode* tree_node){
   if(tree_node->label < 0) tree_node->label = ++label_counter;
 }
@@ -851,6 +853,86 @@ static void GenerateStatementList(TreeNode* tree_node){
   }
 }
 
+static void GenerateInitializerLoop(TreeNode* tree_node){
+  int initloop_start_index = ++initializer_loop_counter;
+  int initloop_end_index = ++initializer_loop_counter;
+
+  Obj* obj_to_initialize = tree_node->expr_node->obj_ref;
+  Struct* type_to_init = tree_node->expr_node->obj_ref->type;
+
+  int size_opcode = 0;
+  if     (type_to_init->align == 1) size_opcode = IR_STORB - IR_STORB;
+  else if(type_to_init->align == 2) size_opcode = IR_STORW - IR_STORB;
+  else if(type_to_init->align == 4) size_opcode = IR_STORL - IR_STORB;
+
+  // init counter
+  InsertInstrObj(IR_VPUSHL, IR_ADDR_DIRECT, obj_to_initialize, type_to_init->size); // 1
+  InsertInstrObj(IR_VPUSHL, IR_ADDR_DIRECT, obj_to_initialize, 0); // 2
+
+  // generate label
+  InsertNewInitLoop(initloop_start_index);
+
+  // test range
+  InsertInstrStackPop(IR_CMP); // 0
+  InsertInstrInitLoop(IR_JB, initloop_end_index);
+
+  // do the initialization
+  InsertInstrStackPop(IR_REVIV); // 1
+  InsertInstrStackPop(IR_REVIV); // 2
+  InsertInstrArithm(IR_PUSHB + size_opcode, IR_ADDR_DIRECT, 0); // 3
+  InsertInstrStackPop(IR_STORB + size_opcode); // 1
+
+  // increment counter
+  InsertInstrStackPop(IR_REVIV); // 2
+  InsertInstrArithm(IR_ADD, IR_ADDR_DIRECT, type_to_init->align); // 2
+  InsertInstrInitLoop(IR_JMP, initloop_start_index);
+  InsertInstrStackPop(IR_POP); // 1
+  InsertInstrStackPop(IR_POP); // 0
+
+  // label after the loop
+  InsertNewInitLoop(initloop_end_index);
+}
+
+/*static void GenerateInitializerLoop(TreeNode* tree_node){
+  int initloop_start_index = ++initializer_loop_counter;
+  int initloop_end_index = ++initializer_loop_counter;
+
+  Obj* obj_to_initialize = tree_node->expr_node->obj_ref;
+  Struct* type_to_init = tree_node->expr_node->obj_ref->type;
+
+  int size_opcode = 0;
+  if     (type_to_init->align == 1) size_opcode = IR_STORB - IR_STORB;
+  else if(type_to_init->align == 2) size_opcode = IR_STORW - IR_STORB;
+  else if(type_to_init->align == 4) size_opcode = IR_STORL - IR_STORB;
+
+  // init counter
+  InsertInstrArithm(IR_PUSHL, IR_ADDR_DIRECT, 0); // 1
+
+  // generate label
+  InsertNewInitLoop(initloop_start_index);
+
+  // test range
+  InsertInstrArithm(IR_PUSHL, IR_ADDR_DIRECT, type_to_init->size / type_to_init->align); // 2
+  InsertInstrStackPop(IR_CMP); // 0
+  InsertInstrInitLoop(IR_JAE, initloop_end_index);
+
+  // do the initialization
+  InsertInstrStackPop(IR_REVIV); // 1
+  InsertInstrObj(IR_PUSHL, IR_ADDR_DIRECT, obj_to_initialize, 0); // 2
+  InsertInstrStackPop(IR_ADD); // 1
+  InsertInstrArithm(IR_PUSHB + size_opcode, IR_ADDR_DIRECT, 0); // 2
+  InsertInstrStackPop(IR_STORB + size_opcode); // 0
+
+  // increment counter
+  InsertInstrStackPop(IR_REVIV); // 1
+  InsertInstrArithm(IR_ADD, IR_ADDR_DIRECT, type_to_init->align); // 1
+  InsertInstrInitLoop(IR_JMP, initloop_start_index);
+  InsertInstrStackPop(IR_POP);
+
+  // label after the loop
+  InsertNewInitLoop(initloop_end_index);
+}*/
+
 static void GenerateStatement(TreeNode* tree_node){
   for(int i = 0; i < tree_node->num_of_children; i++){
     GenerateIntermediate(tree_node->children[i]);
@@ -1020,6 +1102,10 @@ void GenerateIntermediate(TreeNode* tree_node){
   case FOR_DECL:
   case COMPOUND_STMT:
     GenerateStatementList(tree_node);
+    break;
+
+  case INITIALIZER_LOOP:
+    GenerateInitializerLoop(tree_node);
     break;
 
   case EXPRESSION_STMT:

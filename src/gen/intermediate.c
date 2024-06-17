@@ -6,6 +6,7 @@ const char* ir_opcode_names[] = {
   [IR_NOP]    = "NOP",
   [IR_FUNCT]  = "FUNCT",
   [IR_LABEL]  = "LABEL",
+  [IR_INITLOOP] = "INITLOOP",
 
   [IR_PUSHB]  = "PUSHB",
   [IR_PUSHW]  = "PUSHW",
@@ -119,6 +120,9 @@ void IrInstrDump(IrInstr* ir_instr){
   else if(ir_instr->opcode == IR_LABEL){
     fprintf(irout, "%s%d:", default_base_text, ir_instr->offset);
   }
+  else if(ir_instr->opcode == IR_INITLOOP){
+    fprintf(irout, "%s%d:", default_base_initloop, ir_instr->offset);
+  }
   else {
     if(InstrNumOfResults(ir_instr->opcode)) fprintf(irout, "   + ");
     else fprintf(irout, "     ");
@@ -177,6 +181,12 @@ void IrInstrDump(IrInstr* ir_instr){
     fprintf(irout, "%s%d", default_base_switch, ir_instr->offset);
     if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "]");
   } break;
+  case IR_OP_INITLOOP:{
+    fprintf(irout, " ");
+    if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "[");
+    fprintf(irout, "%s%d", default_base_initloop, ir_instr->offset);
+    if(ir_instr->addr == IR_ADDR_INDIRECT) fprintf(irout, "]");
+  } break;
   }
 }
 
@@ -222,6 +232,7 @@ int InstrGetDepth(IrInstr* ir_instr){
   case IR_NOP:
   case IR_FUNCT:
   case IR_LABEL:
+  case IR_INITLOOP:
     return 0;
 
   case IR_PUSHB:
@@ -340,6 +351,7 @@ int InstrNumOfResults(IrOpcode opcode){
   case IR_NOP:
   case IR_FUNCT:
   case IR_LABEL:
+  case IR_INITLOOP:
     return 0;
 
   case IR_PUSHB:
@@ -542,12 +554,20 @@ IrInstr* InsertInstrSwitchTab(IrOpcode opcode, int tab_index){
   return InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_SWTAB, 0, 0, tab_index, 0);
 }
 
+IrInstr* InsertInstrInitLoop(IrOpcode opcode, int label_index){
+  return InsertInstr(opcode, IR_ADDR_DIRECT, IR_OP_INITLOOP, 0, 0, label_index, 0);
+}
+
 IrInstr* InsertNewFunct(Obj* obj_ref){
   return InsertInstr(IR_FUNCT, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, obj_ref, 0, 0, 0);
 }
 
 IrInstr* InsertNewLabel(int label_index){
   return InsertInstr(IR_LABEL, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, label_index, 0);
+}
+
+IrInstr* InsertNewInitLoop(int label_index){
+  return InsertInstr(IR_INITLOOP, IR_ADDR_DIRECT, IR_OP_NO_OPERAND, 0, 0, label_index, 0);
 }
 
 // void InsertNewSwitchTab(int tab_index){

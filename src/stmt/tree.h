@@ -76,8 +76,9 @@ typedef enum Production{
 
   INITIALIZATION,
   FOR_DECL,
-
   COMPOUND_STMT,
+
+  INITIALIZER_LOOP,
 
   EXPRESSION_STMT,
   EMPTY_STMT,

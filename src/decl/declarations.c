@@ -246,6 +246,36 @@ void InitValAddToList(InitVal* init_val, LinkedList* list){
   else     LinkedListInsertLast(list, new_node);
 }
 
+int InitValAddToListNoReplace(InitVal* init_val, LinkedList* list){
+  Node* node = list->first;
+  while(node){
+    InitVal* current_val = node->info;
+
+    int a0 = init_val->offset;
+    int a1 = init_val->offset + init_val->size;
+
+    int b0 = current_val->offset;
+    int b1 = current_val->offset + current_val->size;
+
+    // if any overlapping, don't insert new init_val
+    if((a0 <= b0 && a1 > b0) || (a1 >= b1 && a0 < b0)){
+      return 0;
+    }
+    // not yet inside the overlapping range
+    else if(a0 >= b1) node = node->next;
+    // outside the overlapping range, safe to insert the value
+    else if(a1 <= b0) break; 
+  }
+
+  Node* new_node = NodeCreateEmpty();
+  new_node->info = init_val;
+
+  if(node) LinkedListInsertBefore(list, node, new_node);
+  else     LinkedListInsertLast(list, new_node);
+
+  return 1;
+}
+
 #include <stdio.h>
 
 void StaticObjListDump(void){

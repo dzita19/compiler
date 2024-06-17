@@ -80,5 +80,6 @@ extern void GenAsmInstrBranchObj(AsmInstr instr, int addressing, Obj* dst_obj, i
 extern void GenAsmInstrBranchArithm(AsmInstr instr, int addressing, int dst_value);
 extern void GenAsmInstrBranchString(AsmInstr instr, int addressing, int dst_string_ref, int dst_offset);
 extern void GenAsmInstrBranchLabel(AsmInstr instr, int addressing, int dst_label_index, int dst_offset);
+extern void GenAsmInstrBranchInitLoop(AsmInstr instr, int addressing, int dst_initloop_index, int dst_offset);
 
 #endif
