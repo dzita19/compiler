@@ -246,7 +246,8 @@ static void TranslateExit(int instr_index){
   }
 
   if(operation->operand == IR_OP_ARITHM){
-    FreeStackMemory(operation->offset);
+    // FreeStackMemory(operation->offset);
+    FreeAllStackMemory();
     GenAsmInstrOneop(ASM_POPL, REG_BP);
     GenAsmInstrNoop(ASM_RET);
   }

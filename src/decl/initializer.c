@@ -155,6 +155,8 @@ void FullInitialization(void){
       }
 
       if(ShouldGenerateInitLoop(resolved_initializers, current_obj_definition->type)){
+
+        // put init loop inside the initializer node (else there is problem with compound statement)
         TreeNode* init_loop = TreeInsertNode(tree, INITIALIZER_LOOP, 0);
         init_loop->expr_node = ExprNodeCreateEmpty();
         init_loop->expr_node->type = StructToPtr(current_obj_definition->type);
@@ -162,7 +164,7 @@ void FullInitialization(void){
         init_loop->expr_node->obj_ref = current_obj_definition;
         init_loop->expr_node->address = 0;
 
-        Statement();
+        initializer_counter++;
       }
       else{
         ZeroInitializeAllMembers(resolved_initializers, current_obj_definition->type, 0);

@@ -1,20 +1,12 @@
 extern int printf(const char* format, ...);
 
-int f(){
-  int x[5] = { 1, 2, 3, 4, 5, };
-}
+int main(int argc, const char** argv){
 
-int g(){
-  int x[5] = { };
+  int a = 1, b = 2, c = 3;
+  int d = a + (b + (c + ((int[1024]){ [4] = 4 }[4])));
+  int e;
+  printf("a: %d, b: %d, c: %d, d:%d\n", a, b, c, d);
+  printf("%p\n", (char*)&d - (char*)&e);
 
-  printf("x: ");
-  for(int i = 0; i < sizeof(x) / sizeof(*x); i++){
-    printf("%d ", x[i]);
-  }
-  printf("\n");
-}
-
-int main(void){
-  f();
-  g();
+  return 0;
 }

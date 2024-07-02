@@ -155,6 +155,11 @@ void AllocateStackMemory(int size){
   if(size > 0) GenAsmInstrTwoopArithm(ASM_SUB, ASM_DIRECT, size, REG_SP);
 }
 
+void FreeAllStackMemory(void){
+  stack_frame_size = 0;
+  GenAsmInstrLoadReg(ASM_MOVL, ASM_DIRECT, REG_BP, 0, REG_SP);
+}
+
 void FreeStackMemory(int size){
   size = (size + FRAME_ALIGNMENT - 1) / FRAME_ALIGNMENT * FRAME_ALIGNMENT;
   stack_frame_size -= size;

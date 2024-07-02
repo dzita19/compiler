@@ -156,8 +156,8 @@ static void GenerateCompoundLiteral(TreeNode* tree_node){
   else if(tree_node->expr_node->type->size == 2) size_opcode = IR_DERFW - IR_DERFB;
   else if(tree_node->expr_node->type->size == 4) size_opcode = IR_DERFL - IR_DERFB;
   
-  // generate address
-  InsertInstrArithm(IR_PUSHB + size_opcode, IR_ADDR_DIRECT, tree_node->expr_node->address);
+  // generate address of anonymous object
+  InsertInstrObj(IR_PUSHB + size_opcode, IR_ADDR_DIRECT, tree_node->expr_node->obj_ref, tree_node->expr_node->address);
 
   if(ArithmeticExprUsed(tree_node));
   else InsertInstrStackPop(IR_POP);
@@ -868,13 +868,14 @@ static void GenerateInitializerLoop(TreeNode* tree_node){
   // init counter
   InsertInstrObj(IR_VPUSHL, IR_ADDR_DIRECT, obj_to_initialize, type_to_init->size); // 1
   InsertInstrObj(IR_VPUSHL, IR_ADDR_DIRECT, obj_to_initialize, 0); // 2
+  InsertInstrNoOp(IR_LOGENT); // added to keep the registers consistent
 
   // generate label
   InsertNewInitLoop(initloop_start_index);
 
   // test range
   InsertInstrStackPop(IR_CMP); // 0
-  InsertInstrInitLoop(IR_JB, initloop_end_index);
+  InsertInstrInitLoop(IR_JBE, initloop_end_index);
 
   // do the initialization
   InsertInstrStackPop(IR_REVIV); // 1
@@ -891,6 +892,7 @@ static void GenerateInitializerLoop(TreeNode* tree_node){
 
   // label after the loop
   InsertNewInitLoop(initloop_end_index);
+  InsertInstrNoOp(IR_LOGEXT); // added to keep the registers consistent
 }
 
 /*static void GenerateInitializerLoop(TreeNode* tree_node){

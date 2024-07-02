@@ -51,9 +51,10 @@ extern void AllocateToRegister(IrInstr* instr); // allocates to every register t
 extern void FreeFromRegister(IrInstr* instr);   // frees from a specific register
 
 extern void AllocateStackMemory(int size); // for function entry (callee-perspective)
-extern void FreeStackMemory(int size);     // for function entry (callee-perspective)
+extern void FreeAllStackMemory(void);      // for function exit  (callee-perspective) - prefered if alloca is used
+extern void FreeStackMemory(int size);     // for function exit  (callee-perspective)
 
-extern void AllocateTempMemory(int size);  // for function call  (caller-perspective)
-extern void FreeTempMemory(int size);      // for function call  (caller-perspective)
+extern void AllocateTempMemory(int size);  // before function call (caller-perspective)
+extern void FreeTempMemory(int size);      // after  function call (caller-perspective)
 
 #endif
